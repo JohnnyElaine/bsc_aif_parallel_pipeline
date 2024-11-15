@@ -1,0 +1,35 @@
+# Ignore all video files in the "media" folder and its subdirectories
+media/**/*.mp4
+media/**/*.avi
+media/**/*.mkv
+media/**/*.mov
+media/**/*.wmv
+media/**/*.flv
+
+# Ignore model checkpoint files
+checkpoints/**/*.pt
+
+
+# IDE
+.idea/
+.vscode/
+
+#logs
+logs/
+
+# Python-related ignores
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+*.env
+*.venv
+env/
+venv/
+.Python
+
+# Virtual environment folders
+build/
+dist/
+.eggs/
+*.egg-info/
