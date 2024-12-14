@@ -1,1 +1,0 @@
-# TODO find a way to provide video as real time stream (optinal)

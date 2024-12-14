@@ -1,16 +1,23 @@
+import logging.handlers
 import time
 import cv2 as cv
+import numpy as np
+
 from .video import Video
+from image_detector import YoloDetector
+
+log = logging.getLogger("my_app")
 
 
 class StreamSimulator:
-    def __init__(self, vid_path):
+    def __init__(self, vid_path: str, detector: YoloDetector):
         self.video = Video(vid_path)
-        self.max_width = 1280 # TODO: make dynamic to suit input video
+        self.max_width = 1280  # TODO: make dynamic to suit input video
         self.max_height = 720
         self.target_fps = self.video.fps
         self.is_running = False
-        self.display_width, self.display_height = self._calculate_display_dimensions()
+        self.display_width, self.display_height = self._scale_display_dimensions()
+        self.detector = detector
 
     def start(self):
         self.is_running = True
@@ -22,7 +29,17 @@ class StreamSimulator:
 
         self.stop()
 
-    def _calculate_display_dimensions(self):
+    def _scale_display_dimensions(self):
+        """
+        Scales the dimensions of the video stream to fit within the set max_height and max_width.
+
+        Returns
+        -------
+        display_width
+            The new width of the video stream.
+        display_height
+            The new height of the video stream.
+        """
         display_width = self.video.width
         display_height = self.video.height
 
@@ -41,9 +58,8 @@ class StreamSimulator:
             iteration_start_time = time.time()
 
             ret, frame = self.video.read_frame()
-
             if not ret:
-                print("End of video stream or error reading frame.")
+                log.debug("End of video stream or error reading frame.")
                 break
 
             frame = self._process_frame(frame)
@@ -61,16 +77,29 @@ class StreamSimulator:
             iteration_duration = time.time() - iteration_start_time  # time to process 1 frame
             self._enforce_target_frame_rate(target_frame_time, iteration_duration)
 
-    def _enforce_target_frame_rate(self, target_frame_time, iteration_duration):
+    def _enforce_target_frame_rate(self, target_frame_time: float, iteration_duration: float):
         wait_time = max(target_frame_time - iteration_duration, 0)
         time.sleep(wait_time)
 
-    def _process_frame(self, frame):
+    def _process_frame(self, frame: np.ndarray) -> np.ndarray:
+        """
+        Takes a frame from an original source and processes it using:
+        YOLOv11, OpenCV Image resize. Returning the processed frame.
+
+        Parameters
+        ----------
+        frame
+
+        Returns
+        -------
+        The processed and (optionally) resized frame.
+        """
+        data = self.detector.predict_frame(frame)
+
         return cv.resize(frame, (self.display_width, self.display_height))
 
     def _display_frame(self, frame, fps):
         self._display_fps(frame, fps)
-
         cv.imshow('Video', frame)
 
     def _display_fps(self, frame, fps):
@@ -86,7 +115,7 @@ class StreamSimulator:
 
     def stop(self):
         """
-        Stops the video stream, releases the video capture and destroys all openCV windows
+        Stops the video video_stream, releases the video capture and destroys all openCV windows
         :return:
         """
         if not self.is_running:

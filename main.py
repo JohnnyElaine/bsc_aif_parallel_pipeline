@@ -3,9 +3,10 @@ import logging.handlers
 import pathlib
 import json
 import atexit
-from stream import StreamSimulator
+from image_detector import YoloDetector
+from video_stream import StreamSimulator
 
-logger = logging.getLogger("my_app")  # __name__ is a common choice
+log = logging.getLogger("my_app")
 
 def setup_logging(enable_file_logging=False):
     config_file = pathlib.Path("logging/config.json")
@@ -28,21 +29,14 @@ def setup_logging(enable_file_logging=False):
 
 def main():
     setup_logging(enable_file_logging=False)
-    logging.basicConfig(level="INFO")
-    logger.debug("debug message", extra={"x": "hello"})
-    logger.info("info message")
-    logger.warning("warning message")
-    logger.error("error message")
-    logger.critical("critical message")
-    try:
-        1 / 0
-    except ZeroDivisionError:
-        logger.exception("exception message")
+    logging.basicConfig(level="DEBUG")
 
+    yolo_detector = YoloDetector("/checkpoints/models/obb/yolo11x-obb.pt")
 
-    stream_simulator = StreamSimulator('media/vid/4K Video of Highway Traffic! [KBsqQez-O4w].mp4')
+    stream_simulator = StreamSimulator('media/vid/Aerial view of a highway overpass [EORUDBFLBTM].mp4', yolo_detector)
     stream_simulator.start()
 
 
+# Program Entry Point
 if __name__ == "__main__":
     main()
