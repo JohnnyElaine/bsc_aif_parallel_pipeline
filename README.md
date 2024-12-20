@@ -37,9 +37,20 @@ Eventuell modus der Frames skipped um Real-Time aufrecht zu erhalten
 
 # Implementation
 ## 1. Implement Monitoring and Feedback
-- Device metrics: CPU/GPU utilization, memory usage, battery level.
-- Network metrics: Bandwidth, latency.
-- Inference metrics: Accuracy, confidence scores.
+- **Device metrics:** CPU/GPU utilization, memory usage, battery level.
+- **Network metrics:** Bandwidth, latency.
+- **Inference metrics:**  Accuracy, confidence scores.
 
 Using Python, you can monitor system metrics with libraries like `psutil` or `pySMART`.
-## 2. 
+## 2. Decision-Making Logic
+Create a decision-making mechanism based on SLOs:
+
+- **Rule-based:** Simple if-else logic for specific thresholds (e.g., offload if CPU > 80%).
+- **Machine Learning:**  Predict the best device for inference based on historical data and current metrics.
+
+## Implement Task Distribution:
+Set up communication protocols (e.g., MQTT, gRPC, WebSocket) to share workloads:
+
+**Local Execution:**  Perform inference directly on the edge device.
+**Offloading:**  Send the task to a nearby edge device or cloud server for inference.
+**Collaborative Execution: ** Split inference tasks across devices (e.g., pre-processing locally, inferencing remotely).
