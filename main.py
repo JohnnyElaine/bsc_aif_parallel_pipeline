@@ -31,7 +31,7 @@ def main():
     setup_logging(enable_file_logging=False)
     logging.basicConfig(level="DEBUG")
 
-    yolo_detector = YoloDetector("/checkpoints/models/obb/yolo11x-obb.pt")
+    yolo_detector = YoloDetector("./checkpoints/models/obb/yolo11s-obb.pt")
 
     stream_simulator = StreamSimulator('media/vid/Aerial view of a highway overpass [EORUDBFLBTM].mp4', yolo_detector)
     stream_simulator.start()

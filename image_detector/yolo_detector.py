@@ -11,7 +11,7 @@ class YoloDetector:
         self.model = self._load_model(model_path)
 
     def predict_frame(self, frame):
-        return self.model(source=frame, device=self.device, verbose=False)
+        return self.model.predict(source=frame, device=self.device, verbose=False)
         #self.model.track(source=frame, device=self.device, tracker='./trackers/bytetrack.yaml', show=True)
 
     @staticmethod
