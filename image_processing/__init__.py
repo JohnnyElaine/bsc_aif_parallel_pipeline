@@ -1,1 +1,4 @@
+from .image_processor.image_processor_factory import ImageProcessorFactory
 from .image_processor.image_processor import ImageProcessor
+from .image_processor.obb_image_processor import OBBImageProcessor
+from .image_processor.detect_image_processor import DetectionImageProcessor
