@@ -3,6 +3,11 @@ Find more efficient way to load YOLO model, i.e. load with GPU maybe
 Extract OBB Boxes from yolo-inference result and draw them
 Eventuell modus der Frames skipped um Real-Time aufrecht zu erhalten
 
+# Ways of upholding SLOs
+- Give some of your tasks to other Node
+- Reduce FPS, i.e. skip frames. Example: 30 fps source video --> skip every 3rd frame to end up with 20fps video.
+- Switching to faster YOLO model
+- Reducing size of input frame, e.g 1080p -> 720p
 
 # SLO Ideas
 ## Generel Ideas

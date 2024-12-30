@@ -3,7 +3,7 @@ import logging.handlers
 import pathlib
 import json
 import atexit
-from image_detector import YoloDetector
+from image_processing import ImageProcessor
 from video_stream import StreamSimulator
 
 log = logging.getLogger("my_app")
@@ -31,12 +31,11 @@ def main():
     setup_logging(enable_file_logging=False)
     logging.basicConfig(level="DEBUG")
 
-    yolo_detector = YoloDetector("./checkpoints/models/obb/yolo11s-obb.pt")
+    image_processor = ImageProcessor()
 
-    stream_simulator = StreamSimulator('media/vid/Aerial view of a highway overpass [EORUDBFLBTM].mp4', yolo_detector)
+    stream_simulator = StreamSimulator(image_processor, 'media/vid/Video Background Stock Footage Free ( Port, yachts, flying by a drone on the piers and marinas ) [XISqY-EC-QQ].mp4', True)
     stream_simulator.start()
 
 
-# Program Entry Point
 if __name__ == "__main__":
     main()

@@ -2,7 +2,7 @@ import torch
 import logging.handlers
 from ultralytics import YOLO
 
-log = logging.getLogger("my_app")
+log = logging.getLogger("aif_edge_node_log")
 
 
 class YoloDetector:
@@ -10,9 +10,8 @@ class YoloDetector:
         self.device = self._select_device()
         self.model = self._load_model(model_path)
 
-    def predict_frame(self, frame):
-        return self.model.predict(source=frame, device=self.device, verbose=False)
-        #self.model.track(source=frame, device=self.device, tracker='./trackers/bytetrack.yaml', show=True)
+    def predict_image(self, image):
+        return self.model.predict(source=image, device=self.device, verbose=False)
 
     @staticmethod
     def _select_device():
