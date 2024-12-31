@@ -4,11 +4,11 @@ from ultralytics import YOLO
 
 log = logging.getLogger("aif_edge_node")
 
-
 class YoloDetector:
     def __init__(self, model_path: str):
         self.device = self._select_device()
         self.model = self._load_model(model_path)
+        self.class_names = self.model.names
 
     def predict_image(self, image):
         return self.model.predict(source=image, device=self.device, verbose=False)

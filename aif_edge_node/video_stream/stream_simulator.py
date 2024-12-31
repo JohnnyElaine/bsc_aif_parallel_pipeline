@@ -4,13 +4,13 @@ import cv2 as cv
 import numpy as np
 
 from .video import Video
-from aif_edge_node.image_processing import ImageProcessor
+from aif_edge_node.image_processing import YOLOImageProcessor
 
 logger = logging.getLogger("aif_edge_node")
 
 
 class StreamSimulator:
-    def __init__(self, image_processor: ImageProcessor, vid_path: str, show_result=True):
+    def __init__(self, image_processor: YOLOImageProcessor, vid_path: str, show_result=True):
         self.video = Video(vid_path)
         self.max_display_width = 1280  # TODO: make dynamic to suit input video
         self.max_display_height = 720
@@ -68,7 +68,7 @@ class StreamSimulator:
             fps = int(1 / (current_time - prev_frame_time))
             prev_frame_time = current_time
 
-            self._display_frame(frame, fps)
+            self._display_image(frame, fps)
 
             # Exit if the 'q' key is pressed
             if cv.waitKey(1) & 0xFF == ord('q'):
@@ -100,9 +100,9 @@ class StreamSimulator:
 
         return img
 
-    def _display_frame(self, frame, fps):
-        self._display_fps(frame, fps)
-        cv.imshow('Video', frame)
+    def _display_image(self, image, fps):
+        self._display_fps(image, fps)
+        cv.imshow('Video', image)
 
     def _display_fps(self, frame, fps):
         # Overlay FPS text on the frame

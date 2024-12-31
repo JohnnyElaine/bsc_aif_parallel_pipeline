@@ -33,13 +33,17 @@ def setup_logging(log_to_file=False, log_file_path=None):
         file_handler.setLevel(logging.INFO)  # Log INFO and above to the file
         logger.addHandler(file_handler)
 
+    logger.debug("logger loaded successfully")
+
     return logger
 
 def main():
+    print("Starting edge node")
     setup_logging()
 
-    image_processor = ImageProcessorFactory.create_image_processor('detection')
-    input_video = GlobalVariables.PROJECT_ROOT / 'media' / 'vid' / '4K Video of Highway Traffic! [KBsqQez-O4w].mp4'
+    image_processor = ImageProcessorFactory.create_image_processor('obb')
+    #input_video = GlobalVariables.PROJECT_ROOT / 'media' / 'vid' / 'general_detection' / '4K Video of Highway Traffic! [KBsqQez-O4w].mp4'
+    input_video = GlobalVariables.PROJECT_ROOT / 'media' / 'vid' / 'obb' / 'Video Background Stock Footage Free ( Port, yachts, flying by a drone on the piers and marinas ) [XISqY-EC-QQ].mp4'
 
     stream_simulator = StreamSimulator(image_processor, input_video, True)
     stream_simulator.start()

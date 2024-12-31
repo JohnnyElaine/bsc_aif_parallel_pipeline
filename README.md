@@ -10,7 +10,7 @@ Modus der Frames skipped um Real-Time aufrecht zu erhalten
 - Reducing size of input frame, e.g 1080p -> 720p
 
 # SLO Ideas
-## Generel Ideas
+## General Ideas
 - Latency
 - Accuracy
 - Resource Efficiency
