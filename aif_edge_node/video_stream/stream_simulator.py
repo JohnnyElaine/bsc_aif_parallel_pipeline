@@ -4,9 +4,9 @@ import cv2 as cv
 import numpy as np
 
 from .video import Video
-from image_processing import ImageProcessor
+from aif_edge_node.image_processing import ImageProcessor
 
-log = logging.getLogger("my_app")
+logger = logging.getLogger("aif_edge_node")
 
 
 class StreamSimulator:
@@ -59,7 +59,7 @@ class StreamSimulator:
 
             ret, frame = self.video.read_frame()
             if not ret:
-                log.debug("End of video stream or error reading frame.")
+                logger.debug("End of video stream or error reading frame.")
                 break
 
             frame = self._process_image(frame)

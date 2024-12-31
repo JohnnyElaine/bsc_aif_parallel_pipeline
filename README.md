@@ -1,7 +1,7 @@
 # TODO
 Find more efficient way to load YOLO model, i.e. load with GPU maybe
-Extract OBB Boxes from yolo-inference result and draw them
-Eventuell modus der Frames skipped um Real-Time aufrecht zu erhalten
+
+Modus der Frames skipped um Real-Time aufrecht zu erhalten
 
 # Ways of upholding SLOs
 - Give some of your tasks to other Node
@@ -59,3 +59,17 @@ Set up communication protocols (e.g., MQTT, gRPC, WebSocket) to share workloads:
 **Local Execution:**  Perform inference directly on the edge device.
 **Offloading:**  Send the task to a nearby edge device or cloud server for inference.
 **Collaborative Execution: ** Split inference tasks across devices (e.g., pre-processing locally, inferencing remotely).
+
+## Recommended Setup:
+**1.Architecture:** Use a controller-based architecture if the system is medium-to-large scale or the coordination logic is complex.
+
+For smaller systems or performance-critical scenarios, consider direct communication.
+**2.Protocol:**
+
+Use gRPC for robust, real-time, and low-latency communication.
+Combine with MQTT or ZeroMQ if you need to broadcast events or decouple communication.
+**3.Implementation:**
+
+Define a protocol with actions (TaskOffload, AdjustQuality, ReduceFPS, ResizeFrame) and associated metadata (e.g., node workload, target SLOs).
+Ensure the protocol supports bidirectional communication for dynamic adjustments.
+Let me know if you'd like help with implementation details!

@@ -9,13 +9,12 @@ media/**/*.flv
 # Ignore model checkpoint files
 checkpoints/**/*.pt
 
-
 # IDE
 .idea/
 .vscode/
 
 #logs
-logs/
+aif_edge_node/logs/
 
 # Python-related ignores
 *.pyc

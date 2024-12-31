@@ -1,13 +1,17 @@
-import logging.config
-import logging.handlers
-import pathlib
-import json
-import atexit
-from image_processing import ImageProcessorFactory
-from video_stream import StreamSimulator
+# HOW TO USE LOG:
+# import logging.handlers
+# log = logging.getLogger("my_app")
+# setup_logging(enable_file_logging=False)
+# logging.basicConfig(level="INFO")
 
-log = logging.getLogger("my_app")
+# logger.debug("debug message", extra={"x": "hello"})
+# logger.info("info message")
+# logger.warning("warning message")
+# logger.error("error message")
+# logger.critical("critical message")
+# logger.exception("exception message")
 
+'''
 def setup_logging(enable_file_logging=False):
     config_file = pathlib.Path("logging/config.json")
     with open(config_file) as f_in:
@@ -25,19 +29,4 @@ def setup_logging(enable_file_logging=False):
     if queue_handler is not None:
         queue_handler.listener.start()
         atexit.register(queue_handler.listener.stop)
-
-
-
-def main():
-    setup_logging(enable_file_logging=False)
-    logging.basicConfig(level="DEBUG")
-
-    image_processor = ImageProcessorFactory.create_image_processor('detection')
-    input_video = 'media/vid/4K Video of Highway Traffic! [KBsqQez-O4w].mp4'
-
-    stream_simulator = StreamSimulator(image_processor, input_video, True)
-    stream_simulator.start()
-
-
-if __name__ == "__main__":
-    main()
+'''

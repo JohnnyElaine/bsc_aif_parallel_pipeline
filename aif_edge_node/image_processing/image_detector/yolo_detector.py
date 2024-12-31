@@ -2,7 +2,7 @@ import torch
 import logging.handlers
 from ultralytics import YOLO
 
-log = logging.getLogger("aif_edge_node_log")
+log = logging.getLogger("aif_edge_node")
 
 
 class YoloDetector:
@@ -22,7 +22,7 @@ class YoloDetector:
     @staticmethod
     def _load_model(path: str):
         model = YOLO(path)
-        log.debug(f'Loaded model {model.info()}')
+        log.debug(f'Successfully Loaded model {model.info()}, from {path}')
         return model
 
 

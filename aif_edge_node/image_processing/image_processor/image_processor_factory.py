@@ -1,6 +1,6 @@
-from image_processing.image_processor.detect_image_processor import DetectionImageProcessor
-from image_processing.image_processor.image_processor import ImageProcessor
-from image_processing.image_processor.obb_image_processor import OBBImageProcessor
+from aif_edge_node.image_processing.image_processor.detect_image_processor import DetectionImageProcessor
+from aif_edge_node.image_processing.image_processor.image_processor import ImageProcessor
+from aif_edge_node.image_processing.image_processor.obb_image_processor import OBBImageProcessor
 
 
 class ImageProcessorFactory:

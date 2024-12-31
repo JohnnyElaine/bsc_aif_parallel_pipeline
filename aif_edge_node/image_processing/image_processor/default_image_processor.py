@@ -1,6 +1,6 @@
 import numpy as np
 
-from image_processing.image_processor.image_processor import ImageProcessor
+from aif_edge_node.image_processing.image_processor.image_processor import ImageProcessor
 
 
 class DefaultmageProcessor(ImageProcessor):

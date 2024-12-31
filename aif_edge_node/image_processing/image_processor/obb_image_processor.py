@@ -1,14 +1,14 @@
 import cv2 as cv
 import numpy as np
 
-from image_processing.image_detector.yolo_detector import YoloDetector
-from image_processing.image_processor.image_processor import ImageProcessor
-
+from aif_edge_node.global_variables import GlobalVariables
+from aif_edge_node.image_processing.image_detector.yolo_detector import YoloDetector
+from aif_edge_node.image_processing.image_processor.image_processor import ImageProcessor
 
 class OBBImageProcessor(ImageProcessor):
     def __init__(self):
         super().__init__()
-        self.detector = YoloDetector("./checkpoints/models/obb/yolo11n-obb.pt")
+        self.detector = YoloDetector(GlobalVariables.PROJECT_ROOT / 'checkpoints' / 'models' / 'obb' / 'olo11n-obb.pt')
 
     def _draw_bounding_boxes(self, image, bounding_boxes):
         """
