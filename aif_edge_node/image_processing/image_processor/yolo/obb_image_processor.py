@@ -26,10 +26,14 @@ class OBBYOLOImageProcessor(YOLOImageProcessor):
             box = cv.boxPoints(rect)  # Get the 4 vertices of the rotated rectangle
             box = np.int0(box)  # Convert vertex coordinates to integers
 
+            # Draw the bounding box
             self._draw_bounding_boxes(image, box)
 
-            x, y = np.int0((x, y))
-            self._draw_labels(image, class_id, confidence, x, y)
+            # Calculate the bottom-right corner of the OBB (max x, max y)
+            bottom_right = tuple(np.max(box, axis=0))
+
+            # Draw the label at the bottom-right corner
+            self._draw_labels(image, class_id, confidence, bottom_right[0], bottom_right[1])
 
         return image
 
@@ -41,7 +45,7 @@ class OBBYOLOImageProcessor(YOLOImageProcessor):
 
         # Adjust font scale and thickness for better readability
         text_size = cv.getTextSize(label, super().font, super().font_scale, super().font_thickness)[0]
-        text_x, text_y = x, y - 10  # Position of the text
+        text_x, text_y = x - text_size[0], y + 5  # Position the text at the bottom-right corner
 
         # Draw a filled rectangle as background for the text
         cv.rectangle(image, (text_x, text_y - text_size[1] - 5),
