@@ -3,7 +3,6 @@ from typing import Any
 import cv2 as cv
 from numpy import ndarray
 
-
 class Video:
     def __init__(self, path: str):
         self.path = path

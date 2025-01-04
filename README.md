@@ -1,7 +1,47 @@
 # TODO
+Add Super resoltuon mode (upscaling)
 Find more efficient way to load YOLO model, i.e. load with GPU maybe
-
 Modus der Frames skipped um Real-Time aufrecht zu erhalten
+
+# Dependencies
+## How to buld `requirements.txt`
+```pip
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
+pip install ultralytics
+pip freeze > requirements.txt
+```
+
+# Description
+This is an edge node for a distributed systems. The distributed system consists of multiple edge nodes and a single coordinator.
+
+## Edge Node
+The edge nodes constantly receive a video stream either via a network or simulated from a source video file. The edge nodes 
+perform computations upon the individual frames of the stream and send the result to a different node (such as the coordinator) where the 
+resulting computed frames are stitched together resulting in the new output video stream.
+
+Computations upon the original video stream include:
+- YOLOv11 General Object Detection with regular bounding boxes
+- YOLOv11 Arial View Object Detection with oriented bounding boxes
+- Resolution up-scaling
+
+### Task Splitting
+In order to improve overall performance and to harness maximum computational resources from the distributed system, the 
+workload/task is split between all the available edge nodes. 
+
+### Measures to uphold Quality of Service (QoS)
+Should the computational resources of the system are not enough to uphold certain Service level objectives (SLOs), 
+i.e. processing time for x amount frames, energy consumption, etc then the edge node has some options to reduce the 
+required computational load. These include:
+
+- Task offloading: Delegate some of your tasks (i.e. frames to compute) to someone else.
+- Reducing Quality: Switch to a lower grade YOLOv11 model, Reduce up-scaling quality.
+
+### Active Inference
+In order to choose which measure is used to uphold QoS/SLOs, the edge node uses Active Inference. 
+
+## Coordinator
+The coordinator is used to coordinate the edge nodes. 
+
 
 # Ways of upholding SLOs
 - Give some of your tasks to other Node

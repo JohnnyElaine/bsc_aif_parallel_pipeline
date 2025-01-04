@@ -8,6 +8,7 @@ from aif_edge_node.image_processing.image_processor.yolo.yolo_image_processor im
 class OBBYOLOImageProcessor(YOLOImageProcessor):
     def __init__(self):
         super().__init__()
+
         self.detector = YoloDetector(GlobalVariables.PROJECT_ROOT / 'checkpoints' / 'models' / 'obb' / 'yolo11n-obb.pt')
 
     def _draw_bounding_boxes_with_label(self, image, boxes, class_ids, confidences):

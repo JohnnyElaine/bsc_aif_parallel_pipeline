@@ -1,9 +1,10 @@
 import logging
 from pathlib import Path
 
-from global_variables import GlobalVariables
-from image_processing import ImageProcessorFactory
-from video_stream import StreamSimulator
+from aif_edge_node.global_variables import GlobalVariables
+from aif_edge_node.image_processing.image_processor.image_processor_factory import ImageProcessorFactory
+from aif_edge_node.node import Node
+from aif_edge_node.video_stream.stream_simulator import StreamSimulator
 
 def setup_logging(log_to_file=False, log_file_path=None):
     # Define a log format
@@ -38,15 +39,12 @@ def setup_logging(log_to_file=False, log_file_path=None):
     return logger
 
 def main():
-    print("Starting edge node")
+    print("Starting Program")
     setup_logging()
 
-    image_processor = ImageProcessorFactory.create_image_processor('obb')
-    #input_video = GlobalVariables.PROJECT_ROOT / 'media' / 'vid' / 'general_detection' / '4K Video of Highway Traffic! [KBsqQez-O4w].mp4'
-    input_video = GlobalVariables.PROJECT_ROOT / 'media' / 'vid' / 'obb' / 'Video Background Stock Footage Free ( Port, yachts, flying by a drone on the piers and marinas ) [XISqY-EC-QQ].mp4'
+    node = Node('node-0', 'obb', True)
+    node.start()
 
-    stream_simulator = StreamSimulator(image_processor, input_video, True)
-    stream_simulator.start()
 
 
 if __name__ == "__main__":

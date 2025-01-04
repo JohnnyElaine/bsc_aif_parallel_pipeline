@@ -1,16 +1,17 @@
-import logging.handlers
+import logging
 import time
 import cv2 as cv
 import numpy as np
 
+from .video_stream import VideoStream
 from .video import Video
-from aif_edge_node.image_processing import YOLOImageProcessor
+from aif_edge_node.image_processing.image_processor.image_processor import ImageProcessor
 
-logger = logging.getLogger("aif_edge_node")
+log = logging.getLogger("aif_edge_node")
 
 
-class StreamSimulator:
-    def __init__(self, image_processor: YOLOImageProcessor, vid_path: str, show_result=True):
+class StreamSimulator(VideoStream):
+    def __init__(self, image_processor: ImageProcessor, vid_path: str, show_result=True):
         self.video = Video(vid_path)
         self.max_display_width = 1280  # TODO: make dynamic to suit input video
         self.max_display_height = 720
@@ -28,6 +29,18 @@ class StreamSimulator:
         self._play_video()
 
         self.stop()
+
+    def stop(self):
+        """
+        Stops the video video_stream, releases the video capture and destroys all openCV windows
+        :return:
+        """
+        if not self.is_running:
+            return
+
+        self.is_running = False
+        self.video.release()
+        cv.destroyAllWindows()
 
     def _scale_display_dimensions(self):
         """
@@ -59,7 +72,7 @@ class StreamSimulator:
 
             ret, frame = self.video.read_frame()
             if not ret:
-                logger.debug("End of video stream or error reading frame.")
+                log.debug("End of video stream or error reading frame.")
                 break
 
             frame = self._process_image(frame)
@@ -115,17 +128,6 @@ class StreamSimulator:
 
         cv.putText(frame, fps_text, position, font, font_scale, color, thickness)
 
-    def stop(self):
-        """
-        Stops the video video_stream, releases the video capture and destroys all openCV windows
-        :return:
-        """
-        if not self.is_running:
-            return
-
-        self.is_running = False
-        self.video.release()
-        cv.destroyAllWindows()
 
 
 
