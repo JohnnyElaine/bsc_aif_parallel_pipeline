@@ -8,15 +8,17 @@ Modus der Frames skipped um Real-Time aufrecht zu erhalten
 ```pip
 pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
 pip install ultralytics
+pip install msgpack
+
 pip freeze > requirements.txt
 ```
 
 # Description
-This is an edge node for a distributed systems. The distributed system consists of multiple edge nodes and a single coordinator.
+This is an edge node for a distributed systems. The distributed system consists of multiple edge nodes and a single controller.
 
 ## Edge Node
 The edge nodes constantly receive a video stream either via a network or simulated from a source video file. The edge nodes 
-perform computations upon the individual frames of the stream and send the result to a different node (such as the coordinator) where the 
+perform computations upon the individual frames of the stream and send the result to a different node (such as the controller) where the 
 resulting computed frames are stitched together resulting in the new output video stream.
 
 Computations upon the original video stream include:
@@ -39,8 +41,8 @@ required computational load. These include:
 ### Active Inference
 In order to choose which measure is used to uphold QoS/SLOs, the edge node uses Active Inference. 
 
-## Coordinator
-The coordinator is used to coordinate the edge nodes. 
+## controller
+The controller is used to coordinate the edge nodes. 
 
 
 # Ways of upholding SLOs

@@ -17,9 +17,8 @@ class Node:
 
     def start(self):
         log.debug("Starting node")
-        image_processor = ImageProcessorFactory.create_image_processor('obb')
         # input_video = GlobalVariables.PROJECT_ROOT / 'media' / 'vid' / 'general_detection' / '4K Video of Highway Traffic! [KBsqQez-O4w].mp4'
         input_video = GlobalVariables.PROJECT_ROOT / 'media' / 'vid' / 'obb' / 'Video Background Stock Footage Free ( Port, yachts, flying by a drone on the piers and marinas ) [XISqY-EC-QQ].mp4'
 
-        stream_simulator = StreamSimulator(image_processor, input_video, True)
+        stream_simulator = StreamSimulator(self.image_processor, input_video, True)
         stream_simulator.start()

@@ -2,9 +2,8 @@ import logging
 from pathlib import Path
 
 from aif_edge_node.global_variables import GlobalVariables
-from aif_edge_node.image_processing.image_processor.image_processor_factory import ImageProcessorFactory
 from aif_edge_node.node import Node
-from aif_edge_node.video_stream.stream_simulator import StreamSimulator
+
 
 def setup_logging(log_to_file=False, log_file_path=None):
     # Define a log format
@@ -44,7 +43,6 @@ def main():
 
     node = Node('node-0', 'obb', True)
     node.start()
-
 
 
 if __name__ == "__main__":
