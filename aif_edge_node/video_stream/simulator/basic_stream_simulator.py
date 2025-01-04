@@ -3,14 +3,14 @@ import time
 import cv2 as cv
 import numpy as np
 
-from .video_stream import VideoStream
-from .video import Video
+from aif_edge_node.video_stream.video_stream import VideoStream
+from aif_edge_node.video_stream.video import Video
 from aif_edge_node.image_processing.image_processor.image_processor import ImageProcessor
 
 log = logging.getLogger("aif_edge_node")
 
 
-class StreamSimulator(VideoStream):
+class BasicStreamSimulator(VideoStream):
     def __init__(self, image_processor: ImageProcessor, vid_path: str, show_result=True):
         self.video = Video(vid_path)
         self.max_display_width = 1280  # TODO: make dynamic to suit input video
