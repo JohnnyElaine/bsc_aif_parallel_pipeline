@@ -1,4 +1,7 @@
-class BufferedStreamSimulator:
+from aif_edge_node.video_stream.video_stream import VideoStream
+
+
+class BufferedStreamSimulator(VideoStream):
     def __init__(self):
         pass
 
