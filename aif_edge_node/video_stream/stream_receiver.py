@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-class VideoStream(ABC):
+class StreamReceiver(ABC):
     @abstractmethod
     def start(self):
         pass

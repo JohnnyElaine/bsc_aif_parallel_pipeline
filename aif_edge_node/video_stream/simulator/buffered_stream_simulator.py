@@ -1,7 +1,7 @@
-from aif_edge_node.video_stream.video_stream import VideoStream
+from aif_edge_node.video_stream.stream_receiver import StreamReceiver
 
 
-class BufferedStreamSimulator(VideoStream):
+class BufferedStreamSimulator(StreamReceiver):
     def __init__(self):
         pass
 

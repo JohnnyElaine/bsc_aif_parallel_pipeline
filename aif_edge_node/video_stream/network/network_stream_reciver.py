@@ -2,10 +2,10 @@ import socket
 import msgpack
 import numpy as np
 
-from aif_edge_node.video_stream.video_stream import VideoStream
+from aif_edge_node.video_stream.stream_receiver import StreamReceiver
 
 
-class NetworkStream(VideoStream):
+class NetworkStreamReceiver(StreamReceiver):
     def __init__(self):
         pass
 

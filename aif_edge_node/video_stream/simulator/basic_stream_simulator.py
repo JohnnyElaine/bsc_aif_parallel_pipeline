@@ -3,14 +3,14 @@ import time
 import cv2 as cv
 import numpy as np
 
-from aif_edge_node.video_stream.video_stream import VideoStream
+from aif_edge_node.video_stream.stream_receiver import StreamReceiver
 from aif_edge_node.video_stream.video import Video
 from aif_edge_node.image_processing.image_processor.image_processor import ImageProcessor
 
 log = logging.getLogger("aif_edge_node")
 
 
-class BasicStreamSimulator(VideoStream):
+class BasicStreamSimulator(StreamReceiver):
     def __init__(self, image_processor: ImageProcessor, vid_path, show_result=True):
         self.video = Video(vid_path)
         self._target_frame_time = 1 / self.video.fps
@@ -64,10 +64,10 @@ class BasicStreamSimulator(VideoStream):
         return display_width, display_height
 
     def _play_video(self):
-        prev_frame_time = time.time()
+        prev_frame_time = time.perf_counter()
 
         while self.is_running:
-            iteration_start_time = time.time()
+            iteration_start_time = time.perf_counter()
 
             ret, frame = self.video.read_frame()
             if not ret:
@@ -76,7 +76,7 @@ class BasicStreamSimulator(VideoStream):
 
             frame = self._process_image(frame)
 
-            current_time = time.time()
+            current_time = time.perf_counter()
             fps = int(1 / (current_time - prev_frame_time))
             prev_frame_time = current_time
 
@@ -112,7 +112,7 @@ class BasicStreamSimulator(VideoStream):
         cv.imshow('Video', image)
 
     def _enforce_target_fps(self, iteration_start_time: float):
-        iteration_duration = time.time() - iteration_start_time
+        iteration_duration = time.perf_counter() - iteration_start_time
         wait_time = max(self._target_frame_time - iteration_duration, 0)
         if wait_time > 0:
             time.sleep(wait_time)

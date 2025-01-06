@@ -4,13 +4,21 @@ Find more efficient way to load YOLO model, i.e. load with GPU maybe
 Modus der Frames skipped um Real-Time aufrecht zu erhalten
 
 # Dependencies
-## How to buld `requirements.txt`
+## How to build `requirements.txt`
 ```pip
 pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
 pip install ultralytics
 pip install msgpack
+pip install msgpack-numpy
 
 pip freeze > requirements.txt
+```
+
+Add on top of requirements.txt
+```
+-f https://download.pytorch.org/whl/cu124/torch
+-f https://download.pytorch.org/whl/cu124/torchvision
+-f https://download.pytorch.org/whl/cu124/torchaudio
 ```
 
 # Description
