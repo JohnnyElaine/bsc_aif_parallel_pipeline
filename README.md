@@ -1,5 +1,6 @@
 # TODO
-Add Super resoltuon mode (upscaling)
+Separate frame receiving and computing via threads/processes --> read frames from network into buffer first
+Add Super resolution mode (up-scaling)
 Find more efficient way to load YOLO model, i.e. load with GPU maybe
 Modus der Frames skipped um Real-Time aufrecht zu erhalten
 

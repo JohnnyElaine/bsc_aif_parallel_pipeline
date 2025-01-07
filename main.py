@@ -2,9 +2,9 @@ import logging
 from pathlib import Path
 
 from aif_edge_node.global_variables import GlobalVariables
-from aif_edge_node.enum.computation_type import ComputationType
+from aif_edge_node.enums.computation_type import ComputationType
 from aif_edge_node.node import Node
-from aif_edge_node.enum.stream_type import StreamType
+from aif_edge_node.enums.stream_type import StreamType
 from controller.controller import Controller
 from controller.stream_generation.node_info.node_info import NodeInfo
 
@@ -63,9 +63,6 @@ def main():
     controller.start()
     for node in nodes:
         node.start()
-
-
-
 
 
 if __name__ == "__main__":
