@@ -37,7 +37,7 @@ class GeneralStreamComputer(Process, StreamComputer):
         self.stop()
 
     def stop(self):
-        log.debug("stopping general-stream-computer")
+        log.info("stopping general-stream-computer")
         self._is_running = False
 
     def _iteration(self):

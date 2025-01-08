@@ -51,7 +51,7 @@ class UDPStreamGenerator(NetworkStreamGenerator):
         iteration_start_time = time.perf_counter()
         ret, frame, frame_index = video.read_frame() # frame = ndarray
         if not ret:
-            log.debug("End of video reached")
+            log.error("End of video reached")
             return False
 
         target_node_index = self._determine_target_node_index()

@@ -21,7 +21,7 @@ class YoloDetector:
 
     def _select_device(self):
         self._device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        log.debug(f"Using {self._device}")
+        log.info(f"Using {self._device}")
 
     def _load_model(self,):
         self._model = YOLO(self.model_path)

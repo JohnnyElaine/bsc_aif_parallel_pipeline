@@ -18,6 +18,6 @@ class Controller(Process):
     def run(self):
         log = setup_logging('controller')
 
-        log.debug("starting controller")
+        log.info("starting controller")
         stream_generator = LocalMessageStreamGenerator(self._port, self._video_path, self._nodes)
         stream_generator.run()

@@ -42,6 +42,7 @@ class LocalMessageStreamGenerator(LocalStreamGenerator):
         Stops the video stream, releases the video capture
         :return:
         """
+        log.info('stopping message-stream-generator')
         self._video.release()
         self._disconnect_nodes()
 
@@ -78,7 +79,7 @@ class LocalMessageStreamGenerator(LocalStreamGenerator):
 
         ret, frame, frame_index = self._video.read_frame()
         if not ret:
-            log.debug("End of video stream or error reading frame.")
+            log.error("End of video stream or error reading frame.")
             return False
 
         self._send_frame(frame, frame_index)

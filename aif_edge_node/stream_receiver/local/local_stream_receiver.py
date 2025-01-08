@@ -34,13 +34,14 @@ class LocalStreamReceiver(StreamReceiver):
                 break
 
     def stop(self):
-        log.debug("stopping stream_receiver")
+        log.info("stopping stream-receiver")
 
     def _iteration(self):
         """
         :return: True if the iteration was successful. False otherwise.
         """
         data = self._receive_message()
+        log.debug(f'received frame: {data['frame_index']}, frame-buffer size: {self._queue.qsize()}')
 
         if data is None:
             return False

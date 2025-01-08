@@ -35,6 +35,7 @@ class BasicStreamSimulator(StreamSimulator):
         Stops the video stream_computation, releases the video capture and destroys all openCV windows
         :return:
         """
+        log.info('stopping basic-stream-simulator')
         if not self.is_running:
             return
 
