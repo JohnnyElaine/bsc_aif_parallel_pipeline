@@ -19,16 +19,19 @@ def create_nodes(num: int, port: int):
     return nodes, nodes_info
 
 def main():
-    port = 5000
+    port = 10000
     vid_path = GlobalVariables.PROJECT_ROOT / 'media' / 'vid' / 'general_detection' / '1080p Video of Highway Traffic! [KBsqQez-O4w].mp4'
     num_nodes = 1
 
     nodes, nodes_info = create_nodes(num_nodes, port)
+
+    for node in nodes:
+        node.start()
+
     controller = Controller(port, vid_path, nodes_info)
     controller.run()
 
-    #for node in nodes:
-    #    node.start()
+
 
 
 

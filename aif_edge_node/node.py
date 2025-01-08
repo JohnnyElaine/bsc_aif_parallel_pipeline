@@ -29,6 +29,7 @@ class Node(Process):
         log = setup_logging('node')
         
         log.debug(f"starting node-{self.identifier}")
+        print(f"starting node-{self.identifier}")
         self._image_processor.initialize()
 
         # Pipe for IPC

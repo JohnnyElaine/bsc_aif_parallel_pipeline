@@ -23,6 +23,7 @@ class LocalStreamReceiver(StreamReceiver):
 
     def run(self):
         log.debug("starting stream-receiver")
+        self._is_running = True
         while self._is_running:
             try:
                 ok = self._iteration()

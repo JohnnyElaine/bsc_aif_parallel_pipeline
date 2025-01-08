@@ -19,11 +19,12 @@ class GeneralStreamComputer(Process, StreamComputer):
         super().__init__()
         self.identifier = identifier
         self._pipe_to_receiver = pipe_to_receiver
-        self._is_running = True
+        self._is_running = False
         self._image_processor = image_processor
 
     def run(self):
         log.debug("starting general-stream-computer")
+        self._is_running = True
         while self._is_running:
             try:
                 ok = self._iteration()
@@ -33,7 +34,10 @@ class GeneralStreamComputer(Process, StreamComputer):
                 print("Producer disconnected. Node exiting.")
                 break
 
+        self.stop()
+
     def stop(self):
+        log.debug("stopping general-stream-computer")
         self._is_running = False
 
     def _iteration(self):
