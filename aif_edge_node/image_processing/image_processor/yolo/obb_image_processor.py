@@ -11,6 +11,9 @@ class OBBYOLOImageProcessor(YOLOImageProcessor):
 
         self.detector = YoloDetector(GlobalVariables.PROJECT_ROOT / 'checkpoints' / 'models' / 'obb' / 'yolo11n-obb.pt')
 
+    def initialize(self):
+        self._detector.initialize()
+
     def _draw_bounding_boxes_with_label(self, image, boxes, class_ids, confidences):
         """
         Draw (oriented bounding boxes on an image.

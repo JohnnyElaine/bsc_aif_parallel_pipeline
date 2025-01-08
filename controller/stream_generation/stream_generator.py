@@ -7,7 +7,7 @@ class StreamGenerator(ABC):
         self.video_path = video_path
 
     @abstractmethod
-    def start(self):
+    def run(self):
         pass
 
     @staticmethod

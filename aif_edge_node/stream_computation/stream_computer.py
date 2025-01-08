@@ -1,9 +1,6 @@
 from abc import ABC, abstractmethod
 
-class StreamReceiver(ABC):
-    @abstractmethod
-    def start(self):
-        pass
+class StreamComputer(ABC):
 
     @abstractmethod
     def stop(self):

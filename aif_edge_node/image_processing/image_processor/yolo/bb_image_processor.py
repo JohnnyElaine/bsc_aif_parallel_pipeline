@@ -8,7 +8,10 @@ from aif_edge_node.image_processing.image_processor.yolo.yolo_image_processor im
 class BBYOLOImageProcessor(YOLOImageProcessor):
     def __init__(self):
         super().__init__()
-        self.detector = YoloDetector(GlobalVariables.PROJECT_ROOT / 'checkpoints' / 'models' / 'detection' / 'yolo11n.pt')
+        self._detector = YoloDetector(GlobalVariables.PROJECT_ROOT / 'checkpoints' / 'models' / 'detection' / 'yolo11n.pt')
+
+    def initialize(self):
+        self._detector.initialize()
 
     def _draw_bounding_boxes_with_label(self, image, boxes, class_ids, confidences):
         """
@@ -31,7 +34,7 @@ class BBYOLOImageProcessor(YOLOImageProcessor):
         cv.rectangle(image, (x1, y1), (x2, y2), (255, 0, 0), 3)
 
     def _draw_labels(self, image, class_id, confidence, x, y):
-        label = f"{self.detector.class_names[int(class_id)]} {confidence:.2f}"
+        label = f"{self._detector.class_names[int(class_id)]} {confidence:.2f}"
 
         # Adjust font scale and thickness for better readability
         text_size = cv.getTextSize(label, super().font, super().font_scale, super().font_thickness)[0]

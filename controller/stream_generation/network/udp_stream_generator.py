@@ -24,7 +24,7 @@ class UDPStreamGenerator(NetworkStreamGenerator):
         super().__init__(nodes, video_path)
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
-    def start(self):
+    def run(self):
         """
         Start reading the video and streaming frames to edge nodes.
         """

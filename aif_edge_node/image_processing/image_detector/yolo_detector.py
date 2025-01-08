@@ -2,27 +2,33 @@ import torch
 import logging.handlers
 from ultralytics import YOLO
 
-log = logging.getLogger("aif_edge_node")
+log = logging.getLogger("node")
 
 class YoloDetector:
-    def __init__(self, model_path: str):
-        self.device = self._select_device()
-        self.model = self._load_model(model_path)
-        self.class_names = self.model.names
+    def __init__(self, model_path):
+        self.model_path = model_path
+        self.class_names = None
+        self._device = None
+        self._model = None
+
+    def initialize(self):
+        self._select_device()
+        self._load_model()
+        self._set_class_names()
 
     def predict_image(self, image):
-        return self.model.predict(source=image, device=self.device, verbose=False)
+        return self._model.predict(source=image, device=self._device, verbose=False)
 
-    @staticmethod
-    def _select_device():
-        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        log.debug(f"Using {device}")
-        return device
+    def _select_device(self):
+        self._device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        log.debug(f"Using {self._device}")
 
-    @staticmethod
-    def _load_model(path: str):
-        model = YOLO(path)
-        log.debug(f'Successfully Loaded model {model.info()}, from {path}')
-        return model
+    def _load_model(self,):
+        self._model = YOLO(self.model_path)
+        log.debug(f'Successfully Loaded model {self._model.info()}, from {self.model_path}')
 
+        self.class_names = self._model.names
+
+    def _set_class_names(self):
+        self.class_names = self._model.names
 

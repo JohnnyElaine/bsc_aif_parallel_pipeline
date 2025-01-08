@@ -2,10 +2,10 @@ import socket
 import msgpack
 import numpy as np
 
-from aif_edge_node.video_stream.network.network_stream_reciver import NetworkStreamReceiver
+from aif_edge_node.stream_receiver.network.network_stream_receiver import NetworkStreamComputer
 
 
-class UDPStreamReceiver(NetworkStreamReceiver):
+class UDPStreamReceiver(NetworkStreamComputer):
     MAX_UDP_PACKET_SIZE = 32768
 
     def __init__(self, ip, port):

@@ -24,15 +24,18 @@ class LocalMessageStreamGenerator(LocalStreamGenerator):
         self._curr_offload_target = 0
         self._listener = Listener(('localhost', port))
 
-    def start(self):
-
+    def run(self):
         if not self._video.is_opened():
             raise IOError(f'Unable to open input video file. Path: {self._video.path}')
 
         self._wait_for_nodes_to_connect()
 
-        self._stream_video()
-        self.stop()
+        try:
+            self._stream_video()
+        except ConnectionAbortedError:
+            log.exception(f'Connection with a node failed')
+        finally:
+            self.stop()
 
     def stop(self):
         """

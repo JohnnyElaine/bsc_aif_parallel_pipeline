@@ -3,14 +3,14 @@ import time
 import cv2 as cv
 import numpy as np
 
-from aif_edge_node.video_stream.stream_receiver import StreamReceiver
-from aif_edge_node.video_stream.video import Video
+from aif_edge_node.stream_computation.simulator.stream_simulator import StreamSimulator
+from aif_edge_node.video.video import Video
 from aif_edge_node.image_processing.image_processor.image_processor import ImageProcessor
 
-log = logging.getLogger("aif_edge_node")
+log = logging.getLogger("node")
 
 
-class BasicStreamSimulator(StreamReceiver):
+class BasicStreamSimulator(StreamSimulator):
     def __init__(self, image_processor: ImageProcessor, vid_path, show_result=True):
         self.video = Video(vid_path)
         self._target_frame_time = 1 / self.video.fps
@@ -32,7 +32,7 @@ class BasicStreamSimulator(StreamReceiver):
 
     def stop(self):
         """
-        Stops the video video_stream, releases the video capture and destroys all openCV windows
+        Stops the video stream_computation, releases the video capture and destroys all openCV windows
         :return:
         """
         if not self.is_running:
