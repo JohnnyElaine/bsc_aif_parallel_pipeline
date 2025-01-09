@@ -7,7 +7,7 @@ import msgpack_numpy as mnp
 
 from multiprocessing.connection import Client
 
-from aif_edge_node.stream_receiver.stream_receiver import StreamReceiver
+from aif_edge_worker.stream_receiver.stream_receiver import StreamReceiver
 
 mnp.patch()
 

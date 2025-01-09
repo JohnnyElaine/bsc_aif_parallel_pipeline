@@ -2,10 +2,11 @@ import socket
 import msgpack
 import numpy as np
 
-from aif_edge_node.stream_receiver.network.network_stream_receiver import NetworkStreamComputer
+from aif_edge_worker.stream_receiver.network.zeromq_stream_receiver import ZeroMQStreamReceiver
+from aif_edge_worker.stream_receiver.stream_receiver import StreamReceiver
 
 
-class UDPStreamReceiver(NetworkStreamComputer):
+class UDPStreamReceiver(StreamReceiver):
     MAX_UDP_PACKET_SIZE = 32768
 
     def __init__(self, ip, port):

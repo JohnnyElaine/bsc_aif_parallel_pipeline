@@ -23,6 +23,7 @@ class UDPStreamGenerator(NetworkStreamGenerator):
         """
         super().__init__(nodes, video_path)
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        # bind socket
 
     def run(self):
         """

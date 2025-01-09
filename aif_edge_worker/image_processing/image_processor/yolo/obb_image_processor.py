@@ -1,9 +1,9 @@
 import cv2 as cv
 import numpy as np
 
-from aif_edge_node.global_variables import GlobalVariables
-from aif_edge_node.image_processing.image_detector.yolo_detector import YoloDetector
-from aif_edge_node.image_processing.image_processor.yolo.yolo_image_processor import YOLOImageProcessor
+from aif_edge_worker.global_variables import GlobalVariables
+from aif_edge_worker.image_processing.image_detector.yolo_detector import YoloDetector
+from aif_edge_worker.image_processing.image_processor.yolo.yolo_image_processor import YOLOImageProcessor
 
 class OBBYOLOImageProcessor(YOLOImageProcessor):
     def __init__(self):

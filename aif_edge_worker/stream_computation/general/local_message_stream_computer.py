@@ -7,8 +7,8 @@ import numpy as np
 
 from multiprocessing import Process
 
-from aif_edge_node.image_processing.image_processor.image_processor import ImageProcessor
-from aif_edge_node.stream_computation.stream_computer import StreamComputer
+from aif_edge_worker.image_processing.image_processor.image_processor import ImageProcessor
+from aif_edge_worker.stream_computation.stream_computer import StreamComputer
 
 
 log = logging.getLogger("node")

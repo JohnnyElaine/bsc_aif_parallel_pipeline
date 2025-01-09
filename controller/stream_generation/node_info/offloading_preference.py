@@ -22,7 +22,6 @@ class OffloadingPreference:
         0 < 3 ==> offload
         1 < 3 ==> offload
         ...
-
     """
     def __init__(self, offload_frames: int, total_frames: int, targets):
         self.offload_frames = offload_frames

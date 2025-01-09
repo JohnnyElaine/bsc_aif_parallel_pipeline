@@ -3,9 +3,9 @@ import time
 import cv2 as cv
 import numpy as np
 
-from aif_edge_node.stream_computation.simulator.stream_simulator import StreamSimulator
-from aif_edge_node.video.video import Video
-from aif_edge_node.image_processing.image_processor.image_processor import ImageProcessor
+from aif_edge_worker.stream_computation.simulator.stream_simulator import StreamSimulator
+from aif_edge_worker.video.video import Video
+from aif_edge_worker.image_processing.image_processor.image_processor import ImageProcessor
 
 log = logging.getLogger("node")
 

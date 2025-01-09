@@ -2,7 +2,7 @@ import numpy as np
 import cv2 as cv
 
 from abc import abstractmethod, ABC
-from aif_edge_node.image_processing.image_processor.image_processor import ImageProcessor
+from aif_edge_worker.image_processing.image_processor.image_processor import ImageProcessor
 
 class YOLOImageProcessor(ImageProcessor, ABC):
     font = cv.FONT_HERSHEY_SIMPLEX

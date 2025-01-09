@@ -46,6 +46,8 @@ required computational load. These include:
 
 - Task offloading: Delegate some of your tasks (i.e. frames to compute) to someone else.
 - Reducing Quality: Switch to a lower grade YOLOv11 model, Reduce up-scaling quality.
+- Reduce Source video FPS
+- Reduce Source video Quality
 
 ### Active Inference
 In order to choose which measure is used to uphold QoS/SLOs, the edge node uses Active Inference. 
@@ -66,9 +68,9 @@ The controller is used to coordinate the edge nodes.
 - Accuracy
 - Resource Efficiency
 
-# Specific SLOs:
-
-
+## Specific SLOs:
+### Size of Frame Buffer
+- Frame Buffer must not exceed a certain size
 ### Accuracy-Driven SLOs:
 - Bounding Box Confidence Threshold: Ensure that detected objects have confidence scores above a certain threshold. For example, bounding boxes should only be displayed if YOLO predicts an object with ≥90% confidence.
 - False Positive Rate (FPR): Limit the number of incorrect bounding boxes (false positives) to maintain the reliability of displayed results.

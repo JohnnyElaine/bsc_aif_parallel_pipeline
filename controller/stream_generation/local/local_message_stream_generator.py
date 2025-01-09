@@ -7,21 +7,16 @@ from multiprocessing.connection import Listener
 
 import numpy as np
 
-from controller.stream_generation.local.local_stream_generator import LocalStreamGenerator
 from controller.stream_generation.node_info.node_info import NodeInfo
+from controller.stream_generation.stream_generator import StreamGenerator
 from controller.stream_generation.video import Video
 
 log = logging.getLogger("controller")
 mnp.patch()
 
-class LocalMessageStreamGenerator(LocalStreamGenerator):
+class LocalMessageStreamGenerator(StreamGenerator):
     def __init__(self, port: int, video_path, nodes: list[NodeInfo]):
-        super().__init__(video_path)
-        self.nodes = nodes
-        self._video = Video(self.video_path)
-        self._target_frame_time = 1 / self._video.fps
-        self._curr_target = 0
-        self._curr_offload_target = 0
+        super().__init__(video_path, nodes)
         self._listener = Listener(('localhost', port))
 
     def run(self):
@@ -100,21 +95,6 @@ class LocalMessageStreamGenerator(LocalStreamGenerator):
 
         self._increment_current_target()
 
-    def _determine_target_node_index(self):
-        if not self.nodes[self._curr_target].is_offloading():
-            return self._curr_target
 
-        self._increment_offload_target()
 
-        # prevent offloading back to the node that requested offloading
-        if self._curr_offload_target == self._curr_target:
-            self._increment_offload_target()
-
-        return self._curr_offload_target
-
-    def _increment_offload_target(self):
-        self._curr_offload_target = (self._curr_offload_target + 1) % len(self.nodes)
-
-    def _increment_current_target(self):
-        self._curr_target = (self._curr_target + 1) % len(self.nodes)
 
