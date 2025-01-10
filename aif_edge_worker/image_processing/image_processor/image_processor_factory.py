@@ -9,9 +9,9 @@ class ImageProcessorFactory:
     @staticmethod
     def create_image_processor(computation_type: ComputationType) -> ImageProcessor:
         match computation_type:
-            case ComputationType.OBB:
+            case ComputationType.YOLO_OBB:
                 return OBBYOLOImageProcessor()
-            case ComputationType.DETECTION:
+            case ComputationType.YOLO_DETECTION:
                 return BBYOLOImageProcessor()
             case ComputationType.NONE:
                 return DefaultImageProcessor()

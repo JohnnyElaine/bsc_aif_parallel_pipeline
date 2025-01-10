@@ -4,6 +4,9 @@ Add Super resolution mode (up-scaling)
 Find more efficient way to load YOLO model, i.e. load with GPU maybe
 Modus der Frames skipped um Real-Time aufrecht zu erhalten
 
+## How to send numpy arrays using 0MQ efficiently:
+https://pyzmq.readthedocs.io/en/latest/howto/serialization.html#example-numpy-arrays
+
 # Dependencies
 ## How to build `requirements.txt`
 ```pip
@@ -50,17 +53,17 @@ required computational load. These include:
 - Reduce Source video Quality
 
 ### Active Inference
-In order to choose which measure is used to uphold QoS/SLOs, the edge node uses Active Inference. 
+In order to choose which measure is used to uphold QoS/SLOs, the edge node uses Active Inference.
 
-## controller
+## Controller
 The controller is used to coordinate the edge nodes. 
 
+# Implementation
+## Serialization
+### msgpack vs pickle:
+- performance: Similar performance for larger data (i.e. video frames). Pickle faster on smaller data.
+- size: msgpack is always slightly smaller
 
-# Ways of upholding SLOs
-- Give some of your tasks to other Node
-- Reduce FPS, i.e. skip frames. Example: 30 fps source video --> skip every 3rd frame to end up with 20fps video.
-- Switching to faster YOLO model
-- Reducing size of input frame, e.g 1080p -> 720p
 
 # SLO Ideas
 ## General Ideas

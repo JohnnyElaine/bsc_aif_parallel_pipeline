@@ -13,7 +13,7 @@ def create_nodes(num: int, port: int):
     nodes = []
     nodes_info = []
     for i in range(num):
-        nodes.append(Worker(i, ComputationType.DETECTION, StreamType.LOCAL_MESSAGE, port))
+        nodes.append(Worker(i, ComputationType.YOLO_DETECTION, StreamType.LOCAL_MESSAGE, port))
         nodes_info.append(NodeInfo(i, 'localhost', 0))
 
     return nodes, nodes_info

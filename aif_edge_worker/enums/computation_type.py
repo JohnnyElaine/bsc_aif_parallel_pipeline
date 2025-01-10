@@ -2,15 +2,15 @@ from enum import Enum
 
 
 class ComputationType(Enum):
-    OBB = 'obb'
-    DETECTION = 'detection'
     NONE = 'none'
+    YOLO_OBB = 'yolo_obb'
+    YOLO_DETECTION = 'yolo_detection'
 
-def str_to_computation_type(str: str):
-    match str:
-        case "obb":
-            return ComputationType.OBB
-        case "detection":
-            return ComputationType.DETECTION
+def str_to_computation_type(value: str):
+    match value:
+        case ComputationType.YOLO_OBB.value:
+            return ComputationType.YOLO_OBB
+        case ComputationType.YOLO_DETECTION.value:
+            return ComputationType.YOLO_DETECTION
         case _:
             return ComputationType.NONE
