@@ -64,8 +64,10 @@ The controller is used to coordinate the edge nodes.
 - performance: Similar performance for larger data (i.e. video frames). Pickle faster on smaller data.
 - size: msgpack is always slightly smaller
 
-
 # SLO Ideas
+Select 2 Types of SLO
+1. **Performance:** SLOs that causes the underlying stream to be offloaded, quality reduced, etc
+2. **Quality Goal:** SLOs that make sure a certain standard of quality is upheld. The Workers/Controller should notice if the quality is compromised and increase it accordingly.
 ## General Ideas
 - Latency
 - Accuracy

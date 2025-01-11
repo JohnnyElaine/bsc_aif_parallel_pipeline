@@ -1,6 +1,6 @@
 from multiprocessing import Process
 
-from controller.stream_generation.local.local_message_stream_generator import LocalMessageStreamGenerator
+from controller.communication.data.stream_generation.local.local_message_stream_generator import LocalMessageStreamGenerator
 from shared.setup_logging import setup_logging
 
 class Controller(Process):

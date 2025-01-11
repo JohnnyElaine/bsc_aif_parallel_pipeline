@@ -1,19 +1,16 @@
-import logging
-from pathlib import Path
-
 from aif_edge_worker.global_variables import GlobalVariables
 from aif_edge_worker.enums.computation_type import ComputationType
 from aif_edge_worker.worker import Worker
-from aif_edge_worker.enums.stream_type import StreamType
+from aif_edge_worker.enums.stream_source import StreamSource
 from controller.controller import Controller
-from controller.stream_generation.node_info.node_info import NodeInfo
+from controller.communication.data.stream_generation.node_info.node_info import NodeInfo
 
 
 def create_nodes(num: int, port: int):
     nodes = []
     nodes_info = []
     for i in range(num):
-        nodes.append(Worker(i, ComputationType.YOLO_DETECTION, StreamType.LOCAL_MESSAGE, port))
+        nodes.append(Worker(i, ComputationType.YOLO_DETECTION, StreamSource.LOCAL_MESSAGE, port))
         nodes_info.append(NodeInfo(i, 'localhost', 0))
 
     return nodes, nodes_info
