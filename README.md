@@ -59,13 +59,21 @@ In order to choose which measure is used to uphold QoS/SLOs, the edge node uses 
 The controller is used to coordinate the edge nodes. 
 
 # Implementation
-## Serialization
-### msgpack vs pickle:
+## Active Inference Model
+Use [pymdp](https://github.com/infer-actively/pymdp)
+## Network Communication
+### Control Channel
+- ZeroMQ: REQ-REP pattern for requesting changes at the controller. PUB-SUB pattern for Controller to broadcast changes (TODO: either TCP or PGM/EPGM)
+### Data Channel
+- Local: ``multiprocessing.connection: Client & Server``
+- Network Streaming: ``zeroMQ`` Radio-Dish pattern (UDP)
+### Serialization
+**msgpack vs pickle:**
 - performance: Similar performance for larger data (i.e. video frames). Pickle faster on smaller data.
 - size: msgpack is always slightly smaller
 
 # SLO Ideas
-Select 2 Types of SLO
+Select at least 2 Types of SLO
 1. **Performance:** SLOs that causes the underlying stream to be offloaded, quality reduced, etc
 2. **Quality Goal:** SLOs that make sure a certain standard of quality is upheld. The Workers/Controller should notice if the quality is compromised and increase it accordingly.
 ## General Ideas
@@ -97,37 +105,3 @@ Select 2 Types of SLO
 - Counting Accuracy: Ensure the object count for each frame has a minimal margin of error (e.g., ≤5% deviation from ground truth for known test cases).
 - Counting Consistency: Maintain consistency in object counts across consecutive frames, especially for stationary objects, to avoid sudden spikes or drops.
 - Category-Specific Thresholds: Set thresholds for accuracy or count deviations for critical object categories, such as vehicles in traffic or people in crowds.
-
-# Implementation
-## 1. Implement Monitoring and Feedback
-- **Device metrics:** CPU/GPU utilization, memory usage, battery level.
-- **Network metrics:** Bandwidth, latency.
-- **Inference metrics:**  Accuracy, confidence scores.
-
-Using Python, you can monitor system metrics with libraries like `psutil` or `pySMART`.
-## 2. Decision-Making Logic
-Create a decision-making mechanism based on SLOs:
-
-- **Rule-based:** Simple if-else logic for specific thresholds (e.g., offload if CPU > 80%).
-- **Machine Learning:**  Predict the best device for inference based on historical data and current metrics.
-
-## Implement Task Distribution:
-Set up communication protocols (e.g., MQTT, gRPC, WebSocket) to share workloads:
-
-**Local Execution:**  Perform inference directly on the edge device.
-**Offloading:**  Send the task to a nearby edge device or cloud server for inference.
-**Collaborative Execution: ** Split inference tasks across devices (e.g., pre-processing locally, inferencing remotely).
-
-## Recommended Setup:
-**1.Architecture:** Use a controller-based architecture if the system is medium-to-large scale or the coordination logic is complex.
-
-For smaller systems or performance-critical scenarios, consider direct communication.
-**2.Protocol:**
-
-Use gRPC for robust, real-time, and low-latency communication.
-Combine with MQTT or ZeroMQ if you need to broadcast events or decouple communication.
-**3.Implementation:**
-
-Define a protocol with actions (TaskOffload, AdjustQuality, ReduceFPS, ResizeFrame) and associated metadata (e.g., node workload, target SLOs).
-Ensure the protocol supports bidirectional communication for dynamic adjustments.
-Let me know if you'd like help with implementation details!

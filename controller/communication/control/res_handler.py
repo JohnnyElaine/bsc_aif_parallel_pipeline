@@ -12,12 +12,10 @@ class ResHandler(Thread):
         self._control_channel = ControlChannel(port)
         self._is_running = False
 
-
     def run(self):
         self._is_running = True
         while self._is_running:
             req = self._control_channel.get_req()
-
             # TODO handle request and send answer
 
     def stop(self):
