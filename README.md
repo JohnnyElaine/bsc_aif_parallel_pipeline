@@ -13,7 +13,6 @@ https://pyzmq.readthedocs.io/en/latest/howto/serialization.html#example-numpy-ar
 pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
 pip install ultralytics
 pip install msgpack
-pip install msgpack-numpy
 
 pip freeze > requirements.txt
 ```

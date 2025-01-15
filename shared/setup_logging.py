@@ -1,7 +1,7 @@
 import logging
 from pathlib import Path
 
-from aif_edge_worker.global_variables import GlobalVariables
+from worker.global_variables import GlobalVariables
 
 
 def setup_logging(name: str, log_to_file=False, log_file_path=None):
@@ -22,7 +22,7 @@ def setup_logging(name: str, log_to_file=False, log_file_path=None):
     # If file logging is enabled, add a file handler
     if log_to_file:
         if log_file_path is None:
-            log_file_path = GlobalVariables.PROJECT_ROOT / 'log' / 'aif_edge_worker.log'
+            log_file_path = GlobalVariables.PROJECT_ROOT / 'log' / 'worker.log'
 
         log_file = Path(log_file_path)
         log_file.parent.mkdir(parents=True, exist_ok=True)
