@@ -1,8 +1,10 @@
+import numpy as np
 import msgpack
 import zmq
 
 from worker.communication.channel import req_type
 from worker.data.stream_config import StreamConfig
+from worker.data.task import Task
 
 
 class RequestChannel:
@@ -47,7 +49,7 @@ class RequestChannel:
 
         return StreamConfig(info['compute_type'], info['compute_load'])
 
-    def get_work(self):
+    def get_work(self) -> tuple[dict, list[Task]] | None:
         req = {
             'type': req_type.GET_WORK,
         }
@@ -60,9 +62,16 @@ class RequestChannel:
         info = msgpack.unpackb(msg[0])
         tasks_raw = msg[1:]
 
-        data = [(msgpack.unpackb(tasks_raw[i]), tasks_raw[i+1]) for i in range(1, len(tasks_raw), 2)]
+        tasks = [self.reconstruct_task(msgpack.unpackb(tasks_raw[i]), tasks_raw[i+1]) for i in range(1, len(tasks_raw), 2)]
 
-        return info, data
+        return info, tasks
+
+    @staticmethod
+    def reconstruct_task(md: dict, task_buffered):
+        task = np.frombuffer(task_buffered, dtype=md['dtype'])
+        task = task.reshape(md['shape'])
+        return Task(md['id'], task)
+
 
     def __str__(self):
         return f'{self._ip}:{self._port}'

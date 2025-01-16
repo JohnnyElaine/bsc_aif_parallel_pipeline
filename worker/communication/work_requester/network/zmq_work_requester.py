@@ -57,17 +57,18 @@ class ZmqWorkRequester(WorkRequester):
 
         match type:
             case work_type.COMPUTE:
-                self._add_to_queue(tasks)
+                pass # TODO do something idk
             case work_type.COMPUTE_AND_CHANGE_COMPUTE_TYPE:
+                pass
                 # TODO: change compute type
-                self._add_to_queue(tasks)
             case _:
                 pass
 
-    def _add_to_queue(self, tasks):
-        for metadata, task_buffered in tasks:
-            task = self.reconstruct_task(task_buffered, metadata['dtype'], metadata['shape'])
-            self._queue.put(Task(metadata['id'], task))
+        self._add_to_queue(tasks)
+
+    def _add_to_queue(self, tasks: list[Task]):
+        for task in tasks:
+            self._queue.put(task)
 
     @staticmethod
     def reconstruct_task(task_buffered, dtype, shape):
