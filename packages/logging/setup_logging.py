@@ -1,8 +1,4 @@
 import logging
-from pathlib import Path
-
-from worker.global_variables import GlobalVariables
-
 
 def setup_logging(name: str, log_to_file=False, log_file_path=None):
     # Define a log format
@@ -20,6 +16,7 @@ def setup_logging(name: str, log_to_file=False, log_file_path=None):
     logger = logging.getLogger(name)
 
     # If file logging is enabled, add a file handler
+    '''
     if log_to_file:
         if log_file_path is None:
             log_file_path = GlobalVariables.PROJECT_ROOT / 'log' / 'worker.log'
@@ -31,6 +28,7 @@ def setup_logging(name: str, log_to_file=False, log_file_path=None):
         file_handler.setFormatter(logging.Formatter(fmt=log_format, datefmt=date_format))
         file_handler.setLevel(logging.INFO)  # Log INFO and above to the file
         logger.addHandler(file_handler)
+    '''
 
     logger.debug("logger loaded successfully")
 

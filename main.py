@@ -1,34 +1,33 @@
+from packages.enums import ComputeType, ComputeLoad
+from worker.enums.loading_mode import LoadingMode
 from worker.global_variables import GlobalVariables
-from worker.enums.compute_type import ComputeType
+from worker.worker_config import WorkerConfig
 from worker.worker import Worker
-from worker.enums.stream_source import StreamSource
+from producer.producer_config import ProducerConfig
 from producer.producer import Producer
-from producer.communication.old_push_data.old_stream_generation.node_info.node_info import NodeInfo
 
 
-def create_nodes(num: int, port: int):
-    nodes = []
-    nodes_info = []
+def create_workers(num: int, port: int):
+    workers = []
     for i in range(num):
-        nodes.append(Worker(i, ComputeType.YOLO_DETECTION, StreamSource.LOCAL_MESSAGE, port))
-        nodes_info.append(NodeInfo(i, 'localhost', 0))
+        config = WorkerConfig(i, LoadingMode.LAZY, port, False)
+        workers.append(Worker(config))
 
-    return nodes, nodes_info
+    return workers
 
 def main():
     port = 10000
     vid_path = GlobalVariables.PROJECT_ROOT / 'media' / 'vid' / 'general_detection' / '1080p Video of Highway Traffic! [KBsqQez-O4w].mp4'
     num_nodes = 1
 
-    nodes, nodes_info = create_nodes(num_nodes, port)
+    workers = create_workers(num_nodes, port)
 
-    for node in nodes:
-        node.start()
+    for worker in workers:
+        worker.start()
 
-    controller = Producer(port, vid_path, nodes_info)
-    controller.run()
-
-
+    producer_config = ProducerConfig(port, vid_path, ComputeType.YOLO_DETECTION, ComputeLoad.LOW)
+    producer = Producer(producer_config)
+    producer.run()
 
 if __name__ == "__main__":
     main()

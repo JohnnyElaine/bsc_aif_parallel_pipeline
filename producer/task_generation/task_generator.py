@@ -3,7 +3,7 @@ import time
 from threading import Thread
 from queue import Queue
 
-from producer.data.task import Task
+from packages.data import Task
 from producer.data.video import Video
 
 log = logging.getLogger("producer")

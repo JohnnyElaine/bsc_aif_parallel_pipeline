@@ -1,7 +1,7 @@
 import cv2 as cv
 import numpy as np
 
-from worker.enums.compute_load import ComputeLoad
+from packages.enums import ComputeLoad
 from worker.enums.loading_mode import LoadingMode
 from worker.computation.image_processing.image_processor.yolo.yolo_image_processor import YOLOImageProcessor
 

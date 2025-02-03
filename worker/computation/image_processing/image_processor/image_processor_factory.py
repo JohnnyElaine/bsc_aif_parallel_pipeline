@@ -1,5 +1,5 @@
-from worker.enums.compute_load import ComputeLoad
-from worker.enums.compute_type import ComputeType
+from packages.enums import ComputeLoad
+from packages.enums import ComputeType
 from worker.enums.loading_mode import LoadingMode
 from worker.computation.image_processing.image_processor.default_image_processor import DefaultImageProcessor
 from worker.computation.image_processing.image_processor.image_processor import ImageProcessor

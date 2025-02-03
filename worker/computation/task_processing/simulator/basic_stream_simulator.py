@@ -3,8 +3,8 @@ import time
 import cv2 as cv
 import numpy as np
 
-from worker.computation.stream_computation.simulator.stream_simulator import StreamSimulator
-from worker.computation.stream_computation.simulator.video.video import Video
+from worker.computation.task_processing.simulator.stream_simulator import StreamSimulator
+from worker.computation.task_processing.simulator.video.video import Video
 from worker.computation.image_processing.image_processor.image_processor import ImageProcessor
 
 log = logging.getLogger("worker")
@@ -32,7 +32,7 @@ class BasicStreamSimulator(StreamSimulator):
 
     def stop(self):
         """
-        Stops the video stream_computation, releases the video capture and destroys all openCV windows
+        Stops the video task_processing, releases the video capture and destroys all openCV windows
         :return:
         """
         log.info('stopping basic-stream-simulator')

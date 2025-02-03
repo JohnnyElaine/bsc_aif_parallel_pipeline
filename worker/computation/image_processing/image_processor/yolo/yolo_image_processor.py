@@ -5,7 +5,7 @@ from abc import abstractmethod, ABC
 
 from worker.computation.image_processing.image_detector.yolo_detector import YoloDetector
 from worker.computation.image_processing.image_processor.image_processor import ImageProcessor
-from worker.enums.compute_load import ComputeLoad
+from packages.enums import ComputeLoad
 from worker.enums.loading_mode import LoadingMode
 
 

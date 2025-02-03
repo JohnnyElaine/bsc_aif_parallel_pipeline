@@ -2,9 +2,9 @@ import numpy as np
 import msgpack
 import zmq
 
-from worker.communication.channel import req_type
-from worker.data.stream_config import StreamConfig
-from worker.data.task import Task
+from packages.data import Task
+from packages.message_types import ReqType
+from worker.data.work_config import WorkConfig
 
 
 class RequestChannel:
@@ -37,7 +37,7 @@ class RequestChannel:
         
     def register(self):
         req = {
-            'type': req_type.REGISTER,
+            'type': ReqType.REGISTER,
         }
         self.send(req)
         msg = self._socket.recv()
@@ -47,14 +47,15 @@ class RequestChannel:
         
         info = msgpack.unpackb(msg)
 
-        return StreamConfig(info['compute_type'], info['compute_load'])
+        return WorkConfig(info['compute_type'], info['compute_load'])
 
     def get_work(self) -> tuple[dict, list[Task]] | None:
         req = {
-            'type': req_type.GET_WORK,
+            'type': ReqType.GET_WORK,
         }
+
         self.send(req)
-        msg = self._socket.recv_multipart()
+        address, empty, msg = self._socket.recv_multipart()
 
         if msg[0] == b"END":
             return None
@@ -62,9 +63,13 @@ class RequestChannel:
         info = msgpack.unpackb(msg[0])
         tasks_raw = msg[1:]
 
-        tasks = [self.reconstruct_task(msgpack.unpackb(tasks_raw[i]), tasks_raw[i+1]) for i in range(1, len(tasks_raw), 2)]
+        tasks = RequestChannel.reconstruct_all_tasks(tasks_raw)
 
         return info, tasks
+
+    @staticmethod
+    def reconstruct_all_tasks(tasks_raw):
+        return [RequestChannel.reconstruct_task(msgpack.unpackb(tasks_raw[i]), tasks_raw[i + 1]) for i in range(0, len(tasks_raw), 2)]
 
     @staticmethod
     def reconstruct_task(md: dict, task_buffered):

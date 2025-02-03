@@ -1,10 +1,9 @@
-from importlib.metadata import metadata
-
 import numpy as np
 import zmq
 import msgpack
 
-from producer.data.task import Task
+from packages.data import Task
+from packages.message_types import RepType
 
 
 class RouterChannel:
@@ -12,7 +11,6 @@ class RouterChannel:
         self._port = port
         self._context = zmq.Context()
         self._socket = self._context.socket(zmq.ROUTER)
-
 
     def bind(self):
         self._socket.bind(f'tcp://*:{self._port}')
@@ -43,8 +41,13 @@ class RouterChannel:
 
         return address, request
 
-    def send_work(self, address: bytes, tasks: list[Task]) -> None:
-        msg = [address, b'']
+    def send_information(self, address: bytes, info: dict):
+        msg = [address, b'', msgpack.packb(info)]
+        self._socket.send_multipart(msg)
+
+    def send_work(self, address: bytes, tasks: list[Task]):
+        info = {'type': RepType.WORK}
+        msg = [address, b'', msgpack.packb(info)] # zmq multipart message requires "empty" part after address
 
         for task in tasks:
             metadata = dict(id=task.id, shape=task.task.shape, dtype=str(task.task.dtype))

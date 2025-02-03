@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 
-class StreamComputer(ABC):
-
+class TaskProcessor(ABC):
     @abstractmethod
     def stop(self):
         pass

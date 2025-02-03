@@ -4,9 +4,9 @@ from queue import Queue
 import numpy as np
 
 from worker.communication.channel.request_channel import RequestChannel
-from worker.communication.work_requester import work_type
 from worker.communication.work_requester.work_requester import WorkRequester
-from worker.data.task import Task
+from packages.data import Task
+from packages.message_types import RepType
 
 log = logging.getLogger("worker")
 
@@ -38,7 +38,6 @@ class ZmqWorkRequester(WorkRequester):
         """
         :return: True if the iteration was successful. False otherwise.
         """
-
         self._queue.join() # Block until queue is empty
 
         work = self._channel.get_work()
@@ -56,9 +55,9 @@ class ZmqWorkRequester(WorkRequester):
         type = info["type"]
 
         match type:
-            case work_type.COMPUTE:
+            case RepType.WORK:
                 pass # TODO do something idk
-            case work_type.COMPUTE_AND_CHANGE_COMPUTE_TYPE:
+            case RepType.WORK_AND_CHANGE_WORK_LOAD:
                 pass
                 # TODO: change compute type
             case _:

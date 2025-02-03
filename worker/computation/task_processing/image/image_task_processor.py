@@ -8,13 +8,13 @@ import numpy as np
 from multiprocessing import Process
 
 from worker.computation.image_processing.image_processor.image_processor import ImageProcessor
-from worker.computation.stream_computation.stream_computer import StreamComputer
+from worker.computation.task_processing.task_processor import TaskProcessor
 
 
 log = logging.getLogger("worker")
 
 
-class GeneralStreamComputer(Process, StreamComputer):
+class ImageTaskProcessor(Process, TaskProcessor):
     def __init__(self, identifier: int, image_processor: ImageProcessor, pipe_to_receiver):
         super().__init__()
         self.identifier = identifier
@@ -23,7 +23,7 @@ class GeneralStreamComputer(Process, StreamComputer):
         self._image_processor = image_processor
 
     def run(self):
-        log.debug("starting general-stream-computer")
+        log.debug("starting image-stream-computer")
         self._is_running = True
         while self._is_running:
             try:
@@ -37,7 +37,7 @@ class GeneralStreamComputer(Process, StreamComputer):
         self.stop()
 
     def stop(self):
-        log.info("stopping general-stream-computer")
+        log.info("stopping image-stream-computer")
         self._is_running = False
 
     def _iteration(self):
