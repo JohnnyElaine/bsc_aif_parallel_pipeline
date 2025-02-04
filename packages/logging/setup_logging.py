@@ -30,6 +30,4 @@ def setup_logging(name: str, log_to_file=False, log_file_path=None):
         logger.addHandler(file_handler)
     '''
 
-    logger.debug("logger loaded successfully")
-
     return logger

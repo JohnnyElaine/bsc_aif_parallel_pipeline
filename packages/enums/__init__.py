@@ -1,2 +1,2 @@
-from compute_load import ComputeLoad
-from compute_type import ComputeType
+from .work_load import WorkLoad
+from .work_type import WorkType

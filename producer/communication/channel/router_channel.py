@@ -52,7 +52,12 @@ class RouterChannel:
         for task in tasks:
             metadata = dict(id=task.id, shape=task.task.shape, dtype=str(task.task.dtype))
             msg.append(msgpack.packb(metadata))
-            msg.append(task)
+            msg.append(task.task) # use the actual numpy array, because it implements the buffer interface
 
         self._socket.send_multipart(msg)
 
+    def __str__(self):
+        return f'(socket={self._socket}, port={self._port})'
+
+    def __repr__(self):
+        return f'(socket={self._socket}, port={self._port})'

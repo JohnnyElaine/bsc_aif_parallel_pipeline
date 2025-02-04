@@ -3,6 +3,7 @@ import msgpack
 import zmq
 
 from packages.data import Task
+from packages.enums import WorkType, WorkLoad
 from packages.message_types import ReqType
 from worker.data.work_config import WorkConfig
 
@@ -12,7 +13,7 @@ class RequestChannel:
         self._ip = ip
         self._port = port
         self._context = zmq.Context()
-        self._socket = self._context.context.socket(zmq.REQ)
+        self._socket = self._context.socket(zmq.REQ)
         self._socket.setsockopt_string(zmq.IDENTITY, f'worker-{identity}')
         self._is_connected = False
 
@@ -47,7 +48,7 @@ class RequestChannel:
         
         info = msgpack.unpackb(msg)
 
-        return WorkConfig(info['compute_type'], info['compute_load'])
+        return WorkConfig(WorkType.str_to_enum(info['work_type']), WorkLoad.str_to_enum(info['work_load']))
 
     def get_work(self) -> tuple[dict, list[Task]] | None:
         req = {
@@ -55,7 +56,7 @@ class RequestChannel:
         }
 
         self.send(req)
-        address, empty, msg = self._socket.recv_multipart()
+        msg = self._socket.recv_multipart()
 
         if msg[0] == b"END":
             return None
@@ -79,7 +80,7 @@ class RequestChannel:
 
 
     def __str__(self):
-        return f'{self._ip}:{self._port}'
+        return f'({self._ip}:{self._port})'
 
     def __repr__(self):
-        return f'{self._ip}:{self._port}'
+        return f'({self._ip}:{self._port})'

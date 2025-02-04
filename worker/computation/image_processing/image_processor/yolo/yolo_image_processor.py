@@ -5,7 +5,7 @@ from abc import abstractmethod, ABC
 
 from worker.computation.image_processing.image_detector.yolo_detector import YoloDetector
 from worker.computation.image_processing.image_processor.image_processor import ImageProcessor
-from packages.enums import ComputeLoad
+from packages.enums import WorkLoad
 from worker.enums.loading_mode import LoadingMode
 
 
@@ -14,7 +14,7 @@ class YOLOImageProcessor(ImageProcessor, ABC):
     font_scale = 0.8
     font_thickness = 2
 
-    def __init__(self, compute_load: ComputeLoad, model_loading_mode: LoadingMode, model_paths: dict):
+    def __init__(self, compute_load: WorkLoad, model_loading_mode: LoadingMode, model_paths: dict):
         self._model_loading_mode = model_loading_mode
 
         self._detector_low = YoloDetector(model_paths["low"])
@@ -36,19 +36,19 @@ class YOLOImageProcessor(ImageProcessor, ABC):
             self._detector_medium.initialize()
             self._detector_high.initialize()
 
-    def change_detector(self, compute_load: ComputeLoad):
+    def change_detector(self, compute_load: WorkLoad):
         self._set_detector(compute_load)
 
         if not self._detector.is_loaded():
             self._detector.initialize()
 
-    def _set_detector(self, compute_load: ComputeLoad):
+    def _set_detector(self, compute_load: WorkLoad):
         match compute_load:
-            case ComputeLoad.LOW:
+            case WorkLoad.LOW:
                 return self._detector_low
-            case ComputeLoad.MEDIUM:
+            case WorkLoad.MEDIUM:
                 return self._detector_medium
-            case ComputeLoad.HIGH:
+            case WorkLoad.HIGH:
                 return self._detector_high
             case _:
                 return self._detector_low

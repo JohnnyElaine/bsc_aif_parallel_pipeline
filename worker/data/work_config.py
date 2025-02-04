@@ -1,11 +1,11 @@
 from dataclasses import dataclass
 
-from packages.enums import ComputeLoad
-from packages.enums import ComputeType
+from packages.enums import WorkLoad
+from packages.enums import WorkType
 
 
 @dataclass
 class WorkConfig:
-    compute_type: ComputeType
-    compute_load: ComputeLoad
+    work_type: WorkType
+    work_load: WorkLoad
 

@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 
-from packages.enums import ComputeLoad
-from packages.enums import ComputeType
-from packages.enums import ComputeType
+from packages.enums import WorkLoad
+from packages.enums import WorkType
+from packages.enums import WorkType
 from worker.enums.work_source import WorkSource
 
 
@@ -10,7 +10,7 @@ from worker.enums.work_source import WorkSource
 class PullStreamConfig:
     fps: int
     resolution: tuple[int, int]
-    compute_type: ComputeType
-    compute_load: ComputeLoad
+    work_type: WorkType
+    work_load: WorkLoad
     stream_source: WorkSource
 

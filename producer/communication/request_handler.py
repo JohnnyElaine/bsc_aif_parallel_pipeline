@@ -20,6 +20,7 @@ class RequestHandler(Thread):
     def run(self):
         self._is_running = True
         self._channel.bind()
+        log.debug(f'bound {self._channel}')
 
         while self._is_running:
             address, request = self._channel.get_request()
@@ -43,8 +44,8 @@ class RequestHandler(Thread):
 
     def _register(self, address: bytes):
         info = {'type': RepType.REGISTRATION_CONFIRMATION,
-                'compute_type': self._work_config.compute_type,
-                'compute_load': self._work_config.compute_load}
+                'work_type': self._work_config.work_type.value,
+                'work_load': self._work_config.work_load.value}
 
         self._channel.send_information(address, info)
 

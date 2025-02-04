@@ -13,7 +13,7 @@ class PipeSender(Thread):
         self._is_running = False
 
     def run(self):
-        log.info('starting pipe-sender')
+        log.debug('starting pipe-sender')
         self._is_running = True
 
         while self._is_running:

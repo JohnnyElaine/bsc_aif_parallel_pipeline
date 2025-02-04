@@ -16,7 +16,7 @@ class Producer(Process):
         :param video_path: Path to the input video file.
         """
         super().__init__()
-        self._config = config
+        self.config = config
 
     def run(self):
         log = logging.setup_logging('producer')
@@ -25,10 +25,10 @@ class Producer(Process):
 
         # create shared (frame buffer) queue for task generator & request handler
         shared_queue = Queue()
-        request_handler = RequestHandler(self._config.port,
+        request_handler = RequestHandler(self.config.port,
                                          shared_queue,
-                                         WorkConfig(self._config.compute_type, self._config.compute_load))
-        task_generator = TaskGenerator(shared_queue, self._config.video_path)
+                                         WorkConfig(self.config.worker_type, self.config.work_load))
+        task_generator = TaskGenerator(shared_queue, self.config.video_path)
 
         request_handler.start()
         task_generator.start()

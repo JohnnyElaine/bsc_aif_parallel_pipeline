@@ -1,12 +1,12 @@
 from dataclasses import dataclass
 
-from packages.enums import ComputeLoad
-from packages.enums import ComputeType
+from packages.enums import WorkLoad
+from packages.enums import WorkType
 
 
 @dataclass
 class ProducerConfig:
     port: int
     video_path: str
-    compute_type: ComputeType
-    compute_load: ComputeLoad
+    worker_type: WorkType
+    work_load: WorkLoad

@@ -1,13 +1,13 @@
 import cv2 as cv
 import numpy as np
 
-from packages.enums import ComputeLoad
+from packages.enums import WorkLoad
 from worker.enums.loading_mode import LoadingMode
 from worker.computation.image_processing.image_processor.yolo.yolo_image_processor import YOLOImageProcessor
 
 class OBBYOLOImageProcessor(YOLOImageProcessor):
-    def __init__(self, compute_load: ComputeLoad, model_loading_mode: LoadingMode, model_paths: dict):
-        super().__init__(compute_load, model_loading_mode, model_paths)
+    def __init__(self, work_load: WorkLoad, model_loading_mode: LoadingMode, model_paths: dict):
+        super().__init__(work_load, model_loading_mode, model_paths)
 
     def _draw_bounding_boxes_with_label(self, image, boxes, class_ids, confidences):
         """
