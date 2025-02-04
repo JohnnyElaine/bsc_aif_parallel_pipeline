@@ -1,8 +1,0 @@
-REGISTER = 'register'
-OFFLOAD = 'offload'
-INCREASE_COMPUTATION = 'increase_computation'
-DECREASE_COMPUTATION = 'decrease_computation'
-INCREASE_FPS = 'increase_fps'
-DECREASE_FPS = 'decrease_fps'
-INCREASE_RESOLUTION = 'increase_resolution'
-DECREASE_RESOLUTION = 'decrease_resolution'
