@@ -36,20 +36,20 @@ class RequestHandler(Thread):
 
         match req_type:
             case ReqType.REGISTER:
-                self._register(address)
+                self._handle_regsiter_request(address)
             case ReqType.GET_WORK:
-                self._work(address)
+                self._handle_work_request(address)
             case _:
                 log.debug(f"Received unknown request type: {req_type}")
 
-    def _register(self, address: bytes):
+    def _handle_regsiter_request(self, address: bytes):
         info = {'type': RepType.REGISTRATION_CONFIRMATION,
                 'work_type': self._work_config.work_type.value,
                 'work_load': self._work_config.work_load.value}
 
         self._channel.send_information(address, info)
 
-    def _work(self, address: bytes):
+    def _handle_work_request(self, address: bytes):
         task = self._queue.get()
 
         # TODO Why array? potentially send multiple tasks at once

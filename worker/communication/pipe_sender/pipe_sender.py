@@ -20,11 +20,12 @@ class PipeSender(Thread):
             data = self._queue.get()
             self._send_to_pipe(data)
 
+            # Indicate that enqueued task is complete and more tasks can be processed. (unblocks .join())
+            self._queue.task_done()
 
     def stop(self):
         log.info('stopping pipe-sender')
         self._is_running = False
-
 
     def _send_to_pipe(self, msg):
         self._pipe_to_stream_computer.send(msg)
