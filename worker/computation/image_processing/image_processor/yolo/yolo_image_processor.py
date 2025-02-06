@@ -36,7 +36,7 @@ class YOLOImageProcessor(ImageProcessor, ABC):
             self._detector_medium.initialize()
             self._detector_high.initialize()
 
-    def change_detector(self, compute_load: WorkLoad):
+    def change_work_load(self, compute_load: WorkLoad):
         self._set_detector(compute_load)
 
         if not self._detector.is_loaded():

@@ -1,24 +1,19 @@
 import logging
-
-
 import cv2 as cv
 import numpy as np
-
-
 from multiprocessing import Process, Pipe
 
 from worker.computation.image_processing.image_processor.image_processor import ImageProcessor
 from worker.computation.task_processing.task_processor import TaskProcessor
 
-
 log = logging.getLogger("worker")
 
 
 class ImageTaskProcessor(Process, TaskProcessor):
-    def __init__(self, identifier: int, image_processor: ImageProcessor, pipe_receiving_end: Pipe):
+    def __init__(self, identifier: int, image_processor: ImageProcessor, task_pipe_receiving_end: Pipe):
         super().__init__()
         self.identifier = identifier
-        self._pipe_receiving_end = pipe_receiving_end
+        self._task_pipe = task_pipe_receiving_end
         self._image_processor = image_processor
         self._is_running = False
 
@@ -44,7 +39,7 @@ class ImageTaskProcessor(Process, TaskProcessor):
         """
         :return: True if the iteration was successful. False otherwise.
         """
-        task = self._pipe_receiving_end.recv()
+        task = self._task_pipe.recv() # TODO Wrap task in another object, add context to the object in order to make work_load changes possible.
 
         frame = self._process_task(task.task)
 
@@ -56,7 +51,7 @@ class ImageTaskProcessor(Process, TaskProcessor):
         return True
 
     def _take_message_from_receiver(self):
-        data = self._pipe_receiving_end.recv()
+        data = self._task_pipe.recv()
         return data['frame'], data['frame_index']
 
     def _process_task(self, task: np.ndarray):

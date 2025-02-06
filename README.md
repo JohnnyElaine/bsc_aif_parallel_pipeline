@@ -1,5 +1,5 @@
 # TODO
-Worker: handle change request
+Worker: handle change request --> Implement new dataclass that contains tasks + additional information (changelog) so we can switch the work load.
 Producer: Implement change-log should worker config change  --> implement changelog dict (with stack of changelogs for each worker)
 Implement program that puts frames back together
 Implement QoS Solutions

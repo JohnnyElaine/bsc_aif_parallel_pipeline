@@ -8,3 +8,7 @@ class ImageProcessor(ABC):
     @abstractmethod
     def process_image(self, img):
         pass
+
+    @abstractmethod
+    def change_work_load(self, img):
+        pass
