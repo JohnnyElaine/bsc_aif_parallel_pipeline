@@ -26,7 +26,7 @@ class RouterChannel:
             self._socket.send_multipart([
                 address,
                 b'',
-                b'END',
+                msgpack.packb(dict(type=RepType.END)),
             ])
 
     def get_request(self) -> tuple[bytes, dict]:

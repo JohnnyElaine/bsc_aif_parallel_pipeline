@@ -1,5 +1,5 @@
 import logging
-from threading import Thread
+from threading import Thread, Event
 from queue import Queue
 
 from packages.message_types import ReqType, RepType
@@ -16,6 +16,10 @@ class RequestHandler(Thread):
         self._queue = shared_queue
         self._work_config = initial_work_config
         self._is_running = False
+
+        self._work_request = self._handle_first_work_request
+
+        self.worker_ready_event = Event()
 
     def run(self):
         self._is_running = True
@@ -36,13 +40,13 @@ class RequestHandler(Thread):
 
         match req_type:
             case ReqType.REGISTER:
-                self._handle_regsiter_request(address)
+                self._handle_register_request(address)
             case ReqType.GET_WORK:
-                self._handle_work_request(address)
+                self._work_request(address)
             case _:
                 log.debug(f"Received unknown request type: {req_type}")
 
-    def _handle_regsiter_request(self, address: bytes):
+    def _handle_register_request(self, address: bytes):
         info = {'type': RepType.REGISTRATION_CONFIRMATION,
                 'work_type': self._work_config.work_type.value,
                 'work_load': self._work_config.work_load.value}
@@ -50,9 +54,22 @@ class RequestHandler(Thread):
         self._channel.send_information(address, info)
 
     def _handle_work_request(self, address: bytes):
+        # start the task generator when a worker is ready
+        self.worker_ready_event.set()
+
         task = self._queue.get()
 
         # TODO Why array? potentially send multiple tasks at once
         tasks = [task]
 
         self._channel.send_work(address, tasks)
+
+    def _handle_first_work_request(self, address: bytes):
+        # use '_handle_work_request' instead of this function for all other requests
+        self._work_request = self._handle_work_request
+
+        # start the task generator when a worker is ready
+        self.worker_ready_event.set()
+
+        self._handle_work_request(address)
+

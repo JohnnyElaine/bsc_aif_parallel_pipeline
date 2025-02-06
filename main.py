@@ -18,7 +18,7 @@ def create_workers(num: int, ip: str,port: int):
 def main():
     port = 10000
     vid_path = GlobalVariables.PROJECT_ROOT / 'media' / 'vid' / 'general_detection' / '1080p Video of Highway Traffic! [KBsqQez-O4w].mp4'
-    num_workers = 1
+    num_workers = 2
 
     workers = create_workers(num_workers, 'localhost', port)
 

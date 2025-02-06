@@ -56,11 +56,10 @@ class Worker(Process):
         work_requester = ZmqWorkRequester(shared_queue, request_channel)
         pipe_sender = PipeSender(shared_queue, pipe_sending_end)
 
+        task_processor.start()
         work_requester.start()
         pipe_sender.start()
-        task_processor.start()
 
-        # avoid killing the main thread
         work_requester.join()
         pipe_sender.join()
         task_processor.join()

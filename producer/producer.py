@@ -28,11 +28,10 @@ class Producer(Process):
         request_handler = RequestHandler(self.config.port,
                                          shared_queue,
                                          WorkConfig(self.config.worker_type, self.config.work_load))
-        task_generator = TaskGenerator(shared_queue, self.config.video_path)
+        task_generator = TaskGenerator(shared_queue, self.config.video_path, request_handler.worker_ready_event)
 
         request_handler.start()
         task_generator.start()
-
 
         task_generator.join()
         request_handler.join()

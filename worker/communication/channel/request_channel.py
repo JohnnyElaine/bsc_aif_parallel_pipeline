@@ -4,7 +4,7 @@ import zmq
 
 from packages.data import Task
 from packages.enums import WorkType, WorkLoad
-from packages.message_types import ReqType
+from packages.message_types import ReqType, RepType
 from worker.data.work_config import WorkConfig
 
 
@@ -42,11 +42,11 @@ class RequestChannel:
         }
         self.send(req)
         msg = self._socket.recv()
-        
-        if msg == b'END':
-            return None
-        
+
         info = msgpack.unpackb(msg)
+
+        if info['type'] == RepType.REGISTRATION_CONFIRMATION:
+            return None
 
         return WorkConfig(WorkType.str_to_enum(info['work_type']), WorkLoad.str_to_enum(info['work_load']))
 
@@ -57,9 +57,6 @@ class RequestChannel:
 
         self.send(req)
         msg = self._socket.recv_multipart()
-
-        if msg[0] == b"END":
-            return None
 
         info = msgpack.unpackb(msg[0])
         tasks_raw = msg[1:]

@@ -1,8 +1,11 @@
 # TODO
-Separate frame receiving and computing via threads/processes --> read frames from network into buffer first
+Worker: handle change request
+Producer: Implement change-log should worker config change  --> implement changelog dict (with stack of changelogs for each worker)
+Implement program that puts frames back together
+Implement QoS Solutions
+
 Add Super resolution mode (up-scaling)
 Find more efficient way to load YOLO model, i.e. load with GPU maybe
-Modus der Frames skipped um Real-Time aufrecht zu erhalten
 
 ## How to send numpy arrays using 0MQ efficiently:
 https://pyzmq.readthedocs.io/en/latest/howto/serialization.html#example-numpy-arrays
@@ -25,9 +28,10 @@ Add on top of requirements.txt
 ```
 
 # Description
+This is a distributed Parallel Pipeline using active inference to dynamically change the size/frequency/complexity of the tasks 
 This is an edge node for a distributed systems. The distributed system consists of multiple edge nodes and a single controller.
 
-## Edge Node
+## Worker
 The edge nodes constantly receive a video stream either via a network or simulated from a source video file. The edge nodes 
 perform computations upon the individual frames of the stream and send the result to a different node (such as the controller) where the 
 resulting computed frames are stitched together resulting in the new output video stream.
@@ -46,7 +50,6 @@ Should the computational resources of the system are not enough to uphold certai
 i.e. processing time for x amount frames, energy consumption, etc then the edge node has some options to reduce the 
 required computational load. These include:
 
-- Task offloading: Delegate some of your tasks (i.e. frames to compute) to someone else.
 - Reducing Quality: Switch to a lower grade YOLOv11 model, Reduce up-scaling quality.
 - Reduce Source video FPS
 - Reduce Source video Quality
@@ -54,8 +57,8 @@ required computational load. These include:
 ### Active Inference
 In order to choose which measure is used to uphold QoS/SLOs, the edge node uses Active Inference.
 
-## Controller
-The controller is used to coordinate the edge nodes. 
+## Producer
+The producer creates the tasks and sends them to the workers upon receiving a request.
 
 # Implementation
 ## Active Inference Model
