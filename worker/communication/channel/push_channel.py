@@ -30,9 +30,9 @@ class PushChannel:
         msg = list()
 
         for result in results:
-            metadata = dict(id=result.id, shape=result.task.shape, dtype=str(result.task.dtype))
+            metadata = dict(id=result.id, shape=result.data.shape, dtype=str(result.data.dtype))
             msg.append(msgpack.packb(metadata))# send metadata first
-            msg.append(result.task) # send raw numpy array after, use the implemented buffer interface
+            msg.append(result.data) # send raw numpy array after, use the implemented buffer interface
 
         self._socket.send_multipart(msg)
 

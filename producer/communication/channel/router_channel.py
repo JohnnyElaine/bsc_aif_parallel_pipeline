@@ -50,9 +50,9 @@ class RouterChannel:
         msg = [address, b'', msgpack.packb(info)] # zmq multipart message requires "empty" part after address
 
         for task in tasks:
-            metadata = dict(id=task.id, shape=task.task.shape, dtype=str(task.task.dtype))
+            metadata = dict(id=task.id, type=task.type, shape=task.data.shape, dtype=str(task.data.dtype))
             msg.append(msgpack.packb(metadata))
-            msg.append(task.task) # use the actual numpy array, because it implements the buffer interface
+            msg.append(task.data) # use the actual numpy array, because it implements the buffer interface
 
         self._socket.send_multipart(msg)
 

@@ -12,4 +12,4 @@ class TaskUtil:
     def reconstruct_task(md: dict, task_buffered):
         task = np.frombuffer(task_buffered, dtype=md['dtype'])
         task = task.reshape(md['shape'])
-        return Task(md['id'], task)
+        return Task(md['id'], md['type'], task)

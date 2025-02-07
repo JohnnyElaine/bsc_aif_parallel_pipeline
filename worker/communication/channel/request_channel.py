@@ -36,9 +36,8 @@ class RequestChannel:
         self._socket.send(msgpack.packb(msg))
         
     def register(self):
-        req = {
-            'type': ReqType.REGISTER,
-        }
+        req = dict(type=ReqType.REGISTER)
+
         self.send(req)
         msg = self._socket.recv()
 
@@ -50,9 +49,7 @@ class RequestChannel:
         return WorkConfig(WorkType.str_to_enum(info['work_type']), WorkLoad.str_to_enum(info['work_load']))
 
     def get_work(self) -> tuple[dict, list[Task]] | None:
-        req = {
-            'type': ReqType.GET_WORK,
-        }
+        req = dict(type=ReqType.GET_WORK)
 
         self.send(req)
         msg = self._socket.recv_multipart()

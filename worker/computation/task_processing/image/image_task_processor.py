@@ -3,6 +3,7 @@ import cv2 as cv
 import numpy as np
 from multiprocessing import Process, Pipe
 
+from packages.data import TaskType, InstructionType
 from worker.computation.image_processing.image_processor.image_processor import ImageProcessor
 from worker.computation.task_processing.task_processor import TaskProcessor
 
@@ -39,21 +40,23 @@ class ImageTaskProcessor(Process, TaskProcessor):
         """
         :return: True if the iteration was successful. False otherwise.
         """
-        task = self._task_pipe.recv() # TODO Wrap task in another object, add context to the object in order to make work_load changes possible.
+        work = self._task_pipe.recv()
 
-        frame = self._process_task(task.task)
+        match work.type:
+            case TaskType.INFERENCE:
+                frame = self._process_task(work.data)
 
-        # Display the frame (optional)
-        cv.imshow(f'Worker-{self.identifier}', frame)
-        if cv.waitKey(1) & 0xFF == ord('q'):
-            return False
+                # Display the frame (optional)
+                cv.imshow(f'Worker-{self.identifier}', frame)
+                if cv.waitKey(1) & 0xFF == ord('q'):
+                    return False
+            case InstructionType.CHANGE_WORK_LOAD:
+                self._image_processor.change_work_load(work.value)
+
+
+
 
         return True
 
-    def _take_message_from_receiver(self):
-        data = self._task_pipe.recv()
-        return data['frame'], data['frame_index']
-
     def _process_task(self, task: np.ndarray):
         return self._image_processor.process_image(task)
-

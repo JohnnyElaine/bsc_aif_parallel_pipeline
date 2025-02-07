@@ -3,7 +3,7 @@ import time
 from threading import Thread
 from queue import Queue
 
-from packages.data import Task
+from packages.data import Task, TaskType
 from producer.data.video import Video
 
 log = logging.getLogger("producer")
@@ -59,8 +59,8 @@ class TaskGenerator(Thread):
 
         return True
 
-    def _add_to_queue(self, task_id: int, task):
-        self._queue.put(Task(task_id, task))
+    def _add_to_queue(self, task_id: int, data):
+        self._queue.put(Task(task_id, TaskType.INFERENCE ,data))
 
     @staticmethod
     def _enforce_target_fps(iteration_start_time: float, target_frame_interval: float):

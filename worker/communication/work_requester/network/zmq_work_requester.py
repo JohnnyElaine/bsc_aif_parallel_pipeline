@@ -3,7 +3,7 @@ from queue import Queue
 
 from worker.communication.channel.request_channel import RequestChannel
 from worker.communication.work_requester.work_requester import WorkRequester
-from packages.data import Task
+from packages.data import Task, Instruction
 from packages.message_types import RepType
 
 log = logging.getLogger("worker")
@@ -51,31 +51,19 @@ class ZmqWorkRequester(WorkRequester):
             case RepType.END:
                 return False
             case RepType.WORK:
-                pass # TODO do something idk
-            case RepType.WORK_AND_CHANGE:
+                self._add_tasks_to_queue(tasks)
+            case RepType.INSTRUCTION:
                 del info['type'] # filter out 'type'. rest of info shows changes
-                self._handle_changes(info)
+                self._handle_instructions(info)
             case _:
                 pass # do nothing
 
-        self._add_to_queue(tasks)
-
         return True
 
-    def _handle_changes(self, changes: dict):
-        for change_type, value in changes.items():
-            self._handle_change(change_type, value)
+    def _handle_instructions(self, changes: dict):
+        for instruction_type, value in changes.items():
+            self._queue.put(Instruction(instruction_type, value))
 
-    def _handle_change(self, change_type: str, value):
-        match change_type:
-            case 'work_load':
-                self._change_work_load(value)
-            case _:
-                pass
-
-    def _change_work_load(self, value):
-        pass # TODO
-
-    def _add_to_queue(self, tasks: list[Task]):
+    def _add_tasks_to_queue(self, tasks: list[Task]):
         for task in tasks:
             self._queue.put(task)

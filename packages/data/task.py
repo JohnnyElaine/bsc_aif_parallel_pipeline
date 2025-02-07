@@ -6,4 +6,5 @@ import numpy as np
 @dataclass
 class Task:
     id: int
-    task: np.ndarray
+    type: str
+    data: np.ndarray
