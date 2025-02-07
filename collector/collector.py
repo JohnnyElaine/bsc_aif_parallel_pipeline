@@ -1,6 +1,9 @@
 from multiprocessing import Process
 
 import packages.logging as logging
+from collector.collector_config import CollectorConfig
+from collector.communication.result_collector import ResultCollector
+
 
 class Collector(Process):
     def __init__(self, config: CollectorConfig):

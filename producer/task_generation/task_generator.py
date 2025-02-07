@@ -27,9 +27,9 @@ class TaskGenerator(Thread):
 
         log.debug('waiting for first work request')
         self.worker_ready_event.wait()
-        log.debug('starting task generation')
 
         try:
+            log.debug('starting task generation')
             self._stream_video()
         except Exception: # TODO find correct exception
             log.debug(f'Exception while streaming video file: {self._video.path}')

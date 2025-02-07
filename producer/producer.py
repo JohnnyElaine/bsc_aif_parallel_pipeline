@@ -23,7 +23,7 @@ class Producer(Process):
 
         log.info("starting producer")
 
-        # create shared (frame buffer) queue for task generator & request handler
+        # create shared queue (task buffer) for task generator & request handler
         shared_queue = Queue()
         request_handler = RequestHandler(self.config.port,
                                          shared_queue,
@@ -35,4 +35,3 @@ class Producer(Process):
 
         task_generator.join()
         request_handler.join()
-

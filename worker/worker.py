@@ -30,8 +30,7 @@ class Worker(Process):
 
         log.info(f"starting worker-{self.config.identity}")
         
-        zmq_context = zmq.Context()
-        request_channel = RequestChannel(self.config.producer_ip, self.config.producer_port, self.config.identity, zmq_context)
+        request_channel = RequestChannel(self.config.producer_ip, self.config.producer_port, self.config.identity)
         request_channel.connect()
         log.debug(f"established connection to producer-{request_channel}")
 
@@ -53,10 +52,10 @@ class Worker(Process):
                                                      work_config.work_load)
 
         # create shared (frame buffer) queue for work_requester & pipe sender
-        shared_queue = Queue()
+        shared_task_queue = Queue()
 
-        work_requester = ZmqWorkRequester(shared_queue, request_channel)
-        pipe_sender = PipeSender(shared_queue, pipe_sending_end)
+        work_requester = ZmqWorkRequester(shared_task_queue, request_channel)
+        pipe_sender = PipeSender(shared_task_queue, pipe_sending_end)
 
         task_processor.start()
         work_requester.start()

@@ -6,10 +6,10 @@ log = logging.getLogger("worker")
 
 
 class PipeSender(Thread):
-    def __init__(self, shared_queue: Queue, pipe_to_stream_computer):
+    def __init__(self, shared_task_queue: Queue, pipe_to_task_processor):
         super().__init__()
-        self._queue = shared_queue
-        self._pipe_to_stream_computer = pipe_to_stream_computer
+        self._queue = shared_task_queue
+        self._pipe_to_task_processor = pipe_to_task_processor
         self._is_running = False
 
     def run(self):
@@ -28,6 +28,4 @@ class PipeSender(Thread):
         self._is_running = False
 
     def _send_to_pipe(self, msg):
-        self._pipe_to_stream_computer.send(msg)
-
-
+        self._pipe_to_task_processor.send(msg)

@@ -1,12 +1,6 @@
-import numpy as np
 import msgpack
 import zmq
-
 from packages.data import Task
-from packages.enums import WorkType, WorkLoad
-from packages.message_types import ReqType, RepType
-from worker.data.work_config import WorkConfig
-
 
 class PushChannel:
     def __init__(self, ip: str, port: int, identity: int, zmq_context):
@@ -32,8 +26,8 @@ class PushChannel:
         self._socket.close()
         self._context.destroy() # TODO check what happens if context is closed somewhere else first (i.e. in RequestChannel^)
         
-    def send_results(self, results):
-        msg = [address, b''] # zmq multipart message requires "empty" part after address
+    def send_results(self, results: list[Task]):
+        msg = list()
 
         for result in results:
             metadata = dict(id=result.id, shape=result.task.shape, dtype=str(result.task.dtype))
@@ -41,8 +35,6 @@ class PushChannel:
             msg.append(result.task) # send raw numpy array after, use the implemented buffer interface
 
         self._socket.send_multipart(msg)
-    
-        self._socket.send(msgpack.packb(msg))
 
     def __str__(self):
         return f'({self._ip}:{self._port})'

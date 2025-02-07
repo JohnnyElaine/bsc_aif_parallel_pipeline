@@ -1,8 +1,6 @@
 import logging
 from queue import Queue
 
-import numpy as np
-
 from worker.communication.channel.request_channel import RequestChannel
 from worker.communication.work_requester.work_requester import WorkRequester
 from packages.data import Task
@@ -12,8 +10,8 @@ log = logging.getLogger("worker")
 
 
 class ZmqWorkRequester(WorkRequester):
-    def __init__(self, shared_queue: Queue, request_channel: RequestChannel):
-        super().__init__(shared_queue)
+    def __init__(self, shared_task_queue: Queue, request_channel: RequestChannel):
+        super().__init__(shared_task_queue)
         self._is_running = False
         self._channel = request_channel
 
@@ -66,7 +64,7 @@ class ZmqWorkRequester(WorkRequester):
 
     def _handle_changes(self, changes: dict):
         for change_type, value in changes.items():
-            self._handle_work(change_type, value)
+            self._handle_change(change_type, value)
 
     def _handle_change(self, change_type: str, value):
         match change_type:

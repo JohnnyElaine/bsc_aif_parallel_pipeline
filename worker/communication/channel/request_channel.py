@@ -1,4 +1,3 @@
-import numpy as np
 import msgpack
 import zmq
 
@@ -9,10 +8,10 @@ from worker.data.work_config import WorkConfig
 
 
 class RequestChannel:
-    def __init__(self, ip: str, port: int, identity: int, zmq_context):
+    def __init__(self, ip: str, port: int, identity: int):
         self._ip = ip
         self._port = port
-        self._context = zmq_context
+        self._context = zmq.Context().instance()
         self._socket = self._context.socket(zmq.REQ)
         self._socket.setsockopt_string(zmq.IDENTITY, f'worker-{identity}')
         self._is_connected = False
@@ -45,7 +44,7 @@ class RequestChannel:
 
         info = msgpack.unpackb(msg)
 
-        if info['type'] == RepType.REGISTRATION_CONFIRMATION:
+        if info['type'] != RepType.REGISTRATION_CONFIRMATION:
             return None
 
         return WorkConfig(WorkType.str_to_enum(info['work_type']), WorkLoad.str_to_enum(info['work_load']))
