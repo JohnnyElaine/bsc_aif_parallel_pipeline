@@ -1,3 +1,4 @@
+import zmq
 from multiprocessing import Process, Pipe
 from queue import Queue
 
@@ -28,8 +29,9 @@ class Worker(Process):
             return
 
         log.info(f"starting worker-{self.config.identity}")
-
-        request_channel = RequestChannel(self.config.producer_ip, self.config.producer_port, self.config.identity)
+        
+        zmq_context = zmq.Context()
+        request_channel = RequestChannel(self.config.producer_ip, self.config.producer_port, self.config.identity, zmq_context)
         request_channel.connect()
         log.debug(f"established connection to producer-{request_channel}")
 

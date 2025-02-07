@@ -14,7 +14,7 @@ log = logging.getLogger("worker")
 class ZmqWorkRequester(WorkRequester):
     def __init__(self, shared_queue: Queue, request_channel: RequestChannel):
         super().__init__(shared_queue)
-        self._is_running = True
+        self._is_running = False
         self._channel = request_channel
 
     def run(self):
@@ -26,12 +26,14 @@ class ZmqWorkRequester(WorkRequester):
                 ok = self._iteration()
                 if not ok:
                     self.stop()
+                    break
+                    
         except EOFError:
             log.info("Producer disconnected. Worker exiting.")
             self.stop()
 
     def stop(self):
-        log.info("stopping stream-receiver")
+        log.info("stopping work-requester")
         self._is_running = False
 
     def _iteration(self):
@@ -79,8 +81,3 @@ class ZmqWorkRequester(WorkRequester):
     def _add_to_queue(self, tasks: list[Task]):
         for task in tasks:
             self._queue.put(task)
-
-    @staticmethod
-    def reconstruct_task(task_buffered, dtype, shape):
-        task = np.frombuffer(task_buffered, dtype=dtype)
-        return task.reshape(shape)

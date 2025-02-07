@@ -31,7 +31,7 @@ class RequestHandler(Thread):
 
             self._handle_request(address, request)
 
-    def shutdown(self):
+    def stop(self):
         self._is_running = False
         self._channel.close()
 
