@@ -14,14 +14,14 @@ class YOLOImageProcessor(ImageProcessor, ABC):
     font_scale = 0.8
     font_thickness = 2
 
-    def __init__(self, compute_load: WorkLoad, model_loading_mode: LoadingMode, model_paths: dict):
+    def __init__(self, work_load: WorkLoad, model_loading_mode: LoadingMode, model_paths: dict):
         self._model_loading_mode = model_loading_mode
 
         self._detector_low = YoloDetector(model_paths["low"])
         self._detector_medium = YoloDetector(model_paths["medium"])
         self._detector_high = YoloDetector(model_paths["high"])
 
-        self._detector = self._set_detector(compute_load)
+        self._detector = self._set_detector(work_load)
 
     def process_image(self, img):
         prediction_result = self._detector.predict_image(img)
@@ -36,14 +36,14 @@ class YOLOImageProcessor(ImageProcessor, ABC):
             self._detector_medium.initialize()
             self._detector_high.initialize()
 
-    def change_work_load(self, compute_load: WorkLoad):
-        self._set_detector(compute_load)
+    def change_work_load(self, work_load: WorkLoad):
+        self._set_detector(work_load)
 
         if not self._detector.is_loaded():
             self._detector.initialize()
 
-    def _set_detector(self, compute_load: WorkLoad):
-        match compute_load:
+    def _set_detector(self, work_load: WorkLoad):
+        match work_load:
             case WorkLoad.LOW:
                 return self._detector_low
             case WorkLoad.MEDIUM:

@@ -11,7 +11,7 @@ from worker.global_variables import GlobalVariables
 class ImageProcessorFactory:
     @staticmethod
     def create_image_processor(work_type: WorkType,
-                               compute_load: WorkLoad,
+                               work_load: WorkLoad,
                                model_loading_mode: LoadingMode) -> ImageProcessor:
         match work_type:
             case WorkType.YOLO_OBB:
@@ -21,7 +21,7 @@ class ImageProcessorFactory:
                     'high': GlobalVariables.PROJECT_ROOT / 'checkpoints' / 'models' / 'obb' / 'yolo11m-obb.pt',
                 }
 
-                return OBBYOLOImageProcessor(compute_load, model_loading_mode, model_paths)
+                return OBBYOLOImageProcessor(work_load, model_loading_mode, model_paths)
             case WorkType.YOLO_DETECTION:
                 model_paths = {
                     'low': GlobalVariables.PROJECT_ROOT / 'checkpoints' / 'models' / 'detection' / 'yolo11n.pt',
@@ -29,6 +29,6 @@ class ImageProcessorFactory:
                     'high': GlobalVariables.PROJECT_ROOT / 'checkpoints' / 'models' / 'detection' / 'yolo11m.pt',
                 }
 
-                return DetectionYOLOImageProcessor(compute_load, model_loading_mode, model_paths)
+                return DetectionYOLOImageProcessor(work_load, model_loading_mode, model_paths)
             case WorkType.NONE:
                 return DefaultImageProcessor()

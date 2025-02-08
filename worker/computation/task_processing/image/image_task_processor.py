@@ -4,6 +4,7 @@ import numpy as np
 from multiprocessing import Process, Pipe
 
 from packages.data import TaskType, InstructionType
+from packages.enums import WorkLoad
 from worker.computation.image_processing.image_processor.image_processor import ImageProcessor
 from worker.computation.task_processing.task_processor import TaskProcessor
 
@@ -40,6 +41,7 @@ class ImageTaskProcessor(Process, TaskProcessor):
         """
         :return: True if the iteration was successful. False otherwise.
         """
+        # receives dataclasses: Task, Instruction (must contain 'type' field)
         work = self._task_pipe.recv()
 
         match work.type:
@@ -50,11 +52,14 @@ class ImageTaskProcessor(Process, TaskProcessor):
                 cv.imshow(f'Worker-{self.identifier}', frame)
                 if cv.waitKey(1) & 0xFF == ord('q'):
                     return False
+
             case InstructionType.CHANGE_WORK_LOAD:
+                WorkLoad.int_to_enum(work.value)
                 self._image_processor.change_work_load(work.value)
-
-
-
+                log.debug(f'changes work-load to {work.value}')
+            case _:
+                log.debug(f'task-processor received unknown work-type: {work.type}')
+                pass
 
         return True
 

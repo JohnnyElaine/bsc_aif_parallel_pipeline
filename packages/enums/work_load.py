@@ -2,12 +2,12 @@ from enum import Enum
 
 
 class WorkLoad(Enum):
-    LOW = 'LOW'
-    MEDIUM = 'MEDIUM'
-    HIGH = 'HIGH'
+    LOW = 0
+    MEDIUM = 1
+    HIGH = 2
 
     @staticmethod
-    def str_to_enum(value: str):
+    def int_to_enum(value: int):
         match value:
             case WorkLoad.LOW.value:
                 return WorkLoad.LOW

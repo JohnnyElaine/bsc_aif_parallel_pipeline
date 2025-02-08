@@ -1,8 +1,8 @@
 # TODO
 Worker: handle change request --> (changelog) so we can switch the work load.
 Producer: Implement change-log should worker config change  --> implement changelog dict (with stack of changelogs for each worker)
-Implement program that puts frames back together
-Implement QoS Solutions
+Test Collector
+Implement QoS Solutions (Work load change, FPS Change, Reduce source video quality)
 
 Add Super resolution mode (up-scaling)
 Find more efficient way to load YOLO model, i.e. load with GPU maybe

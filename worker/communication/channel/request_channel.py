@@ -46,7 +46,7 @@ class RequestChannel:
         if info['type'] != RepType.REGISTRATION_CONFIRMATION:
             return None
 
-        return WorkConfig(WorkType.str_to_enum(info['work_type']), WorkLoad.str_to_enum(info['work_load']))
+        return WorkConfig(WorkType.str_to_enum(info['work_type']), WorkLoad.int_to_enum(info['work_load']))
 
     def get_work(self) -> tuple[dict, list[Task]] | None:
         req = dict(type=ReqType.GET_WORK)

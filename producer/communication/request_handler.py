@@ -2,6 +2,10 @@ import logging
 from threading import Thread, Event
 from queue import Queue
 
+from pandas._libs.tslibs import Resolution
+
+from packages.data import Instruction, InstructionType
+from packages.enums import WorkLoad
 from packages.message_types import ReqType, RepType
 from producer.communication.channel.router_channel import RouterChannel
 from producer.data.work_config import WorkConfig
@@ -16,7 +20,7 @@ class RequestHandler(Thread):
         self._channel = RouterChannel(port)
         self._queue = shared_queue
         self._work_config = initial_work_config
-        self._worker_knowledge_base = dict()
+        self._worker_knowledge_base = dict() # key = worker-addr, value = WorkerInfo()
         self._is_running = False
 
         self._work_request = self._handle_first_work_request
@@ -35,6 +39,15 @@ class RequestHandler(Thread):
     def stop(self):
         self._is_running = False
         self._channel.close()
+
+    def change_work_load(self, work_load: WorkLoad):
+        self._broadcast_instruction(Instruction(InstructionType.CHANGE_WORK_LOAD, work_load.value))
+
+    def change_fps(self, fps: int):
+        pass # TODO
+
+    def change_resolution(self, resolution: Resolution):
+        pass # TODO
 
     def _handle_request(self, address: bytes, request: dict):
         req_type = request['type']
@@ -56,36 +69,25 @@ class RequestHandler(Thread):
 
         self._channel.send_information(address, info)
 
-    def _pop_pending_instructions(self, address):
-        info = {instruction.type: instruction.value for instruction in
-                self._worker_knowledge_base[address].instruction_backlog}
-        info['type'] = RepType.INSTRUCTION
-        self._worker_knowledge_base[address].instruction_backlog.clear()
-
-        return info
-
-    def _has_pending_instructions(self, address):
-        return len(self._worker_knowledge_base[address].instruction_backlog) > 0
-
     def _handle_work_request(self, address: bytes):
-        if self._has_pending_instructions(address):
-            info = self._pop_pending_instructions(address)
-            self._channel.send_information(address, info)
+        if self._worker_knowledge_base[address].has_pending_instructions():
+            instruction = self._worker_knowledge_base[address].get_pending_instructions()
+            self._channel.send_information(address, instruction)
             return
 
         task = self._queue.get()
 
-        # TODO Find a way to send multiple tasks at once should the config prefer it.
+        # TODO Find a way to send multiple tasks (if available) at once should the worker info prefer it.
         tasks = [task]
 
         self._channel.send_work(address, tasks)
 
     def _handle_first_work_request(self, address: bytes):
-        # use '_handle_work_request' instead of this function for all other requests
-        self._work_request = self._handle_work_request
-
-        # start the task generator when a worker is ready
-        self.worker_ready_event.set()
-
+        self._work_request = self._handle_work_request # use regular '_handle_work_request' after
+        self.worker_ready_event.set() # start the task generator when a worker is ready
         self._handle_work_request(address)
+
+    def _broadcast_instruction(self, instruction: Instruction):
+        for worker_addr in self._worker_knowledge_base.keys():
+            self._worker_knowledge_base[worker_addr].instruction_backlog.append(instruction)
 
