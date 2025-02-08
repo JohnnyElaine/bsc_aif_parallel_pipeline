@@ -2,8 +2,6 @@ import logging
 from threading import Thread, Event
 from queue import Queue
 
-from pandas._libs.tslibs import Resolution
-
 from packages.data import Instruction, InstructionType
 from packages.enums import WorkLoad
 from packages.message_types import ReqType, RepType
@@ -23,7 +21,7 @@ class RequestHandler(Thread):
         self._worker_knowledge_base = dict() # key = worker-addr, value = WorkerInfo()
         self._is_running = False
 
-        self._work_request = self._handle_first_work_request
+        self._current_work_request_handler = self._handle_first_work_request
         self.worker_ready_event = Event()
 
     def run(self):
@@ -46,7 +44,7 @@ class RequestHandler(Thread):
     def change_fps(self, fps: int):
         pass # TODO
 
-    def change_resolution(self, resolution: Resolution):
+    def change_resolution(self, resolution):
         pass # TODO
 
     def _handle_request(self, address: bytes, request: dict):
@@ -56,7 +54,7 @@ class RequestHandler(Thread):
             case ReqType.REGISTER:
                 self._handle_register_request(address)
             case ReqType.GET_WORK:
-                self._work_request(address)
+                self._current_work_request_handler(address)
             case _:
                 log.debug(f"Received unknown request type: {req_type}")
 
@@ -83,7 +81,7 @@ class RequestHandler(Thread):
         self._channel.send_work(address, tasks)
 
     def _handle_first_work_request(self, address: bytes):
-        self._work_request = self._handle_work_request # use regular '_handle_work_request' after
+        self._current_work_request_handler = self._handle_work_request # use regular '_handle_work_request' after
         self.worker_ready_event.set() # start the task generator when a worker is ready
         self._handle_work_request(address)
 
