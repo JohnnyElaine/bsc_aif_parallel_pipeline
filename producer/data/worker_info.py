@@ -1,3 +1,4 @@
+from packages.data import Instruction
 from packages.message_types import RepType
 
 
@@ -5,6 +6,9 @@ class WorkerInfo:
     def __init__(self):
         self.preferred_num_of_tasks = 1
         self.instruction_backlog = []
+
+    def add_instruction(self, instruction: Instruction):
+        self.instruction_backlog.append(instruction)
 
     def has_pending_instructions(self):
         return len(self.instruction_backlog) > 0

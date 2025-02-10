@@ -10,13 +10,14 @@ log = logging.getLogger("producer")
 
 
 class TaskGenerator(Thread):
-    def __init__(self, shared_queue: Queue, video_path: str, registration_event):
+    def __init__(self, shared_queue: Queue, video_path: str, start_event):
         super().__init__()
         self._queue = shared_queue
         self._video_path = video_path
         self._video = None
         self._target_frame_time = None
-        self.worker_ready_event = registration_event
+        self._target_resolution = None
+        self._start_event = start_event
 
     def run(self):
         self._video = Video(self._video_path)
@@ -26,7 +27,7 @@ class TaskGenerator(Thread):
             raise IOError(f'Unable to open input video file. Path: {self._video.path}')
 
         log.debug('waiting for first work request')
-        self.worker_ready_event.wait()
+        self._start_event.wait()
 
         try:
             log.debug('starting task generation')
@@ -38,6 +39,12 @@ class TaskGenerator(Thread):
 
     def stop(self):
         self._video.close()
+
+    def set_fps(self, fps):
+        self._target_frame_time = min(1 / fps, self._video.fps)
+
+    def set_resolution(self, width: int, height: int):
+        pass # TODO
 
     def _stream_video(self):
         while self._video.is_opened():

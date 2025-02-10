@@ -2,8 +2,7 @@ import logging
 from threading import Thread, Event
 from queue import Queue
 
-from packages.data import Instruction, InstructionType
-from packages.enums import WorkLoad
+from packages.data import Instruction
 from packages.message_types import ReqType, RepType
 from producer.communication.channel.router_channel import RouterChannel
 from producer.data.work_config import WorkConfig
@@ -22,7 +21,7 @@ class RequestHandler(Thread):
         self._is_running = False
 
         self._current_work_request_handler = self._handle_first_work_request
-        self.worker_ready_event = Event()
+        self.start_task_generator_event = Event()
 
     def run(self):
         self._is_running = True
@@ -38,14 +37,9 @@ class RequestHandler(Thread):
         self._is_running = False
         self._channel.close()
 
-    def change_work_load(self, work_load: WorkLoad):
-        self._broadcast_instruction(Instruction(InstructionType.CHANGE_WORK_LOAD, work_load.value))
-
-    def change_fps(self, fps: int):
-        pass # TODO
-
-    def change_resolution(self, resolution):
-        pass # TODO
+    def broadcast_instruction(self, instruction: Instruction):
+        for worker_addr in self._worker_knowledge_base.keys():
+            self._worker_knowledge_base[worker_addr].add_instruction(instruction)
 
     def _handle_request(self, address: bytes, request: dict):
         req_type = request['type']
@@ -82,10 +76,6 @@ class RequestHandler(Thread):
 
     def _handle_first_work_request(self, address: bytes):
         self._current_work_request_handler = self._handle_work_request # use regular '_handle_work_request' after
-        self.worker_ready_event.set() # start the task generator when a worker is ready
+        self.start_task_generator_event.set() # start the task generator when a worker is ready
         self._handle_work_request(address)
-
-    def _broadcast_instruction(self, instruction: Instruction):
-        for worker_addr in self._worker_knowledge_base.keys():
-            self._worker_knowledge_base[worker_addr].instruction_backlog.append(instruction)
 

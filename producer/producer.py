@@ -4,7 +4,9 @@ from queue import Queue
 import packages.logging as logging
 from producer.communication.request_handler import RequestHandler
 from producer.data.work_config import WorkConfig
+from producer.elasticity.elasticity_handler import ElasticityHandler
 from producer.producer_config import ProducerConfig
+from producer.slo.slo_checker import SLOChecker
 from producer.task_generation.task_generator import TaskGenerator
 
 
@@ -28,10 +30,16 @@ class Producer(Process):
         request_handler = RequestHandler(self.config.port,
                                          shared_queue,
                                          WorkConfig(self.config.worker_type, self.config.work_load))
-        task_generator = TaskGenerator(shared_queue, self.config.video_path, request_handler.worker_ready_event)
+        task_generator = TaskGenerator(shared_queue, self.config.video_path, request_handler.start_task_generator_event)
+
+        elasticity_handler = ElasticityHandler(task_generator, request_handler)
+        slo_checker = SLOChecker(elasticity_handler, request_handler.start_task_generator_event)
 
         request_handler.start()
+
+
         task_generator.start()
+        slo_checker.start()
 
         task_generator.join()
         request_handler.join()
