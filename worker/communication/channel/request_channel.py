@@ -2,10 +2,9 @@ import msgpack
 import zmq
 
 from packages.data import Task, TaskUtil
-from packages.enums import WorkType, WorkLoad
+from packages.enums import WorkType, WorkLoad, LoadingMode
 from packages.message_types import ReqType, RepType
 from worker.data.work_config import WorkConfig
-from worker.enums.loading_mode import LoadingMode
 
 
 class RequestChannel:

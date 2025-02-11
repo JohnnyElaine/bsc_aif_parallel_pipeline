@@ -1,7 +1,5 @@
 # TODO
-Implement QoS Solutions (Work load change, FPS Change, Reduce source video quality) 
--> maybe do it in differen thread (SLOs need to be check in its own thread anyways)
-
+Properly close all programs after task generation is done.
 Test the collector
 
 

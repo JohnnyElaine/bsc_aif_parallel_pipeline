@@ -3,10 +3,10 @@ import zmq
 from packages.data import Task
 
 class PushChannel:
-    def __init__(self, ip: str, port: int, identity: int, zmq_context):
+    def __init__(self, ip: str, port: int):
         self._ip = ip
         self._port = port
-        self._context = zmq_context
+        self._context = zmq.Context().instance()
         self._socket = self._context.socket(zmq.PUSH)
         self._is_connected = False
 

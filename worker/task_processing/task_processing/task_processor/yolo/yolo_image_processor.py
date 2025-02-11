@@ -3,10 +3,9 @@ import numpy as np
 import cv2 as cv
 from abc import abstractmethod, ABC
 
-from worker.computation.task_processing.image_detector.yolo_detector import YoloDetector
-from worker.computation.task_processing.task_processor.task_processor import TaskProcessor
-from packages.enums import WorkLoad
-from worker.enums.loading_mode import LoadingMode
+from worker.task_processing.task_processing.image_detector.yolo_detector import YoloDetector
+from worker.task_processing.task_processing.task_processor.task_processor import TaskProcessor
+from packages.enums import WorkLoad, LoadingMode
 
 log = logging.getLogger('task_handler')
 

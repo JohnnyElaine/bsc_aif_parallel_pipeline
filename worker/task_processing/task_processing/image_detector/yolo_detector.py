@@ -28,7 +28,7 @@ class YoloDetector:
 
     def _load_model(self,):
         self._model = YOLO(self.model_path)
-        log.info(f'Successfully Loaded model {self._model.info()}, from {self.model_path}') # TODO does not get printed when switching work load
+        log.info(f'Successfully Loaded model {self._model.info()}, from {self.model_path}')
 
         self.class_names = self._model.names
 

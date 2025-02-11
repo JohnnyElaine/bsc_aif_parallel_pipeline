@@ -1,5 +1,5 @@
 from packages.enums import WorkType, WorkLoad
-from worker.enums.loading_mode import LoadingMode
+from packages.enums.loading_mode import LoadingMode
 from worker.global_variables import GlobalVariables
 from worker.worker_config import WorkerConfig
 from worker.worker import Worker

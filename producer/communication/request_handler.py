@@ -7,7 +7,7 @@ from packages.enums import WorkType, WorkLoad
 from packages.message_types import ReqType, RepType
 from producer.communication.channel.router_channel import RouterChannel
 from producer.data.worker_info import WorkerInfo
-from worker.enums.loading_mode import LoadingMode
+from packages.enums import LoadingMode
 
 log = logging.getLogger("producer")
 

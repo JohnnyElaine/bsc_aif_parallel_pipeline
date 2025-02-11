@@ -1,8 +1,6 @@
 from dataclasses import dataclass
 
-from packages.enums import WorkLoad
-from packages.enums import WorkType
-from worker.enums.loading_mode import LoadingMode
+from packages.enums import WorkLoad, WorkType, LoadingMode
 
 
 @dataclass(frozen=True)

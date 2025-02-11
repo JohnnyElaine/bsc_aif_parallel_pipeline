@@ -2,18 +2,18 @@ import logging
 from threading import Thread
 from queue import Queue
 
-log = logging.getLogger("worker")
+log = logging.getLogger('work_requesting')
 
 
-class PipeSender(Thread):
-    def __init__(self, shared_task_queue: Queue, pipe_to_task_processor):
+class PipeTaskSender(Thread):
+    def __init__(self, task_queue: Queue, task_pipe):
         super().__init__()
-        self._queue = shared_task_queue
-        self._pipe_to_task_processor = pipe_to_task_processor
+        self._queue = task_queue
+        self._task_pipe = task_pipe
         self._is_running = False
 
     def run(self):
-        log.debug('starting pipe-sender')
+        log.debug('starting pipe-task-sender')
         self._is_running = True
 
         while self._is_running:
@@ -24,8 +24,8 @@ class PipeSender(Thread):
             self._queue.task_done()
 
     def stop(self):
-        log.info('stopping pipe-sender')
+        log.info('stopping pipe-task-sender')
         self._is_running = False
 
     def _send_to_pipe(self, msg):
-        self._pipe_to_task_processor.send(msg)
+        self._task_pipe.send(msg)

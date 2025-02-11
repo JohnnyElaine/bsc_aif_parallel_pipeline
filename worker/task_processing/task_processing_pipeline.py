@@ -3,20 +3,20 @@ import numpy as np
 from multiprocessing import Process, Pipe, Event
 
 import packages.logging as logging
-from packages.data import TaskType, InstructionType
+from packages.data import TaskType, InstructionType, Task
 from packages.enums import WorkLoad
-from worker.computation.task_processing.task_processor.task_processor_factory import TaskProcessorFactory
+from worker.task_processing.task_processing.task_processor.task_processor_factory import TaskProcessorFactory
 from worker.data.work_config import WorkConfig
 
 
-class TaskHandler(Process):
+class TaskProcessingPipeline(Process):
     def __init__(self, identifier: int,
-                 task_pipe_receiving_end: Pipe,
                  work_config: WorkConfig,
-                 task_processor_initialized: Event):
+                 task_processor_initialized: Event, task_pipe_recv_end: Pipe, result_pipe_send_end: Pipe):
         super().__init__()
         self.identifier = identifier
-        self._task_pipe = task_pipe_receiving_end
+        self._task_pipe = task_pipe_recv_end
+        self._result_pipe = result_pipe_send_end
         self._work_config = work_config
         self._task_processor_initialized = task_processor_initialized
         self._task_processor = None
@@ -63,6 +63,10 @@ class TaskHandler(Process):
                 cv.imshow(f'Worker-{self.identifier}', frame)
                 if cv.waitKey(1) & 0xFF == ord('q'):
                     return False
+
+                result = Task(work.id, TaskType.COLLECT, frame)
+
+                self._result_pipe.send(result)
 
             case InstructionType.CHANGE_WORK_LOAD:
                 WorkLoad.int_to_enum(work.value)

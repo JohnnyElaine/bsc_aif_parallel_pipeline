@@ -1,11 +1,10 @@
 from multiprocessing import Process, Pipe, Event
-from queue import Queue
 
 import packages.logging as logging
 from worker.communication.channel.request_channel import RequestChannel
-from worker.communication.work_requester.network.zmq_work_requester import ZmqWorkRequester
-from worker.computation.task_handling.task_handler import TaskHandler
-from worker.communication.pipe_sender.pipe_sender import PipeSender
+from worker.result_sending.result_sending_pipeline import ResultSendingPipeline
+from worker.task_processing.task_processing_pipeline import TaskProcessingPipeline
+from worker.work_requesting.work_requesting_pipeline import WorkRequestingPipeline
 from worker.worker_config import WorkerConfig
 
 
@@ -15,13 +14,13 @@ class Worker(Process):
         self.config = config
 
     def run(self):
-        log = logging.setup_logging('worker')
+        log = logging.setup_logging('work_requesting')
 
-        log.info(f"starting worker-{self.config.identity}")
+        log.info(f'starting worker-{self.config.identity}')
         
         request_channel = RequestChannel(self.config.producer_ip, self.config.producer_port, self.config.identity)
         request_channel.connect()
-        log.debug(f"established connection to producer-{request_channel}")
+        log.debug(f'established connection to producer-{request_channel}')
 
         work_config = self._register_at_producer(request_channel)
 
@@ -31,28 +30,23 @@ class Worker(Process):
 
         log.info(f'registered at producer {request_channel}. Received config {work_config}')
 
-        # Pipe for IPC
-        pipe_receiving_end, pipe_sending_end = Pipe(False)
-        log.debug('created pipe for IPC (Main Process -> Task Processor)')
+        task_pipe_recv_end, task_pipe_send_end = Pipe(False) # task-requester -> task-processor
+        result_pipe_recv_end, result_pipe_send_end = Pipe(False) # task processor -> result-sender
 
         task_handler_ready = Event()
-        task_handler = TaskHandler(self.config.identity, pipe_receiving_end, work_config, task_handler_ready)
-
-        # create shared (frame buffer) queue for work_requester & pipe sender
-        task_queue = Queue()
-        work_requester = ZmqWorkRequester(task_queue, request_channel)
-        pipe_sender = PipeSender(task_queue, pipe_sending_end)
+        task_handler = TaskProcessingPipeline(self.config.identity, work_config, task_handler_ready, task_pipe_recv_end, result_pipe_send_end)
+        task_requester = WorkRequestingPipeline(request_channel, task_pipe_send_end)
+        result_sender = ResultSendingPipeline(self.config.collector_ip, self.config.collector_port, result_pipe_recv_end)
 
         task_handler.start()
-        pipe_sender.start()
+        result_sender.start()
 
-        # only start requesting work, when the task_handler is ready
+        # only start requesting work, when the task-handler is ready
         task_handler_ready.wait()
-        work_requester.start()
+        task_requester.run() # avoid spawning additional process
 
-        work_requester.join()
-        pipe_sender.join()
         task_handler.join()
+        result_sender.join()
 
     def _register_at_producer(self, control_channel: RequestChannel):
         return control_channel.register()

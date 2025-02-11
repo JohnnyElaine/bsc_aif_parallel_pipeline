@@ -1,4 +1,4 @@
-from worker.computation.task_processing.task_processor.task_processor import TaskProcessor
+from worker.task_processing.task_processing.task_processor.task_processor import TaskProcessor
 
 class DefaultTaskProcessor(TaskProcessor):
     def __init__(self):

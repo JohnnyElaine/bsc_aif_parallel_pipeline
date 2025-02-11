@@ -1,10 +1,8 @@
-from packages.enums import WorkLoad
-from packages.enums import WorkType
-from worker.enums.loading_mode import LoadingMode
-from worker.computation.task_processing.task_processor.default_task_processor import DefaultTaskProcessor
-from worker.computation.task_processing.task_processor.task_processor import TaskProcessor
-from worker.computation.task_processing.task_processor.yolo.detection_image_processor import DetectionYOLOImageProcessor
-from worker.computation.task_processing.task_processor.yolo.obb_image_processor import OBBYOLOImageProcessor
+from packages.enums import WorkLoad, WorkType, LoadingMode
+from worker.task_processing.task_processing.task_processor.default_task_processor import DefaultTaskProcessor
+from worker.task_processing.task_processing.task_processor.task_processor import TaskProcessor
+from worker.task_processing.task_processing.task_processor.yolo.detection_image_processor import DetectionYOLOImageProcessor
+from worker.task_processing.task_processing.task_processor.yolo.obb_image_processor import OBBYOLOImageProcessor
 from worker.global_variables import GlobalVariables
 
 

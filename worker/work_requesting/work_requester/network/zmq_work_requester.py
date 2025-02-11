@@ -2,11 +2,11 @@ import logging
 from queue import Queue
 
 from worker.communication.channel.request_channel import RequestChannel
-from worker.communication.work_requester.work_requester import WorkRequester
+from worker.work_requesting.work_requester.work_requester import WorkRequester
 from packages.data import Task, Instruction
 from packages.message_types import RepType
 
-log = logging.getLogger("worker")
+log = logging.getLogger('work_requesting')
 
 
 class ZmqWorkRequester(WorkRequester):
