@@ -2,7 +2,7 @@ import torch
 import logging.handlers
 from ultralytics import YOLO
 
-log = logging.getLogger("worker")
+log = logging.getLogger('task_handler')
 
 class YoloDetector:
     def __init__(self, model_path):
@@ -28,7 +28,7 @@ class YoloDetector:
 
     def _load_model(self,):
         self._model = YOLO(self.model_path)
-        log.debug(f'Successfully Loaded model {self._model.info()}, from {self.model_path}')
+        log.info(f'Successfully Loaded model {self._model.info()}, from {self.model_path}') # TODO does not get printed when switching work load
 
         self.class_names = self._model.names
 

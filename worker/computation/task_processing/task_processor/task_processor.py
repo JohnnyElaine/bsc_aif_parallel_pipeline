@@ -1,12 +1,12 @@
 from abc import ABC, abstractmethod
 
-class ImageProcessor(ABC):
+class TaskProcessor(ABC):
     @abstractmethod
     def initialize(self):
         pass
 
     @abstractmethod
-    def process_image(self, img):
+    def process(self, img):
         pass
 
     @abstractmethod

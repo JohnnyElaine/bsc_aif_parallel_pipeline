@@ -1,12 +1,14 @@
 import cv2 as cv
 from numpy import ndarray
 
+from producer.data.resolution import Resolution
+
+
 class Video:
     def __init__(self, path: str):
         self.path = path
         self.video_capture = cv.VideoCapture(path)
-        self.width = int(self.video_capture.get(cv.CAP_PROP_FRAME_WIDTH))
-        self.height = int(self.video_capture.get(cv.CAP_PROP_FRAME_HEIGHT))
+        self.resolution = Resolution(int(self.video_capture.get(cv.CAP_PROP_FRAME_WIDTH)), int(self.video_capture.get(cv.CAP_PROP_FRAME_HEIGHT)))
         self.fps = self.video_capture.get(cv.CAP_PROP_FPS)
         self.frame_index = 0
 
@@ -29,3 +31,7 @@ class Video:
             return
 
         self.video_capture.release()
+
+    @staticmethod
+    def resize_frame(frame: ndarray, width: int, height: int) -> ndarray:
+        return cv.resize(frame, (width, height))

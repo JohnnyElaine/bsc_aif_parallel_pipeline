@@ -16,7 +16,7 @@ class ZmqWorkRequester(WorkRequester):
         self._channel = request_channel
 
     def run(self):
-        log.debug("starting stream-receiver")
+        log.debug("starting work-requester")
         self._is_running = True
 
         try:

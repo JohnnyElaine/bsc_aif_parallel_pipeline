@@ -3,7 +3,8 @@ from queue import Queue
 
 import packages.logging as logging
 from producer.communication.request_handler import RequestHandler
-from producer.data.work_config import WorkConfig
+from producer.data.task_config import TaskConfig
+from producer.data.video import Video
 from producer.elasticity.elasticity_handler import ElasticityHandler
 from producer.producer_config import ProducerConfig
 from producer.slo.slo_checker import SLOChecker
@@ -25,19 +26,19 @@ class Producer(Process):
 
         log.info("starting producer")
 
-        # create shared queue (task buffer) for task generator & request handler
-        shared_queue = Queue()
-        request_handler = RequestHandler(self.config.port,
-                                         shared_queue,
-                                         WorkConfig(self.config.worker_type, self.config.work_load))
-        task_generator = TaskGenerator(shared_queue, self.config.video_path, request_handler.start_task_generator_event)
+        src_video = Video(self.config.video_path)
+        task_config = TaskConfig(self.config.work_type, self.config.work_load, src_video.resolution, src_video.fps)
 
-        elasticity_handler = ElasticityHandler(task_generator, request_handler)
+        task_queue = Queue()
+        request_handler = RequestHandler(self.config.port,
+                                         task_queue,
+                                         task_config.work_type, task_config.work_load, self.config.loading_mode)
+        task_generator = TaskGenerator(task_queue, src_video, request_handler.start_task_generator_event)
+
+        elasticity_handler = ElasticityHandler(task_config, task_generator, request_handler)
         slo_checker = SLOChecker(elasticity_handler, request_handler.start_task_generator_event)
 
         request_handler.start()
-
-
         task_generator.start()
         slo_checker.start()
 

@@ -2,27 +2,25 @@ import logging
 import time
 from threading import Thread
 from queue import Queue
+from cv2 import error as cvError
 
 from packages.data import Task, TaskType
+from producer.data.resolution import Resolution
 from producer.data.video import Video
 
 log = logging.getLogger("producer")
 
 
 class TaskGenerator(Thread):
-    def __init__(self, shared_queue: Queue, video_path: str, start_event):
+    def __init__(self, shared_queue: Queue, video: Video, start_event):
         super().__init__()
         self._queue = shared_queue
-        self._video_path = video_path
-        self._video = None
-        self._target_frame_time = None
-        self._target_resolution = None
+        self._video = video
+        self._target_resolution = self._video.resolution
+        self._target_frame_time = 1 / self._video.fps
         self._start_event = start_event
 
     def run(self):
-        self._video = Video(self._video_path)
-        self._target_frame_time = 1 / self._video.fps
-
         if not self._video.is_opened():
             raise IOError(f'Unable to open input video file. Path: {self._video.path}')
 
@@ -32,25 +30,31 @@ class TaskGenerator(Thread):
         try:
             log.debug('starting task generation')
             self._stream_video()
-        except Exception: # TODO find correct exception
-            log.debug(f'Exception while streaming video file: {self._video.path}')
+        except cvError as e:
+            # Handle OpenCV-specific errors (e.g., video file issues, frame processing errors)
+            log.error(f"OpenCV error while streaming video file {self._video.path}: {e}")
+        except MemoryError:
+            # Handle memory-related errors
+            log.error("Out of memory while processing video.")
+        except OSError as e:
+            # Handle file I/O or system-related errors
+            log.error(f"System error while streaming video file {self._video.path}: {e}")
         finally:
             self.stop()
 
     def stop(self):
         self._video.close()
 
-    def set_fps(self, fps):
+    def set_fps(self, fps: int):
         self._target_frame_time = min(1 / fps, self._video.fps)
 
-    def set_resolution(self, width: int, height: int):
-        pass # TODO
+    def set_resolution(self, res: Resolution):
+        self._target_resolution = res
 
     def _stream_video(self):
-        while self._video.is_opened():
+        ok = True
+        while self._video.is_opened() and ok:
             ok = self._iteration()
-            if not ok:
-                break
 
     def _iteration(self):
         iteration_start_time = time.perf_counter()
@@ -60,6 +64,9 @@ class TaskGenerator(Thread):
             log.error("End of video stream or error reading frame.")
             return False
 
+        if self._target_resolution != self._video.resolution:
+            frame = self._video.resize_frame(frame, self._target_resolution.width, self._target_resolution.height)
+
         self._add_to_queue(frame_index, frame)
 
         self._enforce_target_fps(iteration_start_time, self._target_frame_time)
@@ -68,6 +75,9 @@ class TaskGenerator(Thread):
 
     def _add_to_queue(self, task_id: int, data):
         self._queue.put(Task(task_id, TaskType.INFERENCE ,data))
+
+    def _is_resolution_changed(self):
+        return self._target_resolution[0]
 
     @staticmethod
     def _enforce_target_fps(iteration_start_time: float, target_frame_interval: float):

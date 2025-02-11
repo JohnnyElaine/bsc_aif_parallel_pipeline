@@ -2,6 +2,6 @@ from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
-class Instruction:
-    type: str
-    value: int
+class Resolution:
+    width: int
+    height: int

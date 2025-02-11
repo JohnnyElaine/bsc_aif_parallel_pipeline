@@ -2,13 +2,14 @@ import time
 import logging
 from threading import Thread, Event
 
+from packages.enums import WorkLoad
 from producer.elasticity.elasticity_handler import ElasticityHandler
 
 log = logging.getLogger("producer")
 
 
 class SLOChecker(Thread):
-    TIME_INTERVAL_S = 10
+    TIME_INTERVAL_S = 1
     def __init__(self, elasticity_handler: ElasticityHandler, start_task_generator_event: Event):
         super().__init__()
         self._elasticity_handler = elasticity_handler
@@ -28,5 +29,5 @@ class SLOChecker(Thread):
         self._is_running = False
 
     def _check_all_slo(self):
-        self._elasticity_handler.change_resolution(1280, 720)
+        self._elasticity_handler.change_work_load(WorkLoad.LOW)
         self.stop()
