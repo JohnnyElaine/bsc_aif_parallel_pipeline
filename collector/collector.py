@@ -3,8 +3,10 @@ from queue import Queue, PriorityQueue
 
 import packages.logging as logging
 from collector.collector_config import CollectorConfig
+from collector.datastructures.blocking_dict import BlockingDict
 from collector.output_viewer.output_viewer import OutputViewer
 from collector.result_arrangement.result_arranger import ResultArranger
+from collector.result_arrangement.dict_result_arranger import DictResultArranger
 from collector.result_collection.result_collector import ResultCollector
 
 
@@ -22,11 +24,12 @@ class Collector(Process):
 
         log.info('starting collector')
 
+        result_dict = BlockingDict()
         result_queue = PriorityQueue()
         output_queue = Queue()
 
-        result_collector = ResultCollector(self.config.port, result_queue)
-        result_arranger = ResultArranger(result_queue, output_queue)
+        result_collector = ResultCollector(self.config.port, result_dict)
+        result_arranger = DictResultArranger(result_dict, output_queue)
         output_viewer = OutputViewer(output_queue)
 
         result_arranger.start()

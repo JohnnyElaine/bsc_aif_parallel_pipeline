@@ -29,5 +29,5 @@ class SLOChecker(Thread):
         self._is_running = False
 
     def _check_all_slo(self):
-        self._elasticity_handler.change_work_load(WorkLoad.LOW)
+        #self._elasticity_handler.change_work_load(WorkLoad.LOW)
         self.stop()

@@ -16,7 +16,7 @@ def main():
     vid_path = GlobalVariables.PROJECT_ROOT / 'media' / 'vid' / 'general_detection' / '1080p Video of Highway Traffic! [KBsqQez-O4w].mp4'
     num_workers = 2
 
-    producer_config = ProducerConfig(10000, vid_path, WorkType.YOLO_DETECTION, WorkLoad.MEDIUM, LoadingMode.LAZY)
+    producer_config = ProducerConfig(10000, vid_path, WorkType.YOLO_DETECTION, WorkLoad.LOW, LoadingMode.LAZY)
     collector_config = CollectorConfig(10001)
 
     producer = Producer(producer_config)

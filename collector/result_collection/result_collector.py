@@ -3,12 +3,13 @@ from threading import Thread
 from queue import PriorityQueue
 
 from collector.communication.channel.pull_channel import PullChannel
+from collector.datastructures.blocking_dict import BlockingDict
 
 log = logging.getLogger('collector')
 
 
 class ResultCollector(Thread):
-    def __init__(self, port: int, result_queue: PriorityQueue):
+    def __init__(self, port: int, result_queue: BlockingDict):
         super().__init__()
         self._channel = PullChannel(port)
         self._result_queue = result_queue
@@ -35,7 +36,8 @@ class ResultCollector(Thread):
         results = self._channel.get_results() # result = Task(id, type, data)
 
         for result in results:
-            self._result_queue.put(result)
+            self._result_queue[result.id] = result
+            #self._result_queue.put(result)
 
         return True
         

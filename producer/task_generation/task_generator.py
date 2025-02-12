@@ -13,6 +13,7 @@ log = logging.getLogger("producer")
 
 
 class TaskGenerator(Thread):
+    MAX_QUEUE_SIZE = 150
     def __init__(self, shared_queue: Queue, video: Video, start_event):
         super().__init__()
         self._queue = shared_queue
