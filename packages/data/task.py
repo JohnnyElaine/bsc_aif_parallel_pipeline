@@ -1,10 +1,10 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import numpy as np
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, order=True)
 class Task:
     id: int
-    type: str
-    data: np.ndarray
+    type: str = field(compare=False)
+    data: np.ndarray = field(compare=False)

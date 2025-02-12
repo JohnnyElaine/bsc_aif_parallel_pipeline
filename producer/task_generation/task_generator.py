@@ -4,6 +4,7 @@ from threading import Thread
 from queue import Queue
 from cv2 import error as cvError
 
+import packages.time_util as time_util
 from packages.data import Task, TaskType
 from producer.data.resolution import Resolution
 from producer.data.video import Video
@@ -56,7 +57,7 @@ class TaskGenerator(Thread):
         while self._video.is_opened() and ok:
             ok = self._iteration()
 
-    def _iteration(self):
+    def _iteration(self) -> bool:
         iteration_start_time = time.perf_counter()
 
         ret, frame, frame_index = self._video.read_frame()
@@ -69,7 +70,7 @@ class TaskGenerator(Thread):
 
         self._add_to_queue(frame_index, frame)
 
-        self._enforce_target_fps(iteration_start_time, self._target_frame_time)
+        time_util.enforce_target_fps(iteration_start_time, self._target_frame_time)
 
         return True
 
@@ -78,10 +79,3 @@ class TaskGenerator(Thread):
 
     def _is_resolution_changed(self):
         return self._target_resolution[0]
-
-    @staticmethod
-    def _enforce_target_fps(iteration_start_time: float, target_frame_interval: float):
-        iteration_duration = time.perf_counter() - iteration_start_time
-        wait_time = max(target_frame_interval - iteration_duration, 0)
-        if wait_time > 0:
-            time.sleep(wait_time)

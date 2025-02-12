@@ -1,5 +1,5 @@
 import cv2 as cv
-import numpy as np
+from numpy import ndarray
 from multiprocessing import Process, Pipe, Event
 
 import packages.logging as logging
@@ -48,7 +48,7 @@ class TaskProcessingPipeline(Process):
         self.log.info('stopping task-handler')
         self._is_running = False
 
-    def _iteration(self):
+    def _iteration(self) -> bool:
         """
         :return: True if the iteration was successful. False otherwise.
         """
@@ -57,14 +57,12 @@ class TaskProcessingPipeline(Process):
 
         match work.type:
             case TaskType.INFERENCE:
-                frame = self._process_task(work.data)
+                processed_data = self._process_task(work.data)
 
                 # Display the frame (optional)
-                cv.imshow(f'Worker-{self.identifier}', frame)
-                if cv.waitKey(1) & 0xFF == ord('q'):
-                    return False
+                #self._display_frame(processed_data)
 
-                result = Task(work.id, TaskType.COLLECT, frame)
+                result = Task(work.id, TaskType.COLLECT, processed_data)
 
                 self._result_pipe.send(result)
 
@@ -78,5 +76,10 @@ class TaskProcessingPipeline(Process):
 
         return True
 
-    def _process_task(self, task: np.ndarray):
+    def _process_task(self, task: ndarray):
         return self._task_processor.process(task)
+
+    def _display_frame(self, frame: ndarray):
+        cv.imshow(f'Worker-{self.identifier}', frame)
+        if cv.waitKey(1) & 0xFF == ord('q'):
+            return False

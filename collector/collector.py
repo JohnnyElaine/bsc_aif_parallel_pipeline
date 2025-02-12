@@ -1,8 +1,11 @@
 from multiprocessing import Process
+from queue import Queue, PriorityQueue
 
 import packages.logging as logging
 from collector.collector_config import CollectorConfig
-from collector.communication.result_collector import ResultCollector
+from collector.output_viewer.output_viewer import OutputViewer
+from collector.result_arrangement.result_arranger import ResultArranger
+from collector.result_collection.result_collector import ResultCollector
 
 
 class Collector(Process):
@@ -17,9 +20,19 @@ class Collector(Process):
     def run(self):
         log = logging.setup_logging('collector')
 
-        log.info("starting collector")
-        
-        result_collector = ResultCollector(self.config.port)
-        
-        # call run to avoid killing parent thread
-        result_collector.run()
+        log.info('starting collector')
+
+        result_queue = PriorityQueue()
+        output_queue = Queue()
+
+        result_collector = ResultCollector(self.config.port, result_queue)
+        result_arranger = ResultArranger(result_queue, output_queue)
+        output_viewer = OutputViewer(output_queue)
+
+        result_arranger.start()
+        result_collector.start()
+        output_viewer.start()
+
+        result_collector.join()
+        result_arranger.join()
+        output_viewer.join()

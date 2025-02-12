@@ -34,7 +34,7 @@ class ZmqWorkRequester(WorkRequester):
         log.info("stopping work-requester")
         self._is_running = False
 
-    def _iteration(self):
+    def _iteration(self) -> bool:
         """
         :return: True if the iteration was successful. False otherwise.
         """
