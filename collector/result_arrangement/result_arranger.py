@@ -34,6 +34,11 @@ class ResultArranger(Thread):
 
     def _iteration(self) -> bool:
         result = self._result_queue.get()
+
+        # skip past frames
+        if result.id < self._expected_id:
+            return True
+
         self._buffer[result.id] = result
 
         if self._expected_id not in self._buffer:
@@ -44,12 +49,12 @@ class ResultArranger(Thread):
 
         return True
 
-    def _handle_missing_task(self, ):
+    def _handle_missing_task(self):
         self._strikes += 1
         if self._strikes >= ResultArranger.MAX_STRIKES:
             log.debug(f'skipped task with id={self._expected_id}')
             self._strikes = 0
-            self._expected_id += 1
+            self._expected_id += 1 # skipping task
         else:
             # expected task might be available later
             time.sleep(ResultArranger.WAIT_TIME)

@@ -1,6 +1,7 @@
 import msgpack
 import zmq
-from packages.data import Task
+from packages.data import Task, TaskType
+
 
 class PushChannel:
     def __init__(self, ip: str, port: int):
@@ -30,7 +31,7 @@ class PushChannel:
         msg = list()
 
         for result in results:
-            metadata = dict(id=result.id, shape=result.data.shape, dtype=str(result.data.dtype))
+            metadata = dict(id=result.id, type=TaskType.COLLECT, shape=result.data.shape, dtype=str(result.data.dtype))
             msg.append(msgpack.packb(metadata))# send metadata first
             msg.append(result.data) # send raw numpy array after, use the implemented buffer interface
 

@@ -27,31 +27,77 @@ Add on top of requirements.txt
 ```
 
 # Description
-This is a distributed Parallel Pipeline using active inference to dynamically change the size/frequency/complexity of the tasks 
+This is a distributed Parallel Pipeline using active inference to dynamically change the size/frequency/complexity of the tasks.
+The goal is to run computations on a live video stream in parallel.
+It consists of 3 program types:
+
+- Producer
+- Worker
+- Collector
+
 This is an edge node for a distributed systems. The distributed system consists of multiple edge nodes and a single controller.
+## Producer
+The producer constantly creates work (frames of the source video stream) in the form of multiple `Task` objects. A `Task` is `numpy.ndarray` with a `id` and `type`. 
+For example, when running inference on a video stream the producer would produce tasks such as:
+```
+Task:
+    id = 10
+    type = 'INFERNCE'
+    data = np.ndarray
+```
+The produces tasks are then buffered and ready to be requested via Work-API
+
+### Elasticity
+The Producer tries to ensure Quality of Service (QoS) by providing certain elasticity features, when the underlying SLOs are not met.
+
+Should the computational resources of the system are not enough to uphold certain Service level objectives (SLOs), 
+i.e. processing time for x amount frames, energy consumption, etc then the producer has some options to change required computational load. These include:
+
+- **Quality:** Switch to a different grade YOLOv11 model.
+- **FPS:** Change Source Stream FPS
+- **Resolution:** Change source stream resolution
+
+The goal is to maximize QoS by utilizing the available resources of distributed system (workers).
+
+### Work-API
+The Producer employs a `zeromq ROUTER` socket, that is waiting for requests and returning a task.
+The communication is a two-part process:
+1. The Worker sends a `REQ`
+2. The Producer replies with a `REP`
+#### Request-Reply Structure
+`REQ:` A dict that defines the type of request and optional additional information.
+```python
+req = {
+    type: str,
+    #(optional additional information)
+}
+```
+
+`REP:` multipart message containing
+General information about the response:
+```python
+info = {
+    type: str,
+    #(optional additional information)
+}
+```
+additionally for each task:
+```python
+task_metadata = {
+    id: int,
+    dtype: str,
+    shape: tuple[int, int, int]
+}
+task: numpy.ndarray
+```
+##### Registration
+TODO REST
 
 ## Worker
-The edge nodes constantly receive a video stream either via a network or simulated from a source video file. The edge nodes 
-perform computations upon the individual frames of the stream and send the result to a different node (such as the controller) where the 
-resulting computed frames are stitched together resulting in the new output video stream.
+The workers constantly request work at the producer, processes it and forwards the result to the collector.
 
-Computations upon the original video stream include:
-- YOLOv11 General Object Detection with regular bounding boxes
-- YOLOv11 Arial View Object Detection with oriented bounding boxes
-- Resolution up-scaling
-
-### Task Splitting
-In order to improve overall performance and to harness maximum computational resources from the distributed system, the 
-workload/task is split between all the available edge nodes. 
-
-### Measures to uphold Quality of Service (QoS)
-Should the computational resources of the system are not enough to uphold certain Service level objectives (SLOs), 
-i.e. processing time for x amount frames, energy consumption, etc then the edge node has some options to reduce the 
-required computational load. These include:
-
-- Reducing Quality: Switch to a lower grade YOLOv11 model, Reduce up-scaling quality.
-- Reduce Source video FPS
-- Reduce Source video Quality
+## Collector
+The Collector implements a ``zeromq.PUSH`` socket that constantly accepts results from workers and re-orders them in order to form the final output video-stream
 
 ### Active Inference
 In order to choose which measure is used to uphold QoS/SLOs, the edge node uses Active Inference.
@@ -61,7 +107,28 @@ The producer creates the tasks and sends them to the workers upon receiving a re
 
 # Implementation
 ## Active Inference Model
-Use [pymdp](https://github.com/infer-actively/pymdp)
+- [pymdp](https://github.com/infer-actively/pymdp)
+## Bayesian Inference Model (Alternative)
+- [NumPyro](https://num.pyro.ai/en/stable/)
+- [pyro](https://pyro.ai/)
+- [TensorFlow Probability (TFP)](https://www.tensorflow.org/probability)
+- [Stan](https://pystan.readthedocs.io/en/latest/)
+- [PyMC](https://www.pymc.io/welcome.html)
+- [InferPy](https://github.com/PGM-Lab/InferPy)
+- [BayesPy](https://github.com/bayespy/bayespy)
+## Which Library Should You Choose?
+- For Active Inference: Use [pymdp](https://github.com/infer-actively/pymdp) if you want a dedicated library. For more flexibility, use [pyro](https://pyro.ai/) or [TensorFlow Probability (TFP)](https://www.tensorflow.org/probability) Probability.
+- For Bayesian Modeling: Use [PyMC](https://www.pymc.io/welcome.html), [Stan](https://pystan.readthedocs.io/en/latest/), or [BayesPy](https://github.com/bayespy/bayespy).
+- For High-Performance Inference: Use [NumPyro](https://num.pyro.ai/en/stable/) or [TensorFlow Probability (TFP)](https://www.tensorflow.org/probability).
+
+DeepSeek Recommendation
+1. Pyro 
+2. TensorFlow Probability (TFP):
+Similar to Pyro but integrates with TensorFlow. Suitable for large-scale distributed systems.
+3. NumPyro:
+Lightweight and fast, built on JAX. Ideal for high-performance inference.
+4. PyMC:
+User-friendly and well-documented. Great for Bayesian modeling but less flexible for Active Inference.
 ## Network Communication
 ### Control Channel
 - ZeroMQ: REQ-REP pattern for requesting changes at the controller. PUB-SUB pattern for Controller to broadcast changes (TODO: either TCP or PGM/EPGM)
