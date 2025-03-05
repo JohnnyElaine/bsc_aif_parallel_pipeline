@@ -17,3 +17,6 @@ class WorkLoad(Enum):
                 return WorkLoad.HIGH
             case _:
                 return WorkLoad.MEDIUM
+
+
+w = WorkLoad.LOW

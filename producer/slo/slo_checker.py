@@ -2,10 +2,9 @@ import time
 import logging
 from threading import Thread, Event
 
-from packages.enums import WorkLoad
 from producer.elasticity.elasticity_handler import ElasticityHandler
 
-log = logging.getLogger("producer")
+log = logging.getLogger('producer')
 
 
 class SLOChecker(Thread):

@@ -27,7 +27,7 @@ class Producer(Process):
         log.info("starting producer")
 
         src_video = Video(self.config.video_path)
-        task_config = TaskConfig(self.config.work_type, self.config.work_load, src_video.resolution, src_video.fps)
+        task_config = TaskConfig(self.config.work_type, self.config.work_load, src_video.resolution, src_video.fps, src_video.resolution, src_video.fps)
 
         task_queue = Queue(maxsize=TaskGenerator.MAX_QUEUE_SIZE)
         request_handler = RequestHandler(self.config.port,

@@ -1,10 +1,7 @@
 # TODO
 Properly close all programs after task generation is done.
-Test the collector
+When changing fps: notify the collector that the fps are changed
 
-
-Add Super resolution mode (up-scaling)
-Find more efficient way to load YOLO model, i.e. load with GPU maybe
 
 ## How to send numpy arrays using 0MQ efficiently:
 https://pyzmq.readthedocs.io/en/latest/howto/serialization.html#example-numpy-arrays
@@ -15,6 +12,9 @@ https://pyzmq.readthedocs.io/en/latest/howto/serialization.html#example-numpy-ar
 pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
 pip install ultralytics
 pip install msgpack
+pip install pyzmq
+pip install inferactively-pymdp
+
 
 pip freeze > requirements.txt
 ```
@@ -27,15 +27,14 @@ Add on top of requirements.txt
 ```
 
 # Description
-This is a distributed Parallel Pipeline using active inference to dynamically change the size/frequency/complexity of the tasks.
-The goal is to run computations on a live video stream in parallel.
+This is a distributed Parallel Pipeline using active inference to dynamically change the size/frequency/complexity of the tasks, based on the current available computational resources of the system.
+The goal is to run YOLOv11 inference on a live video stream using multiple distributed workers in parallel.
 It consists of 3 program types:
 
 - Producer
 - Worker
 - Collector
 
-This is an edge node for a distributed systems. The distributed system consists of multiple edge nodes and a single controller.
 ## Producer
 The producer constantly creates work (frames of the source video stream) in the form of multiple `Task` objects. A `Task` is `numpy.ndarray` with a `id` and `type`. 
 For example, when running inference on a video stream the producer would produce tasks such as:
@@ -45,7 +44,63 @@ Task:
     type = 'INFERNCE'
     data = np.ndarray
 ```
-The produces tasks are then buffered and ready to be requested via Work-API
+The produced tasks are then buffered and ready to be requested by a worker via the [Work-API](#work-api).
+
+### Controlling Entity
+Using the [Work-API](#work-api) the producer also serves as a controlling entity for the rest of the network holding the information about the current state of the video stream and propagating changes when they occur.
+The secondary goal of the producer is to ensure maximum Quality of Experience (QoE). 
+This means that the producer aims to maximise the result of the YOLOv11 inference, while trying to keep source-fps and source-resolution.
+This is done by trying to uphold certain [Service Level Objectives (SLOs)](#service-level-objectives-slos)
+
+## Worker
+The workers constantly
+1. request work at the producer.
+2. processes it by running YOLOv11 inference.
+3. sends the result to the collector. 
+
+### Requesting Work
+The Worker requests work whenever its internal task-buffer is empty. The work requesting is done according to the [Work-API](#work-api).
+
+### Processing the task (image)
+The Worker takes tasks (frames) from the task-buffer and runs inference on them using YOLOv11. The result is then stored in the result-buffer.
+
+This is done in a separate process to enable maximum performance.
+### Sending Results to Collector
+The Worker implements a `zeromq.PUSH` socket that is used to immediately send all buffered results to the collector.
+
+## Collector
+The Collector implements a ``zeromq.PULL`` socket that constantly accepts results from workers and re-orders them to produce the final output video-stream.
+
+## Service Level Objectives (SLOs)
+The Service Level Objectives (SLOs) are implemented by the Producer in order to ensure the highest possible Quality of Experience (QoE) given the current available resources.
+
+### Task queue size
+```
+task_queue <= X
+```
+- ``X`` maximum acceptable number of tasks. e.g. ``X = current_fps * 2``
+
+GOAL: Make sure there is enough compute power to handle tasks in real time.
+
+### Tasks per second (TPS)
+```
+current_tps >= source_fps * T
+```
+- `T` Tolerance. e.g. `T = 0.9` for 90% Tolerance
+
+GOAL: Video should be at source fps if possible.
+
+### Quality/Workload
+
+GOAL: Workers should run YOLO-inference at higher quality if possible.
+
+### Resolution
+```
+current_res >= source_res * T
+```
+- `T` Tolerance. e.g. `T = 0.9` for 90% Tolerance
+
+GOAL: Video should run at source resolution if possible.
 
 ### Elasticity
 The Producer tries to ensure Quality of Service (QoS) by providing certain elasticity features, when the underlying SLOs are not met.
@@ -59,12 +114,21 @@ i.e. processing time for x amount frames, energy consumption, etc then the produ
 
 The goal is to maximize QoS by utilizing the available resources of distributed system (workers).
 
-### Work-API
-The Producer employs a `zeromq ROUTER` socket, that is waiting for requests and returning a task.
-The communication is a two-part process:
+## Work-API
+Implemented by the Producer and used by the Worker.
+
+The Producer implements a `zeromq.ROUTER` socket, that is waiting for requests and returning a task.
+The Worker implements a `zeromq.REQ` socket, that is requesting tasks from the Producer's `zeromq.ROUTER` socket.
+
+The communication is request-reply structure:
 1. The Worker sends a `REQ`
 2. The Producer replies with a `REP`
-#### Request-Reply Structure
+
+### Load Balancing
+This is often referred to as the [Load Balancing Pattern](https://zguide.zeromq.org/docs/chapter3/#The-Load-Balancing-Pattern). 
+This approach maximises the resource utilization of the workers.
+
+#### General Request-Reply Structure
 `REQ:` A dict that defines the type of request and optional additional information.
 ```python
 req = {
@@ -93,12 +157,6 @@ task: numpy.ndarray
 ##### Registration
 TODO REST
 
-## Worker
-The workers constantly request work at the producer, processes it and forwards the result to the collector.
-
-## Collector
-The Collector implements a ``zeromq.PUSH`` socket that constantly accepts results from workers and re-orders them in order to form the final output video-stream
-
 ### Active Inference
 In order to choose which measure is used to uphold QoS/SLOs, the edge node uses Active Inference.
 
@@ -118,7 +176,7 @@ The producer creates the tasks and sends them to the workers upon receiving a re
 - [BayesPy](https://github.com/bayespy/bayespy)
 ## Which Library Should You Choose?
 - For Active Inference: Use [pymdp](https://github.com/infer-actively/pymdp) if you want a dedicated library. For more flexibility, use [pyro](https://pyro.ai/) or [TensorFlow Probability (TFP)](https://www.tensorflow.org/probability) Probability.
-- For Bayesian Modeling: Use [PyMC](https://www.pymc.io/welcome.html), [Stan](https://pystan.readthedocs.io/en/latest/), or [BayesPy](https://github.com/bayespy/bayespy).
+- For Bayesian Modeling: Use [PyMC](hmttps://www.pymc.io/welcome.htl), [Stan](https://pystan.readthedocs.io/en/latest/), or [BayesPy](https://github.com/bayespy/bayespy).
 - For High-Performance Inference: Use [NumPyro](https://num.pyro.ai/en/stable/) or [TensorFlow Probability (TFP)](https://www.tensorflow.org/probability).
 
 DeepSeek Recommendation

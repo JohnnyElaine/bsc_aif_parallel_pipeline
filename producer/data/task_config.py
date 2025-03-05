@@ -11,4 +11,6 @@ class TaskConfig:
     work_load: WorkLoad
     resolution: Resolution
     fps: int
+    max_resolution: Resolution
+    max_fps: int
 
