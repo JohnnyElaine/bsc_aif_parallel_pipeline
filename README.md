@@ -82,13 +82,13 @@ task_queue <= X
 
 GOAL: Make sure there is enough compute power to handle tasks in real time.
 
-### Tasks per second (TPS)
+### Frames per second (FPS)
 ```
-current_tps >= source_fps * T
+current_fps >= target_fps * T
 ```
 - `T` Tolerance. e.g. `T = 0.9` for 90% Tolerance
 
-GOAL: Video should be at source fps if possible.
+GOAL: Video should be at target fps if possible.
 
 ### Quality/Workload
 

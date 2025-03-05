@@ -24,9 +24,9 @@ class ElasticityHandler:
         _init_config (TaskConfig): The configuration object holding task parameters.
         _task_generator (TaskGenerator): The task generator responsible for creating tasks.
         _request_handler (RequestHandler): The handler responsible for managing requests.
-        _state_resolution (State): The current state of the resolution.
-        _state_fps (State): The current state of the frames per second (FPS).
-        _state_work_load (State): The current state of the workload.
+        state_resolution (State): The current state of the resolution.
+        state_fps (State): The current state of the frames per second (FPS).
+        state_work_load (State): The current state of the workload.
     """
 
     def __init__(self, initial_task_config: TaskConfig, task_generator: TaskGenerator, request_handler: RequestHandler):
@@ -34,9 +34,9 @@ class ElasticityHandler:
         self._task_generator = task_generator
         self._request_handler = request_handler
 
-        self._state_resolution = ElasticityHandler._create_state(initial_task_config.resolution, self._generate_possible_resolutions())
-        self._state_fps = ElasticityHandler._create_state(initial_task_config.fps, self._generate_possible_fps())
-        self._state_work_load = ElasticityHandler._create_state(initial_task_config.work_load, self._generate_possible_work_loads())
+        self.state_resolution = ElasticityHandler._create_state(initial_task_config.resolution, self._generate_possible_resolutions())
+        self.state_fps = ElasticityHandler._create_state(initial_task_config.fps, self._generate_possible_fps())
+        self.state_work_load = ElasticityHandler._create_state(initial_task_config.work_load, self._generate_possible_work_loads())
 
         # TODO check if functions needs synchronization
 
@@ -48,7 +48,7 @@ class ElasticityHandler:
         Returns:
             Resolution: The current resolution value.
         """
-        return self._state_resolution.value
+        return self.state_resolution.value
 
     @property
     def fps(self):
@@ -58,7 +58,7 @@ class ElasticityHandler:
         Returns:
             int: The current FPS value.
         """
-        return self._state_fps.value
+        return self.state_fps.value
 
     @property
     def work_load(self):
@@ -68,7 +68,7 @@ class ElasticityHandler:
         Returns:
             WorkLoad: The current workload value.
         """
-        return self._state_work_load.value
+        return self.state_work_load.value
 
     def increase_resolution(self):
         """
@@ -77,7 +77,7 @@ class ElasticityHandler:
         Returns:
             bool: True if the resolution was increased, False if it was already at the maximum.
         """
-        return self._increase_state(self._state_resolution, self._change_resolution)
+        return self._increase_state(self.state_resolution, self._change_resolution)
 
     def decrease_resolution(self):
         """
@@ -86,7 +86,7 @@ class ElasticityHandler:
         Returns:
             bool: True if the resolution was decreased, False if it was already at the minimum.
         """
-        return self._decrease_state(self._state_resolution, self._change_resolution)
+        return self._decrease_state(self.state_resolution, self._change_resolution)
 
     def increase_fps(self):
         """
@@ -95,7 +95,7 @@ class ElasticityHandler:
         Returns:
             bool: True if the FPS was increased, False if it was already at the maximum.
         """
-        return self._increase_state(self._state_fps, self._change_fps)
+        return self._increase_state(self.state_fps, self._change_fps)
 
     def decrease_fps(self):
         """
@@ -104,7 +104,7 @@ class ElasticityHandler:
         Returns:
             bool: True if the FPS was decreased, False if it was already at the minimum.
         """
-        return self._decrease_state(self._state_fps, self._change_fps)
+        return self._decrease_state(self.state_fps, self._change_fps)
 
     def increase_work_load(self):
         """
@@ -113,7 +113,7 @@ class ElasticityHandler:
         Returns:
             bool: True if the workload was increased, False if it was already at the maximum.
         """
-        return self._increase_state(self._state_work_load, self._change_work_load)
+        return self._increase_state(self.state_work_load, self._change_work_load)
 
     def decrease_work_load(self):
         """
@@ -122,7 +122,7 @@ class ElasticityHandler:
         Returns:
             bool: True if the workload was decreased, False if it was already at the minimum.
         """
-        return self._decrease_state(self._state_work_load, self._change_work_load)
+        return self._decrease_state(self.state_work_load, self._change_work_load)
 
     def _change_work_load(self, work_load: WorkLoad):
         """
