@@ -13,7 +13,7 @@ log = logging.getLogger("producer")
 
 
 class TaskGenerator(Thread):
-    MAX_QUEUE_SIZE = 150
+    MAX_QUEUE_SIZE = 200
     def __init__(self, shared_queue: Queue, video: Video, start_event):
         super().__init__()
         self._queue = shared_queue
@@ -46,6 +46,10 @@ class TaskGenerator(Thread):
 
     def stop(self):
         self._video.close()
+
+    def queue_size(self):
+        """Return the approximate size of the queue (not reliable!)."""
+        return self._queue.qsize()
 
     def set_fps(self, fps: int):
         self._target_frame_time = min(1 / fps, self._video.fps)

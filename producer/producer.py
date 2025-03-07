@@ -7,7 +7,7 @@ from producer.data.task_config import TaskConfig
 from producer.data.video import Video
 from producer.elasticity.elasticity_handler import ElasticityHandler
 from producer.producer_config import ProducerConfig
-from producer.slo.slo_checker import SLOChecker
+from producer.elasticity.slo_checker import SLOChecker
 from producer.task_generation.task_generator import TaskGenerator
 
 

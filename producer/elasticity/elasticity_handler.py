@@ -1,12 +1,11 @@
 import logging
 import producer.elasticity.possible_values.aspect_ratios as AllAspectRatios
-from producer.elasticity.possible_values.work_loads import ALL_WORK_LOADS
 from producer.elasticity.possible_values.resolutions import AllResolutions
 from packages.enums import WorkLoad
 from producer.communication.request_handler import RequestHandler
 from producer.data.resolution import Resolution
 from producer.data.task_config import TaskConfig
-from producer.elasticity.state import State
+from producer.elasticity.data.state import State
 from producer.task_generation.task_generator import TaskGenerator
 
 log = logging.getLogger('producer')
@@ -21,7 +20,7 @@ class ElasticityHandler:
     dynamically adjust task parameters based on workload and performance requirements.
 
     Attributes:
-        _init_config (TaskConfig): The configuration object holding task parameters.
+        target_config (TaskConfig): The configuration object holding task parameters.
         _task_generator (TaskGenerator): The task generator responsible for creating tasks.
         _request_handler (RequestHandler): The handler responsible for managing requests.
         state_resolution (State): The current state of the resolution.
@@ -30,7 +29,7 @@ class ElasticityHandler:
     """
 
     def __init__(self, initial_task_config: TaskConfig, task_generator: TaskGenerator, request_handler: RequestHandler):
-        self._init_config = initial_task_config
+        self.target_config = initial_task_config
         self._task_generator = task_generator
         self._request_handler = request_handler
 
@@ -69,6 +68,10 @@ class ElasticityHandler:
             WorkLoad: The current workload value.
         """
         return self.state_work_load.value
+
+    def queue_size(self):
+        """Return the approximate size of the queue (not reliable!)."""
+        return self._task_generator.queue_size()
 
     def increase_resolution(self):
         """
@@ -158,7 +161,7 @@ class ElasticityHandler:
         Returns:
             list[WorkLoad]: A list of possible workload values.
         """
-        return ALL_WORK_LOADS
+        return list(WorkLoad)
 
     def _generate_possible_resolutions(self) -> list[Resolution]:
         """
@@ -167,7 +170,7 @@ class ElasticityHandler:
         Returns:
             list[Resolution]: A list of possible resolution values.
         """
-        max_res = self._init_config.max_resolution
+        max_res = self.target_config.max_resolution
 
         match max_res.get_aspect_ratio():
             case AllAspectRatios.ASPECT_RATIO_16_9:
@@ -186,7 +189,7 @@ class ElasticityHandler:
         Returns:
             list[int]: A list of possible FPS values.
         """
-        return [fps for fps in range(5, self._init_config.max_fps + 5, 5)]
+        return [fps for fps in range(5, self.target_config.max_fps + 5, 5)]
 
     @staticmethod
     def _increase_state(state: State, change_function: callable):
@@ -205,6 +208,9 @@ class ElasticityHandler:
 
         state.current_index += 1
         change_function(state.value)
+
+        log.debug(f'{change_function.__name__}: {state.possible_states[state.current_index] - 1} -> {state.possible_states[state.current_index]}')
+
         return True
 
     @staticmethod
@@ -224,6 +230,9 @@ class ElasticityHandler:
 
         state.current_index -= 1
         change_function(state.value)
+
+        log.debug(f'{change_function.__name__}: {state.possible_states[state.current_index] + 1} -> {state.possible_states[state.current_index]}')
+
         return True
 
     @staticmethod
@@ -241,25 +250,3 @@ class ElasticityHandler:
         possible_states = states_gen_function()
         index = possible_states.index(init_value)
         return State(index, possible_states)
-
-    def _create_resolution_state(self):
-        """
-        Creates a state object for resolution based on the initial configuration.
-
-        Returns:
-            State: A new state object for resolution.
-        """
-        possible_resolution_states = self._generate_possible_resolutions()
-        current_resolution_index = possible_resolution_states.index(self._init_config.resolution)
-        return State(current_resolution_index, possible_resolution_states)
-
-    def _create_fps_state(self):
-        """
-        Creates a state object for frames per second (FPS) based on the initial configuration.
-
-        Returns:
-            State: A new state object for FPS.
-        """
-        possible_fps_states = self._generate_possible_fps()
-        current_fps_index = possible_fps_states.index(self._init_config.fps)
-        return State(current_fps_index, possible_fps_states)
