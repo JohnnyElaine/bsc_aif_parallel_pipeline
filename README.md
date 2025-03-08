@@ -71,8 +71,28 @@ The Worker implements a `zeromq.PUSH` socket that is used to immediately send al
 ## Collector
 The Collector implements a ``zeromq.PULL`` socket that constantly accepts results from workers and re-orders them to produce the final output video-stream.
 
+### Elasticity
+The Producer tries to ensure Quality of Service (QoS) by providing certain elasticity features, when the underlying SLOs are not met.
+
+Should the computational resources of the system are not enough to uphold certain Service level objectives (SLOs), 
+i.e. processing time for x amount frames, energy consumption, etc then the producer has some options to change required computational load. These include:
+
+- **Quality:** Switch to a different grade YOLOv11 model.
+- **FPS:** Change Source Stream FPS
+- **Resolution:** Change source stream resolution
+
+The goal is to maximize QoS by utilizing the available resources of distributed system (workers).
+
 ## Service Level Objectives (SLOs)
 The Service Level Objectives (SLOs) are implemented by the Producer in order to ensure the highest possible Quality of Experience (QoE) given the current available resources.
+
+### Memory Usage
+```
+memory_usage <= X%
+```
+- `X%` maximum percentage of acceptable memory use
+
+GOAL: Ensure memory usage does not exceed capacity.
 
 ### Task queue size
 ```
@@ -102,17 +122,7 @@ current_res >= source_res * T
 
 GOAL: Video should run at source resolution if possible.
 
-### Elasticity
-The Producer tries to ensure Quality of Service (QoS) by providing certain elasticity features, when the underlying SLOs are not met.
 
-Should the computational resources of the system are not enough to uphold certain Service level objectives (SLOs), 
-i.e. processing time for x amount frames, energy consumption, etc then the producer has some options to change required computational load. These include:
-
-- **Quality:** Switch to a different grade YOLOv11 model.
-- **FPS:** Change Source Stream FPS
-- **Resolution:** Change source stream resolution
-
-The goal is to maximize QoS by utilizing the available resources of distributed system (workers).
 
 ## Work-API
 Implemented by the Producer and used by the Worker.

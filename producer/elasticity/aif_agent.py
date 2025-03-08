@@ -37,6 +37,8 @@ class ActiveInferenceAgent:
             task_queue_size: int,
             target_fps: int,
             target_resolution,
+            memory_usage_percentage: float = 0.0,
+            max_memory_percentage: float = 80.0,
             planning_horizon: int = 2
     ):
         """
@@ -50,8 +52,8 @@ class ActiveInferenceAgent:
             task_queue_size: Current size of the task queue
             target_fps: The source video fps
             target_resolution: The source video resolution
-            fps_tolerance: Minimum acceptable fps ratio compared to source (default: 0.9)
-            resolution_tolerance: Minimum acceptable resolution ratio compared to source (default: 0.9)
+            memory_usage_percentage: Current memory usage as a percentage
+            max_memory_percentage: Maximum acceptable memory usage percentage
             planning_horizon: Number of time steps to plan ahead (default: 2)
         """
         self.elasticity_handler = elasticity_handler
@@ -66,6 +68,8 @@ class ActiveInferenceAgent:
         self.task_queue_size = task_queue_size
         self.target_fps = target_fps
         self.target_resolution = target_resolution
+        self.memory_usage_percentage = memory_usage_percentage
+        self.max_memory_percentage = max_memory_percentage
 
         self.slo_manager = SloManager(self.elasticity_handler, target_fps, target_resolution)
 
@@ -74,6 +78,7 @@ class ActiveInferenceAgent:
         self.num_fps_states = len(self.possible_fps)
         self.num_work_load_states = len(self.possible_work_loads)
         self.num_queue_states = 2  # Queue is either OK or too large
+        self.num_memory_states = 2  # Memory usage is either OK or too high
 
         # Define actions
         self.actions = list(ActionType)
@@ -95,8 +100,7 @@ class ActiveInferenceAgent:
             self.num_fps_states,  # FPS state
             self.num_work_load_states,  # Work load state
             self.num_queue_states,  # Queue size status (OK or too large)
-            2,  # FPS SLO status (satisfied or not)
-            2,  # Resolution SLO status (satisfied or not)
+            self.num_memory_states,  # Memory usage status (OK or too high)
         ]
 
         # Define state dimensions (hidden states)
@@ -108,16 +112,19 @@ class ActiveInferenceAgent:
 
         self.control_dims = [self.num_actions]
 
-        self.A = self._construct_A_matrix()
-        self.B = self._construct_B_matrix()
-        self.C = self._construct_C_matrix()
-        self.D = self._construct_D_matrix()
+        A = self._construct_A_matrix()
+        B = self._construct_B_matrix()
+        C = self._construct_C_matrix()
+        D = self._construct_D_matrix()
 
         # Initialize the agent
-        self.agent = Agent(A=self.A, B=self.B, C=self.C, D=self.D)
+        self.agent = Agent(A=A, B=B, C=C, D=D)
 
     def _construct_A_matrix(self):
-        """Construct the A matrix (observation model) - Likelihood mapping from hidden states to observations"""
+        """
+        Construct the A matrix (observation model) - Likelihood mapping from hidden states to observations
+        A[observation, slo-status, resolution-state, fps-state, workload-state] = probability (0 - 1)
+        """
         # Initialize the A matrix with all zeros
         A = utils.obj_array(len(self.obs_dims))
 
@@ -142,42 +149,38 @@ class ActiveInferenceAgent:
         for res_idx in range(self.num_resolution_states):
             for fps_idx in range(self.num_fps_states):
                 for wl_idx in range(self.num_work_load_states):
-                    # Queue size probability depends on FPS and work load
-                    # Higher FPS or higher work load increases probability of large queue
+                    # TODO IDEA: Just check the actual SLO here and set the value accordingly instead of predicting
+                    # Queue size probability depends on FPS, resolution, and work load
+                    # Higher FPS, higher resolution, or higher work load increases probability of large queue
                     queue_ok_prob = 1.0 - (0.1 * fps_idx / (self.num_fps_states - 1) +
-                                           0.2 * wl_idx / (self.num_work_load_states - 1) +
-                                           0.1 * res_idx / (self.num_resolution_states - 1))
+                                          0.2 * wl_idx / (self.num_work_load_states - 1) +
+                                          0.1 * res_idx / (self.num_resolution_states - 1))
                     queue_ok_prob = max(0.1, min(0.9, queue_ok_prob))  # Bound between 0.1 and 0.9
 
                     A[3][SLOStatus.SATISFIED.value, res_idx, fps_idx, wl_idx] = queue_ok_prob
                     A[3][SLOStatus.UNSATISFIED.value, res_idx, fps_idx, wl_idx] = 1.0 - queue_ok_prob
 
-        # Observation 4: FPS SLO status - depends on current FPS vs source FPS
+        # Observation 4: Memory usage status - depends on resolution, FPS, and work load
         for res_idx in range(self.num_resolution_states):
             for fps_idx in range(self.num_fps_states):
                 for wl_idx in range(self.num_work_load_states):
-                    if self.slo_manager.fps_slo_satisfied():
-                        A[4][SLOStatus.SATISFIED.value, res_idx, fps_idx, wl_idx] = 0.9
-                        A[4][SLOStatus.UNSATISFIED.value, res_idx, fps_idx, wl_idx] = 0.1
-                    else:
-                        A[4][SLOStatus.SATISFIED.value, res_idx, fps_idx, wl_idx] = 0.1
-                        A[4][SLOStatus.UNSATISFIED.value, res_idx, fps_idx, wl_idx] = 0.9
+                    # Memory usage probability depends on resolution, FPS, and work load
+                    # Higher resolution, higher FPS, or higher work load increases memory usage
+                    memory_ok_prob = 1.0 - (0.2 * res_idx / (self.num_resolution_states - 1) +
+                                           0.1 * fps_idx / (self.num_fps_states - 1) +
+                                           0.1 * wl_idx / (self.num_work_load_states - 1))
+                    memory_ok_prob = max(0.1, min(0.9, memory_ok_prob))  # Bound between 0.1 and 0.9
 
-        # Observation 5: Resolution SLO status - depends on current resolution vs source resolution
-        for res_idx in range(self.num_resolution_states):
-            for fps_idx in range(self.num_fps_states):
-                for wl_idx in range(self.num_work_load_states):
-                    if self.slo_manager.resolution_slo_satisfied():
-                        A[5][SLOStatus.SATISFIED.value, res_idx, fps_idx, wl_idx] = 0.9
-                        A[5][SLOStatus.UNSATISFIED.value, res_idx, fps_idx, wl_idx] = 0.1
-                    else:
-                        A[5][SLOStatus.SATISFIED.value, res_idx, fps_idx, wl_idx] = 0.1
-                        A[5][SLOStatus.UNSATISFIED.value, res_idx, fps_idx, wl_idx] = 0.9
+                    A[4][SLOStatus.SATISFIED.value, res_idx, fps_idx, wl_idx] = memory_ok_prob
+                    A[4][SLOStatus.UNSATISFIED.value, res_idx, fps_idx, wl_idx] = 1.0 - memory_ok_prob
 
         return A
 
     def _construct_B_matrix(self):
-        """Construct the B matrix (transition model) - Mapping from current states and actions to next states"""
+        """
+        Construct the B matrix (transition model) - Mapping from current states and actions to next states
+        B[current-state, next-state, action] = probability (0 - 1)
+        """
         # Initialize the B matrix with all zeros
         B = utils.obj_array(len(self.state_dims))
 
@@ -188,16 +191,15 @@ class ActiveInferenceAgent:
         # B[0]: Transitions for Resolution states based on actions
         # Identity matrix (stay in same state) for all actions except increase/decrease resolution
         for action_idx in range(self.num_actions):
-            if action_idx == ActionType.INCREASE_RESOLUTION.value - 1:
-                # Increase resolution action
+            if action_idx == ActionType.INCREASE_RESOLUTION.value:
                 for i in range(self.num_resolution_states):
                     if i < self.num_resolution_states - 1:
+                        # TODO: check if i should change probability to 100% & 0% to guarantee change of state
                         B[0][i + 1, i, action_idx] = 0.9  # 90% chance to increase
                         B[0][i, i, action_idx] = 0.1  # 10% chance to stay the same
                     else:
                         B[0][i, i, action_idx] = 1.0  # Already at max
-            elif action_idx == ActionType.DECREASE_RESOLUTION.value - 1:
-                # Decrease resolution action
+            elif action_idx == ActionType.DECREASE_RESOLUTION.value:
                 for i in range(self.num_resolution_states):
                     if i > 0:
                         B[0][i - 1, i, action_idx] = 0.9  # 90% chance to decrease
@@ -211,16 +213,14 @@ class ActiveInferenceAgent:
 
         # B[1]: Transitions for FPS states based on actions
         for action_idx in range(self.num_actions):
-            if action_idx == ActionType.INCREASE_FPS.value - 1:
-                # Increase FPS action
+            if action_idx == ActionType.INCREASE_FPS.value:
                 for i in range(self.num_fps_states):
                     if i < self.num_fps_states - 1:
                         B[1][i + 1, i, action_idx] = 0.9  # 90% chance to increase
                         B[1][i, i, action_idx] = 0.1  # 10% chance to stay the same
                     else:
                         B[1][i, i, action_idx] = 1.0  # Already at max
-            elif action_idx == ActionType.DECREASE_FPS.value - 1:
-                # Decrease FPS action
+            elif action_idx == ActionType.DECREASE_FPS.value:
                 for i in range(self.num_fps_states):
                     if i > 0:
                         B[1][i - 1, i, action_idx] = 0.9  # 90% chance to decrease
@@ -234,16 +234,14 @@ class ActiveInferenceAgent:
 
         # B[2]: Transitions for Work load states based on actions
         for action_idx in range(self.num_actions):
-            if action_idx == ActionType.INCREASE_WORK_LOAD.value - 1:
-                # Increase work load action
+            if action_idx == ActionType.INCREASE_WORK_LOAD.value:
                 for i in range(self.num_work_load_states):
                     if i < self.num_work_load_states - 1:
                         B[2][i + 1, i, action_idx] = 0.9  # 90% chance to increase
                         B[2][i, i, action_idx] = 0.1  # 10% chance to stay the same
                     else:
                         B[2][i, i, action_idx] = 1.0  # Already at max
-            elif action_idx == ActionType.DECREASE_WORK_LOAD.value - 1:
-                # Decrease work load action
+            elif action_idx == ActionType.DECREASE_WORK_LOAD.value:
                 for i in range(self.num_work_load_states):
                     if i > 0:
                         B[2][i - 1, i, action_idx] = 0.9  # 90% chance to decrease
@@ -258,7 +256,10 @@ class ActiveInferenceAgent:
         return B
 
     def _construct_C_matrix(self):
-        """Construct the C matrix (preference model) - Preferred observations"""
+        """
+        Construct the C matrix (preference model) - Preferred observations
+        C[observation-type, observation] = reward
+        """
         # Initialize the C matrix with zeros
         C = utils.obj_array(len(self.obs_dims))
 
@@ -279,22 +280,18 @@ class ActiveInferenceAgent:
             C[1][i] = normalized_pref
 
         # Preferences for work load - higher is better (better quality)
-        # Strong preference for higher work load (higher quality)
+        # Mild preference for higher work load (higher quality)
         for i in range(self.num_work_load_states):
-            normalized_pref = i / (self.num_work_load_states - 1) * 3.0  # Scale to max of 3.0
+            normalized_pref = i / (self.num_work_load_states - 1) * 2.0  # Scale to max of 3.0
             C[2][i] = normalized_pref
 
         # Preferences for queue size - strongly prefer below threshold
         C[3][SLOStatus.SATISFIED.value] = 4.0  # Strong preference for satisfied
         C[3][SLOStatus.UNSATISFIED.value] = -4.0  # Strong aversion to unsatisfied
 
-        # Preferences for FPS SLO - strongly prefer satisfied
+        # Preferences for memory usage - strongly prefer below threshold
         C[4][SLOStatus.SATISFIED.value] = 4.0  # Strong preference for satisfied
         C[4][SLOStatus.UNSATISFIED.value] = -4.0  # Strong aversion to unsatisfied
-
-        # Preferences for resolution SLO - strongly prefer satisfied
-        C[5][SLOStatus.SATISFIED.value] = 3.0  # Strong preference for satisfied
-        C[5][SLOStatus.UNSATISFIED.value] = -3.0  # Strong aversion to unsatisfied
 
         return C
 
@@ -325,16 +322,11 @@ class ActiveInferenceAgent:
         Returns:
             list: Current observations for all observation modalities
         """
-        # TODO: check if work load also needs its own SLO
-
         # Queue size SLO
         queue_slo_satisfied = self.slo_manager.queue_slo_satisfied()
 
-        # FPS SLO
-        fps_slo_satisfied = self.slo_manager.fps_slo_satisfied()
-
-        # Resolution SLO
-        resolution_slo_satisfied = self.slo_manager.resolution_slo_satisfied()
+        # Memory usage SLO
+        memory_slo_satisfied = self.slo_manager.memory_slo_satisfied()
 
         # Construct observation vector
         observations = [
@@ -342,8 +334,7 @@ class ActiveInferenceAgent:
             self.elasticity_handler.state_fps.current_index,
             self.elasticity_handler.state_work_load.current_index,
             SLOStatus.SATISFIED.value if queue_slo_satisfied else SLOStatus.UNSATISFIED.value,
-            SLOStatus.SATISFIED.value if fps_slo_satisfied else SLOStatus.UNSATISFIED.value,
-            SLOStatus.SATISFIED.value if resolution_slo_satisfied else SLOStatus.UNSATISFIED.value
+            SLOStatus.SATISFIED.value if memory_slo_satisfied else SLOStatus.UNSATISFIED.value
         ]
 
         return observations
@@ -403,5 +394,3 @@ class ActiveInferenceAgent:
     def reset(self):
         """Reset the agent's beliefs"""
         self.agent.reset()
-
-
