@@ -2,12 +2,12 @@ import time
 import logging
 from threading import Thread, Event
 
-from producer.elasticity.elasticity_handler import ElasticityHandler
+from producer.elasticity.handler.elasticity_handler import ElasticityHandler
 
 log = logging.getLogger('producer')
 
 
-class SLOChecker(Thread):
+class ActiveInferencePipeline(Thread):
     TIME_INTERVAL_S = 1
     def __init__(self, elasticity_handler: ElasticityHandler, start_task_generator_event: Event):
         super().__init__()
@@ -21,7 +21,7 @@ class SLOChecker(Thread):
         self._start_task_generator_event.wait()
 
         while self._is_running:
-            time.sleep(SLOChecker.TIME_INTERVAL_S)
+            time.sleep(ActiveInferencePipeline.TIME_INTERVAL_S)
             self._check_all_slo()
 
     def stop(self):

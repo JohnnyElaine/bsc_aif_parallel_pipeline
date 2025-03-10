@@ -1,10 +1,3 @@
-import numpy as np
-from pymdp import utils
-from pymdp.agent import Agent
-
-from producer.elasticity.elasticity_handler import ElasticityHandler
-
-
 # Example usage
 def example_usage():
     # This is a simple example of how the ActiveInferenceAgent might be used

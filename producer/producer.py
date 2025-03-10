@@ -5,9 +5,9 @@ import packages.logging as logging
 from producer.communication.request_handler import RequestHandler
 from producer.data.task_config import TaskConfig
 from producer.data.video import Video
-from producer.elasticity.elasticity_handler import ElasticityHandler
+from producer.elasticity.handler.elasticity_handler import ElasticityHandler
 from producer.producer_config import ProducerConfig
-from producer.elasticity.slo_checker import SLOChecker
+from producer.elasticity.aif_pipeline import ActiveInferencePipeline
 from producer.task_generation.task_generator import TaskGenerator
 
 
@@ -36,7 +36,7 @@ class Producer(Process):
         task_generator = TaskGenerator(task_queue, src_video, request_handler.start_task_generator_event)
 
         elasticity_handler = ElasticityHandler(task_config, task_generator, request_handler)
-        slo_checker = SLOChecker(elasticity_handler, request_handler.start_task_generator_event)
+        slo_checker = ActiveInferencePipeline(elasticity_handler, request_handler.start_task_generator_event)
 
         request_handler.start()
         task_generator.start()
