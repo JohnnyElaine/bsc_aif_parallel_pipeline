@@ -1,11 +1,3 @@
-# TODO
-Properly close all programs after task generation is done.
-When changing fps: notify the collector that the fps are changed
-
-
-## How to send numpy arrays using 0MQ efficiently:
-https://pyzmq.readthedocs.io/en/latest/howto/serialization.html#example-numpy-arrays
-
 # Dependencies
 ## How to build `requirements.txt`
 ```pip
@@ -167,15 +159,23 @@ task: numpy.ndarray
 ##### Registration
 TODO REST
 
-### Active Inference
-In order to choose which measure is used to uphold QoS/SLOs, the edge node uses Active Inference.
+# TODO
+Evaluate the SLO fullfillment
+Properly close all programs after task generation is done.
+When changing fps: notify the collector that the fps are changed
+Send multiple frames at once Producer -> Worker && Worker -> Collector
 
-## Producer
-The producer creates the tasks and sends them to the workers upon receiving a request.
+
+## How to send numpy arrays using 0MQ efficiently:
+https://pyzmq.readthedocs.io/en/latest/howto/serialization.html#example-numpy-arrays
+
+
 
 # Implementation
 ## Active Inference Model
 - [pymdp](https://github.com/infer-actively/pymdp)
+## Causel Inference via DAG
+- [pgmpy](https://pgmpy.org/) used in in [intelligentVehicle](https://github.com/borissedlak/intelligentVehicle) 
 ## Bayesian Inference Model (Alternative)
 - [NumPyro](https://num.pyro.ai/en/stable/)
 - [pyro](https://pyro.ai/)
