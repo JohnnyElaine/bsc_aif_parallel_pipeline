@@ -35,7 +35,7 @@ class ElasticityHandler:
 
         self.state_resolution = ElasticityHandler._create_state(initial_task_config.resolution, self._generate_possible_resolutions())
         self.state_fps = ElasticityHandler._create_state(initial_task_config.fps, self._generate_possible_fps())
-        self.state_work_load = ElasticityHandler._create_state(initial_task_config.work_load, self._generate_possible_work_loads())
+        self.state_work_load = ElasticityHandler._create_state(initial_task_config.max_work_load, self._generate_possible_work_loads())
 
         # TODO check if functions needs synchronization
 
@@ -154,14 +154,14 @@ class ElasticityHandler:
         """
         self._task_generator.set_resolution(resolution)
 
-    def _generate_possible_work_loads(self) -> list[WorkLoad]:
+    def _generate_possible_work_loads(self, max_work_load: WorkLoad) -> list[WorkLoad]:
         """
         Generates a list of possible workload values.
 
         Returns:
             list[WorkLoad]: A list of possible workload values.
         """
-        return list(WorkLoad)
+        return [w for w in list(WorkLoad) if w.value <= max_work_load.value]
 
     def _generate_possible_resolutions(self) -> list[Resolution]:
         """

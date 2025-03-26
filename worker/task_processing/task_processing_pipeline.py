@@ -1,3 +1,5 @@
+import time
+
 import cv2 as cv
 from numpy import ndarray
 from multiprocessing import Process, Pipe, Event
@@ -12,23 +14,28 @@ from worker.data.work_config import WorkConfig
 class TaskProcessingPipeline(Process):
     def __init__(self, identifier: int,
                  work_config: WorkConfig,
-                 task_processor_initialized: Event, task_pipe_recv_end: Pipe, result_pipe_send_end: Pipe):
+                 task_processor_initialized: Event,
+                 task_pipe_recv_end: Pipe,
+                 result_pipe_send_end: Pipe,
+                 process_delay_s: float):
         super().__init__()
         self.identifier = identifier
         self._task_pipe = task_pipe_recv_end
         self._result_pipe = result_pipe_send_end
         self._work_config = work_config
         self._task_processor_initialized = task_processor_initialized
+        self._process_delay = process_delay_s
         self._task_processor = None
         self._is_running = False
         self.log = None
 
+        # add artifical delay for simulation testing
+        self._process_task_function = self._process_task if process_delay_s <= 0 else self._process_task_with_delay
+
     def run(self):
         self.log = logging.setup_logging('task_handler')
-        self.log.debug('initializing image-task-processor')
-        self._task_processor = TaskProcessorFactory.create_task_processor(self._work_config.work_type,
-                                                                          self._work_config.work_load,
-                                                                          self._work_config.loading_mode)
+        self.log.debug('initializing task-processor')
+        self._task_processor = TaskProcessorFactory.create_task_processor(self._work_config)
         self._task_processor.initialize()
         self._task_processor_initialized.set()
 
@@ -57,10 +64,10 @@ class TaskProcessingPipeline(Process):
 
         match work.type:
             case TaskType.INFERENCE:
-                processed_data = self._process_task(work.data)
+                processed_data = self._process_task_function(work.data)
 
                 # Display the frame (optional)
-                #self._display_frame(processed_data)
+                # self._display_frame(processed_data)
 
                 result = Task(work.id, TaskType.COLLECT, processed_data)
 
@@ -77,6 +84,10 @@ class TaskProcessingPipeline(Process):
         return True
 
     def _process_task(self, task: ndarray):
+        return self._task_processor.process(task)
+
+    def _process_task_with_delay(self, task: ndarray):
+        time.sleep(self._process_delay)
         return self._task_processor.process(task)
 
     def _display_frame(self, frame: ndarray):

@@ -22,7 +22,7 @@ class Worker(Process):
         request_channel.connect()
         log.debug(f'established connection to producer-{request_channel}')
 
-        work_config = self._register_at_producer(request_channel)
+        work_config = request_channel.register()
 
         if work_config is None:
             log.info(f'failed to register at producer {request_channel}')
@@ -33,20 +33,18 @@ class Worker(Process):
         task_pipe_recv_end, task_pipe_send_end = Pipe(False) # task-requester -> task-processor
         result_pipe_recv_end, result_pipe_send_end = Pipe(False) # task processor -> result-sender
 
-        task_handler_ready = Event()
-        task_handler = TaskProcessingPipeline(self.config.identity, work_config, task_handler_ready, task_pipe_recv_end, result_pipe_send_end)
+        task_processor_ready = Event()
+        task_processor = TaskProcessingPipeline(self.config.identity, work_config, task_processor_ready,
+                                                task_pipe_recv_end, result_pipe_send_end, self.config.process_delay_s)
         task_requester = WorkRequestingPipeline(request_channel, task_pipe_send_end)
         result_sender = ResultSendingPipeline(self.config.collector_ip, self.config.collector_port, result_pipe_recv_end)
 
-        task_handler.start()
+        task_processor.start()
         result_sender.start()
 
         # only start requesting work, when the task-handler is ready
-        task_handler_ready.wait()
+        task_processor_ready.wait()
         task_requester.run() # avoid spawning additional process
 
-        task_handler.join()
+        task_processor.join()
         result_sender.join()
-
-    def _register_at_producer(self, control_channel: RequestChannel):
-        return control_channel.register()

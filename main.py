@@ -1,8 +1,8 @@
 from packages.enums import WorkType, WorkLoad
 from packages.enums.loading_mode import LoadingMode
+from producer.global_variables import ProducerGlobalVariables
 from producer.producer_config import ProducerConfig
 from producer.producer import Producer
-from worker.global_variables import GlobalVariables
 from worker.worker import Worker
 from worker.worker_config import WorkerConfig
 from collector.collector import Collector
@@ -13,7 +13,7 @@ def create_workers(num: int, producer_ip: str, producer_port: int, collector_ip:
     return [Worker(WorkerConfig(i, producer_ip, producer_port, collector_ip, collector_port)) for i in range(num)]
 
 def main():
-    vid_path = GlobalVariables.PROJECT_ROOT / 'media' / 'vid' / 'general_detection' / '1080p Video of Highway Traffic! [KBsqQez-O4w].mp4'
+    vid_path = ProducerGlobalVariables.PROJECT_ROOT / 'media' / 'vid' / 'general_detection' / '1080p Video of Highway Traffic! [KBsqQez-O4w].mp4'
     num_workers = 2
 
     producer_config = ProducerConfig(10000, vid_path, WorkType.YOLO_DETECTION, WorkLoad.LOW, LoadingMode.LAZY)

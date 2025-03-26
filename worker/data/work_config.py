@@ -8,4 +8,3 @@ class WorkConfig:
     work_type: WorkType
     work_load: WorkLoad
     loading_mode: LoadingMode
-

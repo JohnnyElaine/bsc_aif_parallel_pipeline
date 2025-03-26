@@ -1,6 +1,6 @@
 from pathlib import Path
 
 
-class WorkerGlobalVariables:
+class ProducerGlobalVariables:
     CODE_ROOT = Path(__file__).resolve().parent
     PROJECT_ROOT = CODE_ROOT.parent

@@ -1,15 +1,16 @@
 import numpy as np
+from pandas.core.dtypes.inference import is_float
 from pymdp.agent import Agent
 import pymdp.utils as utils
-from sympy.stats.rv import probability
 
-from producer.elasticity.aif.action.action_type import ActionType
-from producer.elasticity.aif.slo.slo_status import SLOStatus
+from producer.elasticity.agent.action.action_type import ActionType
+from producer.elasticity.agent.elasticity_agent import ElasticityAgent
+from producer.elasticity.slo.slo_status import SLOStatus
 from producer.elasticity.handler.elasticity_handler import ElasticityHandler
-from producer.elasticity.aif.slo.slo_manager import SloManager
+from producer.elasticity.slo.slo_manager import SloManager
 
 
-class ActiveInferenceAgent:
+class ActiveInferenceAgent(ElasticityAgent):
     """
     Active Inference Agent that uses the Free Energy Principle to maintain
     Service Level Objectives (SLOs) in a distributed video processing system.
@@ -27,34 +28,22 @@ class ActiveInferenceAgent:
     MEDIUM_PREFERENCE = 2.0
     STRONG_AVERSION = -4.0
 
-    def __init__(
-            self,
-            elasticity_handler: ElasticityHandler,
-            task_queue_size: int,
-            target_fps: int,
-            target_resolution,
-            planning_horizon: int = 2
-    ):
+    def __init__(self, elasticity_handler: ElasticityHandler, planning_horizon: int = 2):
         """
         Initialize the Active Inference Agent
 
         Args:
             elasticity_handler: The handler for changing system parameters
-            task_queue_size: Current size of the task queue
             target_fps: The source video fps
             target_resolution: The source video resolution
             planning_horizon: Number of time steps to plan ahead (default: 2)
         """
-        self.elasticity_handler = elasticity_handler
+        super().__init__(elasticity_handler)
         self.possible_resolutions = elasticity_handler.state_resolution.possible_states
         self.possible_fps = elasticity_handler.state_fps.possible_states
         self.possible_work_loads = elasticity_handler.state_work_load.possible_states
 
-        self.task_queue_size = task_queue_size
-        self.target_fps = target_fps
-        self.target_resolution = target_resolution
-
-        self.slo_manager = SloManager(self.elasticity_handler, target_fps, target_resolution)
+        self.slo_manager = SloManager(self.elasticity_handler)
 
         # Define the dimensions of various observations
         self.num_resolution_states = len(self.possible_resolutions)
@@ -283,16 +272,15 @@ class ActiveInferenceAgent:
         Returns:
             list: Current observations for all observation modalities
         """
-        queue_slo_satisfied = self.slo_manager.is_queue_slo_satisfied()
-
-        memory_slo_satisfied = self.slo_manager.is_memory_slo_satisfied()
+        is_queue_slo_satisfied = self.slo_manager.is_queue_slo_satisfied()
+        is_memory_slo_satisfied = self.slo_manager.is_memory_slo_satisfied()
 
         observations = [
             self.elasticity_handler.state_resolution.current_index,
             self.elasticity_handler.state_fps.current_index,
             self.elasticity_handler.state_work_load.current_index,
-            SLOStatus.SATISFIED.value if queue_slo_satisfied else SLOStatus.UNSATISFIED.value,
-            SLOStatus.SATISFIED.value if memory_slo_satisfied else SLOStatus.UNSATISFIED.value
+            SLOStatus.SATISFIED.value if is_queue_slo_satisfied else SLOStatus.UNSATISFIED.value,
+            SLOStatus.SATISFIED.value if is_memory_slo_satisfied else SLOStatus.UNSATISFIED.value
         ]
 
         return observations
