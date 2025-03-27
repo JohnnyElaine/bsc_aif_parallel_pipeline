@@ -8,6 +8,8 @@ from producer.data.video import Video
 from producer.elasticity.handler.elasticity_handler import ElasticityHandler
 from producer.producer_config import ProducerConfig
 from producer.elasticity.agent_pipeline import AgentPipeline
+from producer.statistics.slo_statistics import SloStatistics
+from producer.statistics.worker_statistics import WorkerStatistics
 from producer.task_generation.task_generator import TaskGenerator
 
 
@@ -44,3 +46,9 @@ class Producer(Process):
 
         task_generator.join()
         request_handler.join()
+
+    def get_slo_statistics(self) -> SloStatistics:
+        return None
+
+    def get_worker_statistics(self) -> dict[bytes, WorkerStatistics]:
+        return None

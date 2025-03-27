@@ -1,4 +1,5 @@
 import logging
+import time
 from threading import Thread, Event
 from queue import Queue
 
@@ -8,6 +9,7 @@ from packages.message_types import ReqType, RepType
 from producer.communication.channel.router_channel import RouterChannel
 from producer.data.worker_info import WorkerInfo
 from packages.enums import LoadingMode
+from producer.statistics.worker_statistics import WorkerStatistics
 
 log = logging.getLogger("producer")
 
@@ -21,6 +23,7 @@ class RequestHandler(Thread):
         self._work_load = work_load
         self._loading_mode = loading_mode
         self._worker_knowledge_base = dict() # key = worker-addr, value = WorkerInfo()
+        self._worker_statistics = dict() # key = worker-addr, value = WorkerStatistics()
         self._is_running = False
 
         self._current_work_request_handler = self._handle_first_work_request
@@ -57,6 +60,7 @@ class RequestHandler(Thread):
 
     def _handle_register_request(self, address: bytes):
         self._worker_knowledge_base[address] = WorkerInfo()
+        self._worker_statistics[address] = WorkerStatistics(0, time.time())
 
         info = {'type': RepType.REGISTRATION_CONFIRMATION,
                 'work_type': self._work_type.value,
@@ -70,6 +74,8 @@ class RequestHandler(Thread):
             instruction = self._worker_knowledge_base[address].get_all_pending_instructions()
             self._channel.send_information(address, instruction)
             return
+
+        self._worker_statistics[address].num_requested_tasks += 1
 
         task = self._queue.get()
 

@@ -63,7 +63,7 @@ The Worker implements a `zeromq.PUSH` socket that is used to immediately send al
 ## Collector
 The Collector implements a ``zeromq.PULL`` socket that constantly accepts results from workers and re-orders them to produce the final output video-stream.
 
-### Elasticity
+## Elasticity
 The Producer tries to ensure Quality of Service (QoS) by providing certain elasticity features, when the underlying SLOs are not met.
 
 Should the computational resources of the system are not enough to uphold certain Service level objectives (SLOs), 
@@ -93,14 +93,6 @@ task_queue <= X
 - ``X`` maximum acceptable number of tasks. e.g. ``X = current_fps * 2``
 
 GOAL: Make sure there is enough compute power to handle tasks in real time.
-
-### Frames per second (FPS)
-```
-current_fps >= target_fps * T
-```
-- `T` Tolerance. e.g. `T = 0.9` for 90% Tolerance
-
-GOAL: Video should be at target fps if possible.
 
 ### Quality/Workload
 

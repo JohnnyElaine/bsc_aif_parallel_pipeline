@@ -14,6 +14,8 @@ class WorkerInfo:
         return len(self.instruction_backlog) > 0
 
     def get_all_pending_instructions(self):
+        # format instructions as dict.
+        # If there are multiple instructions of the same type, only the most recent one (higher index in list) is used
         instructions_dict = {instruction.type: instruction.value for instruction in self.instruction_backlog}
         self.instruction_backlog.clear()
         instructions_dict['type'] = RepType.INSTRUCTION

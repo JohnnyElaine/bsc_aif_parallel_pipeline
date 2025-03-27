@@ -1,12 +1,11 @@
+from measurement.measurement import Measurement
+from measurement.simulation.basic_simulation import BasicSimulation
 from packages.enums import WorkType, WorkLoad
 from packages.enums.loading_mode import LoadingMode
+from producer.enums.agent_type import AgentType
 from producer.global_variables import ProducerGlobalVariables
-from producer.producer_config import ProducerConfig
-from producer.producer import Producer
 from worker.worker import Worker
 from worker.worker_config import WorkerConfig
-from collector.collector import Collector
-from collector.collector_config import CollectorConfig
 
 
 def create_workers(num: int, producer_ip: str, producer_port: int, collector_ip: str, collector_port: int):
@@ -14,20 +13,21 @@ def create_workers(num: int, producer_ip: str, producer_port: int, collector_ip:
 
 def main():
     vid_path = ProducerGlobalVariables.PROJECT_ROOT / 'media' / 'vid' / 'general_detection' / '1080p Video of Highway Traffic! [KBsqQez-O4w].mp4'
-    num_workers = 2
 
-    producer_config = ProducerConfig(10000, vid_path, WorkType.YOLO_DETECTION, WorkLoad.LOW, LoadingMode.LAZY)
-    collector_config = CollectorConfig(10001)
+    worker_process_delays_s =  [0, 0, 0]
 
-    producer = Producer(producer_config)
-    workers = create_workers(num_workers, 'localhost', producer_config.port, 'localhost', collector_config.port)
-    collector = Collector(collector_config)
+    simulations = []
 
-    for worker in workers:
-        worker.start()
+    for agent_type in AgentType:
+        s1 = BasicSimulation(Measurement.LOCALHOST, Measurement.PRODUCER_PORT, Measurement.LOCALHOST,
+                                  Measurement.COLLECTOR_PORT, WorkType.YOLO_DETECTION, LoadingMode.EAGER, WorkLoad.HIGH,
+                                  agent_type, worker_process_delays_s, vid_path)
 
-    collector.start()
-    producer.run()
+        simulations.append(s1)
+
+
+    simulations[0].run()
+
 
 if __name__ == "__main__":
     main()
