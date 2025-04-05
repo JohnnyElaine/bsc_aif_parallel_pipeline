@@ -1,5 +1,4 @@
 import numpy as np
-from pandas.core.dtypes.inference import is_float
 from pymdp.agent import Agent
 import pymdp.utils as utils
 
@@ -7,7 +6,6 @@ from producer.elasticity.agent.action.action_type import ActionType
 from producer.elasticity.agent.elasticity_agent import ElasticityAgent
 from producer.elasticity.slo.slo_status import SLOStatus
 from producer.elasticity.handler.elasticity_handler import ElasticityHandler
-from producer.elasticity.slo.slo_manager import SloManager
 
 
 class ActiveInferenceAgent(ElasticityAgent):
@@ -42,8 +40,6 @@ class ActiveInferenceAgent(ElasticityAgent):
         self.possible_resolutions = elasticity_handler.state_resolution.possible_states
         self.possible_fps = elasticity_handler.state_fps.possible_states
         self.possible_work_loads = elasticity_handler.state_work_load.possible_states
-
-        self.slo_manager = SloManager(self.elasticity_handler)
 
         # Define the dimensions of various observations
         self.num_resolution_states = len(self.possible_resolutions)
