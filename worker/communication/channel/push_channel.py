@@ -1,6 +1,7 @@
 import msgpack
 import zmq
 from packages.data import Task, TaskType
+from packages.network_messages import RepType
 
 
 class PushChannel:
@@ -25,15 +26,20 @@ class PushChannel:
 
         # Close sockets before destroying context
         self._socket.close()
-        self._context.destroy() # TODO check what happens if context is closed somewhere else first (i.e. in RequestChannel^)
+        self._context.destroy() # TODO check what happens if context is closed somewhere else first (i.e. in RequestChannel)
+
+    def send_info(self, info: dict):
+        msg = [msgpack.packb(info)]
+        self._socket.send_multipart(msg)
         
     def send_results(self, results: list[Task]):
-        msg = list()
+        info = {'type': RepType.WORK}
+        msg = [msgpack.packb(info)]
 
         for result in results:
             metadata = dict(id=result.id, type=TaskType.COLLECT, shape=result.data.shape, dtype=str(result.data.dtype))
-            msg.append(msgpack.packb(metadata))# send metadata first
-            msg.append(result.data) # send raw numpy array after, use the implemented buffer interface
+            msg.append(msgpack.packb(metadata)) # send metadata first
+            msg.append(result.data) # send raw numpy array after, uses the implemented buffer interface
 
         self._socket.send_multipart(msg)
 

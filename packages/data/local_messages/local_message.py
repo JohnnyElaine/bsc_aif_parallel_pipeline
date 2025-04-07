@@ -2,6 +2,5 @@ from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
-class Instruction:
+class LocalMessage:
     type: str
-    value: int

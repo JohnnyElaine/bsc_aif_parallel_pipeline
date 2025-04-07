@@ -5,6 +5,7 @@ from queue import Queue
 from numpy import ndarray
 
 import packages.time_util as time_util
+from collector.constants.constants import END_TASK_ID
 
 
 class OutputViewer(Thread):
@@ -23,6 +24,10 @@ class OutputViewer(Thread):
     def _iteration(self) -> bool:
         iteration_start_time = time.perf_counter()
         frame = self._output_queue.get()
+
+        if frame == END_TASK_ID:
+            return False
+
         if not OutputViewer._display_frame(frame):
             return False
 

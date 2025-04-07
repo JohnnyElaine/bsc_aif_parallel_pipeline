@@ -2,10 +2,13 @@ import logging
 import time
 from threading import Thread
 from queue import Queue
+
+import numpy as np
 from cv2 import error as cvError
 
 import packages.time_util as time_util
 from packages.data import Task, TaskType
+from packages.data.types.signal_type import SignalType
 from producer.data.resolution import Resolution
 from producer.data.video import Video
 
@@ -13,7 +16,9 @@ log = logging.getLogger("producer")
 
 
 class TaskGenerator(Thread):
+
     MAX_QUEUE_SIZE = 200
+
     def __init__(self, shared_queue: Queue, video: Video, start_event):
         super().__init__()
         self._queue = shared_queue
@@ -45,6 +50,7 @@ class TaskGenerator(Thread):
             self.stop()
 
     def stop(self):
+        self._add_stop_signal_to_queue()
         self._video.close()
 
     def queue_size(self):
@@ -79,8 +85,11 @@ class TaskGenerator(Thread):
 
         return True
 
-    def _add_to_queue(self, task_id: int, data):
-        self._queue.put(Task(task_id, TaskType.INFERENCE ,data))
+    def _add_to_queue(self, task_id: int, data: np.ndarray):
+        self._queue.put(Task(TaskType.INFERENCE, task_id ,data))
+
+    def _add_stop_signal_to_queue(self):
+        self._queue.put(Task(SignalType.END, -1, np.empty(0)))
 
     def _is_resolution_changed(self):
         return self._target_resolution[0]

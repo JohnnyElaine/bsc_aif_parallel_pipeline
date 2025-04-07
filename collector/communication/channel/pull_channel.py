@@ -1,3 +1,4 @@
+import msgpack
 import zmq
 
 from packages.data import Task, TaskUtil
@@ -17,13 +18,15 @@ class PullChannel:
         self._socket.close()
         self._context.destroy()
         
-    def get_results(self) -> list[Task]:
-        # TODO: What to do when steam is done
-        tasks_raw = self._socket.recv_multipart()
-        
+    def get_results(self) -> tuple[dict, list[Task]]:
+        msg = self._socket.recv_multipart()
+
+        info = msgpack.unpackb(msg[0])
+        tasks_raw = msg[1:]
+
         results = TaskUtil.reconstruct_all_tasks(tasks_raw)
         
-        return results
+        return info, results
         
     def __str__(self):
         return f'(socket={self._socket}, port={self._port})'

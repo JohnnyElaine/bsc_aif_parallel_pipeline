@@ -152,10 +152,14 @@ task: numpy.ndarray
 TODO REST
 
 # TODO
-Evaluate the SLO fullfillment
-Properly close all programs after task generation is done.
-When changing fps: notify the collector that the fps are changed
-Send multiple frames at once Producer -> Worker && Worker -> Collector
+Check if Instruction dataclass is actually useful, or if it can be merged with Task dataclass
+--> should be possible, because we can storage regular values via np.array(value) sucha as np.array(1)
+
+Properly close all programs after task generation is done. request_handler. find alternate stopping condition, if not all workers are online
+
+Optional:
+    When changing fps: notify the collector that the fps are changed
+    Send multiple frames at once Producer -> Worker && Worker -> Collector
 
 
 ## How to send numpy arrays using 0MQ efficiently:

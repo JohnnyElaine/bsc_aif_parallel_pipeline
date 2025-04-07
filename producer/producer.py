@@ -22,6 +22,8 @@ class Producer(Process):
         """
         super().__init__()
         self.config = config
+        self._slo_stats = None
+        self._worker_stats = None
 
     def run(self):
         log = logging.setup_logging('producer')
@@ -47,8 +49,13 @@ class Producer(Process):
         task_generator.join()
         request_handler.join()
 
+        # Collect statistics before shutting down
+        self._slo_stats = slo_agent.get_slo_statistics()
+        self._worker_stats = request_handler.get_worker_statistics()
+
+
     def get_slo_statistics(self) -> pd.DataFrame:
-        return None
+        return self._slo_stats
 
     def get_worker_statistics(self) -> dict[bytes, WorkerStatistics]:
-        return None
+        return self._worker_stats

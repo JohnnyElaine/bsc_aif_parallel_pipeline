@@ -3,6 +3,9 @@ import time
 from threading import Thread
 from queue import Queue
 
+import numpy as np
+
+from collector.constants.constants import END_TASK_ID
 from collector.datastructures.blocking_dict import BlockingDict
 from packages.data import Task
 
@@ -34,11 +37,14 @@ class ResultMapper(Thread):
     def _iteration(self) -> bool:
         result = self._result_dict.pop(self._expected_id)
 
+        if END_TASK_ID in self._result_dict:
+            return False
+
         if result is None:
             self._handle_missing_task()
             return True
 
-        # skip past frames
+        # skip past frames that arrived too late
         if result.id < self._expected_id:
             return True
 
@@ -60,4 +66,7 @@ class ResultMapper(Thread):
         self._output_queue.put(result.data)
         self._strikes = 0
         self._expected_id += 1
+
+    def _stop_output_viewer(self):
+        self._output_queue.put(np.array(-1))
 

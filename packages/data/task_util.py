@@ -1,7 +1,7 @@
 import numpy as np
 import msgpack
 
-from .task import Task
+from packages.data.local_messages.task import Task
 
 class TaskUtil:
     @staticmethod
@@ -12,4 +12,4 @@ class TaskUtil:
     def reconstruct_task(md: dict, task_buffered):
         task = np.frombuffer(task_buffered, dtype=md['dtype'])
         task = task.reshape(md['shape'])
-        return Task(md['id'], md['type'], task)
+        return Task(md['type'], md['id'], task)

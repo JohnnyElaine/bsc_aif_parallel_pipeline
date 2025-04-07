@@ -27,13 +27,13 @@ class Collector(Process):
         output_queue = Queue()
 
         result_collector = ResultCollector(self.config.port, result_dict)
-        result_arranger = ResultMapper(result_dict, output_queue)
+        result_mapper = ResultMapper(result_dict, output_queue)
         output_viewer = OutputViewer(output_queue)
 
-        result_arranger.start()
+        result_mapper.start()
         result_collector.start()
         output_viewer.start()
 
         result_collector.join()
-        result_arranger.join()
+        result_mapper.join()
         output_viewer.join()

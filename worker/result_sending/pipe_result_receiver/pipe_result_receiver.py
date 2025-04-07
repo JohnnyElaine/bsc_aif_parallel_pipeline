@@ -18,7 +18,7 @@ class PipeResultReceiver(Thread):
         self._is_running = True
 
         while self._is_running:
-            result = self._result_pipe.recv() # result = Task(id, type, data)
+            result = self._result_pipe.recv() # result = Task(type, id, data)
             self._queue.put(result)
 
     def stop(self):

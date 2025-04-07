@@ -2,6 +2,8 @@ import logging
 from threading import Thread
 from queue import Queue
 
+from packages.data.types.signal_type import SignalType
+from packages.network_messages import RepType
 from worker.communication.channel.push_channel import PushChannel
 
 log = logging.getLogger('result_sending')
@@ -20,10 +22,18 @@ class ResultSender(Thread):
         self._channel.connect()
 
         while self._is_running:
-            result = self._queue.get()
+            result = self._queue.get() # LocalMessage Dataclass
+
+            if result.type == SignalType.END:
+                self._channel.send_info(dict(type=RepType.END))
+                self._is_running = False
+                break
+
             self._channel.send_results([result]) # TODO maybe send more results at once if possible
+
+        self._channel.close()
 
     def stop(self):
         self._is_running = False
-        self._channel.disconnect()
+        self._channel.close()
         log.info('stopped pipe-result-receiver')

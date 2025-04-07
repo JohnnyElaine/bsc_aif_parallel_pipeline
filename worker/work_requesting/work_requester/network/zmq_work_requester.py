@@ -1,10 +1,12 @@
 import logging
 from queue import Queue
 
+from packages.data.local_messages.signal import Signal
+from packages.data.types.signal_type import SignalType
 from worker.communication.channel.request_channel import RequestChannel
 from worker.work_requesting.work_requester.work_requester import WorkRequester
-from packages.data import Task, Instruction
-from packages.message_types import RepType
+from packages.data import Task, Change
+from packages.network_messages import RepType
 
 log = logging.getLogger('work_requesting')
 
@@ -20,15 +22,14 @@ class ZmqWorkRequester(WorkRequester):
         self._is_running = True
 
         try:
-            while self._is_running:
+            ok = True
+            while self._is_running and ok:
                 ok = self._iteration()
-                if not ok:
-                    self.stop()
-                    break
-                    
+
         except EOFError:
             log.info("Producer disconnected. Worker exiting.")
-            self.stop()
+
+        log.debug("stopped work-requester")
 
     def stop(self):
         log.info("stopping work-requester")
@@ -49,21 +50,27 @@ class ZmqWorkRequester(WorkRequester):
 
         match rep_type:
             case RepType.END:
-                return False
+                self._notify_task_processor_of_end()
+                return False # Stop the loop by returning False
             case RepType.WORK:
                 self._add_tasks_to_queue(tasks)
-            case RepType.INSTRUCTION:
+            case RepType.CHANGE:
                 del info['type'] # filter out 'type'. rest of info shows changes
-                self._handle_instructions(info)
+                self._handle_changes(info)
             case _:
-                pass # do nothing
+                log.debug('received reply of unknown type')
 
         return True
 
-    def _handle_instructions(self, changes: dict):
-        for instruction_type, value in changes.items():
-            self._queue.put(Instruction(instruction_type, value))
+    def _handle_changes(self, changes: dict):
+        for change_type, value in changes.items():
+            self._queue.put(Change(change_type, value))
+
+    def _notify_task_processor_of_end(self):
+        self._queue.put(Signal(SignalType.END))
 
     def _add_tasks_to_queue(self, tasks: list[Task]):
         for task in tasks:
             self._queue.put(task)
+
+

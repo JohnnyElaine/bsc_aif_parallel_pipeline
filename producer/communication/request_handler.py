@@ -3,9 +3,9 @@ import time
 from threading import Thread, Event
 from queue import Queue
 
-from packages.data import Instruction, InstructionType
+from packages.data import Change, ChangeType
 from packages.enums import WorkType, WorkLoad
-from packages.message_types import ReqType, RepType
+from packages.network_messages import ReqType, RepType
 from producer.communication.channel.router_channel import RouterChannel
 from producer.data.worker_info import WorkerInfo
 from packages.enums import LoadingMode
@@ -26,7 +26,7 @@ class RequestHandler(Thread):
         self._worker_statistics = dict() # key = worker-addr, value = WorkerStatistics()
         self._is_running = False
 
-        self._current_work_request_handler = self._handle_first_work_request
+        self._handle_work_request_function = self._handle_first_work_request
         self.start_task_generator_event = Event()
 
     def run(self):
@@ -36,8 +36,9 @@ class RequestHandler(Thread):
 
         while self._is_running:
             address, request = self._channel.get_request()
-
             self._handle_request(address, request)
+
+        self._channel.close()
 
     def stop(self):
         self._is_running = False
@@ -45,18 +46,23 @@ class RequestHandler(Thread):
 
     def change_work_load(self, work_load: WorkLoad):
         self._work_load = work_load
-        self._broadcast_instruction(Instruction(InstructionType.CHANGE_WORK_LOAD, work_load.value))
+        self._broadcast_change(Change(ChangeType.CHANGE_WORK_LOAD, work_load.value))
 
-    def _handle_request(self, address: bytes, request: dict):
+    def get_worker_statistics(self):
+        return self._worker_statistics
+
+    def _handle_request(self, address: bytes, request: dict) -> bool:
         req_type = request['type']
 
         match req_type:
             case ReqType.REGISTER:
                 self._handle_register_request(address)
             case ReqType.GET_WORK:
-                self._current_work_request_handler(address)
+                self._handle_work_request_function(address)
             case _:
                 log.debug(f"Received unknown request type: {req_type}")
+
+        return True
 
     def _handle_register_request(self, address: bytes):
         self._worker_knowledge_base[address] = WorkerInfo()
@@ -70,14 +76,18 @@ class RequestHandler(Thread):
         self._channel.send_information(address, info)
 
     def _handle_work_request(self, address: bytes):
-        if self._worker_knowledge_base[address].has_pending_instructions():
-            instruction = self._worker_knowledge_base[address].get_all_pending_instructions()
-            self._channel.send_information(address, instruction)
+        if self._worker_knowledge_base[address].has_pending_changes():
+            changes = self._worker_knowledge_base[address].get_all_pending_changes()
+            self._channel.send_information(address, changes)
             return
 
         self._worker_statistics[address].num_requested_tasks += 1
 
-        task = self._queue.get()
+        task = self._queue.get() # Task dataclass
+
+        if task.type == RepType.END:
+            self._stop_workers(address)
+            return
 
         # TODO Find a way to send multiple tasks (if available) at once should the worker info prefer it.
         tasks = [task]
@@ -85,11 +95,31 @@ class RequestHandler(Thread):
         self._channel.send_work(address, tasks)
 
     def _handle_first_work_request(self, address: bytes):
-        self._current_work_request_handler = self._handle_work_request # use regular '_handle_work_request' after
+        self._handle_work_request_function = self._handle_work_request # use regular '_handle_work_request' after
         self.start_task_generator_event.set() # start the task generator when a worker is ready
         self._handle_work_request(address)
 
-    def _broadcast_instruction(self, instruction: Instruction):
+    def _broadcast_change(self, change: Change):
         for worker_addr in self._worker_knowledge_base.keys():
-            self._worker_knowledge_base[worker_addr].add_instruction(instruction)
+            self._worker_knowledge_base[worker_addr].add_change(change)
+
+    def _stop_workers(self, first_worker_addr: bytes):
+        # TODO find alternate stopping condition, if not all workers are online
+
+        # stop the initial request
+        self._stop_worker(first_worker_addr)
+
+        # stop all remaining workers
+        for _ in range(len(self._worker_knowledge_base) - 1):
+            address, request = self._channel.get_request()
+            self._stop_worker(address)
+
+        self._is_running = False
+
+    def _stop_worker(self, address: bytes):
+        self._worker_knowledge_base[address].has_received_end_message = True
+
+        info = {'type': RepType.END}
+
+        self._channel.send_information(address, info)
 

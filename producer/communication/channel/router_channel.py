@@ -3,7 +3,7 @@ import zmq
 import msgpack
 
 from packages.data import Task
-from packages.message_types import RepType
+from packages.network_messages import RepType
 
 
 class RouterChannel:

@@ -1,23 +1,24 @@
-from packages.data import Instruction
-from packages.message_types import RepType
+from packages.data import Change
+from packages.network_messages import RepType
 
 
 class WorkerInfo:
     def __init__(self):
         self.preferred_num_of_tasks = 1
-        self.instruction_backlog = []
+        self.change_backlog = []
+        self.has_received_end_message = False
 
-    def add_instruction(self, instruction: Instruction):
-        self.instruction_backlog.append(instruction)
+    def add_change(self, change: Change):
+        self.change_backlog.append(change)
 
-    def has_pending_instructions(self):
-        return len(self.instruction_backlog) > 0
+    def has_pending_changes(self):
+        return len(self.change_backlog) > 0
 
-    def get_all_pending_instructions(self):
-        # format instructions as dict.
-        # If there are multiple instructions of the same type, only the most recent one (higher index in list) is used
-        instructions_dict = {instruction.type: instruction.value for instruction in self.instruction_backlog}
-        self.instruction_backlog.clear()
-        instructions_dict['type'] = RepType.INSTRUCTION
+    def get_all_pending_changes(self):
+        # format changes as dict.
+        # If there are multiple changes of the same type, only the most recent one (higher index in list) is used
+        changes = {change.type: change.value for change in self.change_backlog}
+        self.change_backlog.clear()
+        changes['type'] = RepType.CHANGE
 
-        return instructions_dict
+        return changes

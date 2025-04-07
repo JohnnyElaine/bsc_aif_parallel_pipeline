@@ -1,0 +1,2 @@
+class SignalType:
+    END = 'END'
