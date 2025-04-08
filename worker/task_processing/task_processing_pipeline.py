@@ -30,7 +30,7 @@ class TaskProcessingPipeline(Process):
         self._is_running = False
         self.log = None
 
-        # add artifical delay for simulation testing
+        # add artificial delay for simulation testing
         self._process_task_function = self._process_task if process_delay_s <= 0 else self._process_task_with_delay
 
     def run(self):
@@ -60,29 +60,30 @@ class TaskProcessingPipeline(Process):
         :return: True if the iteration was successful. False otherwise.
         """
         # receives dataclasses: LocalMessage (Task, Change, Signal). Object must contain 'type' field
-        msg = self._task_pipe.recv()
+        task = self._task_pipe.recv()
 
-        match msg.type:
-            case SignalType.END:
-                self._result_pipe.send(msg) # notify collector that the transmission has ended
-                return False # stop the main proces loop
-
+        match task.type:
             case TaskType.INFERENCE:
-                processed_data = self._process_task_function(msg.data)
+                processed_data = self._process_task_function(task.data)
 
                 # Display the frame (optional)
                 # self._display_frame(processed_data)
 
-                result = Task(TaskType.COLLECT, msg.id, processed_data)
+                result = Task(TaskType.COLLECT, task.id, processed_data)
 
                 self._result_pipe.send(result)
 
-            case ChangeType.CHANGE_WORK_LOAD:
-                WorkLoad.int_to_enum(msg.value)
-                self._task_processor.change_work_load(msg.value)
-                self.log.debug(f'successfully changed msg-load to {msg.value}')
+            case TaskType.CHANGE_WORK_LOAD:
+                w = WorkLoad.int_to_enum(task.data.item())
+                self._task_processor.change_work_load(w)
+                self.log.debug(f'successfully changed work-load to {w}')
+
+            case TaskType.END:
+                self._result_pipe.send(task) # notify collector that the transmission has ended
+                return False # stop the main process loop
+
             case _:
-                self.log.debug(f'task-processor received unknown msg-type: {msg.type}')
+                self.log.debug(f'task-processor received unknown work-type: {task.type}')
                 pass
 
         return True

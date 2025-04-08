@@ -49,6 +49,10 @@ class Producer(Process):
         task_generator.join()
         request_handler.join()
 
+        # SLO Agent serves no purpose when other threads are dead
+        slo_agent.stop()
+        slo_agent.join()
+
         # Collect statistics before shutting down
         self._slo_stats = slo_agent.get_slo_statistics()
         self._worker_stats = request_handler.get_worker_statistics()

@@ -28,6 +28,8 @@ class AgentPipeline(Thread):
             time.sleep(AgentPipeline.TIME_INTERVAL_S)
             self._iteration()
 
+        log.debug('stopped agent-pipeline')
+
     def stop(self):
         self._is_running = False
 

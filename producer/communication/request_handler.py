@@ -3,7 +3,11 @@ import time
 from threading import Thread, Event
 from queue import Queue
 
+import numpy as np
+
 from packages.data import Change, ChangeType
+from packages.data.local_messages.task import Task
+from packages.data.types.task_type import TaskType
 from packages.enums import WorkType, WorkLoad
 from packages.network_messages import ReqType, RepType
 from producer.communication.channel.router_channel import RouterChannel
@@ -46,7 +50,7 @@ class RequestHandler(Thread):
 
     def change_work_load(self, work_load: WorkLoad):
         self._work_load = work_load
-        self._broadcast_change(Change(ChangeType.CHANGE_WORK_LOAD, work_load.value))
+        self._broadcast_change(Task(TaskType.CHANGE_WORK_LOAD, -1, np.array(work_load.value)))
 
     def get_worker_statistics(self):
         return self._worker_statistics
@@ -89,7 +93,7 @@ class RequestHandler(Thread):
             self._stop_workers(address)
             return
 
-        # TODO Find a way to send multiple tasks (if available) at once should the worker info prefer it.
+        # TODO Find a way to send multiple tasks (if available) at once should the worker knowledge base prefer it.
         tasks = [task]
 
         self._channel.send_work(address, tasks)
@@ -99,7 +103,7 @@ class RequestHandler(Thread):
         self.start_task_generator_event.set() # start the task generator when a worker is ready
         self._handle_work_request(address)
 
-    def _broadcast_change(self, change: Change):
+    def _broadcast_change(self, change: Task):
         for worker_addr in self._worker_knowledge_base.keys():
             self._worker_knowledge_base[worker_addr].add_change(change)
 

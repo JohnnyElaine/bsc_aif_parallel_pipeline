@@ -1,11 +1,12 @@
 import logging
 from queue import Queue
 
-from packages.data.local_messages.signal import Signal
-from packages.data.types.signal_type import SignalType
+import numpy as np
+
+from packages.data.types.task_type import TaskType
 from worker.communication.channel.request_channel import RequestChannel
 from worker.work_requesting.work_requester.work_requester import WorkRequester
-from packages.data import Task, Change
+from packages.data import Task
 from packages.network_messages import RepType
 
 log = logging.getLogger('work_requesting')
@@ -64,10 +65,10 @@ class ZmqWorkRequester(WorkRequester):
 
     def _handle_changes(self, changes: dict):
         for change_type, value in changes.items():
-            self._queue.put(Change(change_type, value))
+            self._queue.put(Task(change_type, -1, np.array(value)))
 
     def _notify_task_processor_of_end(self):
-        self._queue.put(Signal(SignalType.END))
+        self._queue.put(Task(TaskType.END, -1, np.empty(0)))
 
     def _add_tasks_to_queue(self, tasks: list[Task]):
         for task in tasks:

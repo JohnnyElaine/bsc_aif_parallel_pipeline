@@ -1,3 +1,5 @@
 class TaskType:
+     END = 'END'
      INFERENCE = 'INFERENCE'
      COLLECT = 'COLLECT'
+     CHANGE_WORK_LOAD = 'CHANGE_WORK_LOAD'

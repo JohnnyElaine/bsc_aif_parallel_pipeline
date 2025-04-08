@@ -41,8 +41,17 @@ The produced tasks are then buffered and ready to be requested by a worker via t
 ### Controlling Entity
 Using the [Work-API](#work-api) the producer also serves as a controlling entity for the rest of the network holding the information about the current state of the video stream and propagating changes when they occur.
 The secondary goal of the producer is to ensure maximum Quality of Experience (QoE). 
-This means that the producer aims to maximise the result of the YOLOv11 inference, while trying to keep source-fps and source-resolution.
-This is done by trying to uphold certain [Service Level Objectives (SLOs)](#service-level-objectives-slos)
+
+This means the producer tries to fulfill the following [Service Level Objectives (SLOs)](#service-level-objectives-slos)
+
+Under the constraints of the SLOs the  producer aims to maximise the following parameters (goals):
+- maximize the result of the YOLOv11 inference (Maximize WorkLoad)
+- keep fps as close as possible to the source-fps of the underlying video-stream
+- keep resolution as close as possible to the source-resolution of the video-stream
+
+While the producer tries to fulfill the SLOs and maximize parameters (Workload, fps, resolution) at the same time, it is crucial that the SLO are of a much higher priority compared to the parameters.
+Especially since the parameters directly influence the probability of fulfilling the SLOs. Maximizing the parameters is more a preference, rather than a priority
+
 
 ## Worker
 The workers constantly
@@ -153,7 +162,8 @@ TODO REST
 
 # TODO
 Check if Instruction dataclass is actually useful, or if it can be merged with Task dataclass
---> should be possible, because we can storage regular values via np.array(value) sucha as np.array(1)
+Document and test heuristic agent
+Finish simulation
 
 Properly close all programs after task generation is done. request_handler. find alternate stopping condition, if not all workers are online
 

@@ -20,7 +20,6 @@ class ElasticityHandler:
     dynamically adjust task parameters based on workload and performance requirements.
 
     Attributes:
-        target_config (TaskConfig): The configuration object holding task parameters.
         _task_generator (TaskGenerator): The task generator responsible for creating tasks.
         _request_handler (RequestHandler): The handler responsible for managing requests.
         state_resolution (State): The current state of the resolution.
@@ -28,14 +27,19 @@ class ElasticityHandler:
         state_work_load (State): The current state of the workload.
     """
 
-    def __init__(self, initial_task_config: TaskConfig, task_generator: TaskGenerator, request_handler: RequestHandler):
-        self.target_config = initial_task_config
+    def __init__(self, target_config: TaskConfig, task_generator: TaskGenerator, request_handler: RequestHandler):
         self._task_generator = task_generator
         self._request_handler = request_handler
 
-        self.state_resolution = ElasticityHandler._create_state(initial_task_config.resolution, self._generate_possible_resolutions())
-        self.state_fps = ElasticityHandler._create_state(initial_task_config.fps, self._generate_possible_fps())
-        self.state_work_load = ElasticityHandler._create_state(initial_task_config.max_work_load, self._generate_possible_work_loads())
+        self.state_resolution = ElasticityHandler._create_state(
+            target_config.max_resolution,
+            ElasticityHandler._generate_possible_resolutions(target_config.max_resolution))
+        self.state_fps = ElasticityHandler._create_state(
+            target_config.max_fps,
+            ElasticityHandler._generate_possible_fps(target_config.max_fps))
+        self.state_work_load = ElasticityHandler._create_state(
+            target_config.max_work_load,
+            ElasticityHandler._generate_possible_work_loads(target_config.max_work_load))
 
         # TODO check if functions needs synchronization
 
@@ -154,7 +158,8 @@ class ElasticityHandler:
         """
         self._task_generator.set_resolution(resolution)
 
-    def _generate_possible_work_loads(self, max_work_load: WorkLoad) -> list[WorkLoad]:
+    @staticmethod
+    def _generate_possible_work_loads(max_work_load: WorkLoad) -> list[WorkLoad]:
         """
         Generates a list of possible workload values.
 
@@ -163,15 +168,14 @@ class ElasticityHandler:
         """
         return [w for w in list(WorkLoad) if w.value <= max_work_load.value]
 
-    def _generate_possible_resolutions(self) -> list[Resolution]:
+    @staticmethod
+    def _generate_possible_resolutions(max_res: Resolution) -> list[Resolution]:
         """
         Generates a list of possible resolution values based on the initial configuration's aspect ratio.
 
         Returns:
             list[Resolution]: A list of possible resolution values.
         """
-        max_res = self.target_config.max_resolution
-
         match max_res.get_aspect_ratio():
             case AllAspectRatios.ASPECT_RATIO_16_9:
                 all_resolutions = AllResolutions.RATIO_16_9
@@ -182,14 +186,15 @@ class ElasticityHandler:
 
         return [res for res in all_resolutions if res <= max_res]
 
-    def _generate_possible_fps(self):
+    @staticmethod
+    def _generate_possible_fps(max_fps: int):
         """
         Generates a list of possible frames per second (FPS) values.
 
         Returns:
             list[int]: A list of possible FPS values.
         """
-        return [fps for fps in range(5, self.target_config.max_fps + 5, 5)]
+        return [fps for fps in range(5, max_fps + 5, 5)]
 
     @staticmethod
     def _increase_state(state: State, change_function: callable):
