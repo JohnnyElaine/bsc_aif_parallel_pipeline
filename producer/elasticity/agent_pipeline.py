@@ -10,7 +10,7 @@ log = logging.getLogger('producer')
 
 
 class AgentPipeline(Thread):
-    TIME_INTERVAL_S = 1
+    ITERATION_INTERVAL_S = 1
 
     def __init__(self, elasticity_handler: ElasticityHandler, agent_type: AgentType, start_task_generator_event: Event):
         super().__init__()
@@ -25,7 +25,7 @@ class AgentPipeline(Thread):
         self._start_task_generator_event.wait()
 
         while self._is_running:
-            time.sleep(AgentPipeline.TIME_INTERVAL_S)
+            time.sleep(AgentPipeline.ITERATION_INTERVAL_S)
             self._iteration()
 
         log.debug('stopped agent-pipeline')

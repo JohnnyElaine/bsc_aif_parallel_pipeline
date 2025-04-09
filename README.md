@@ -44,10 +44,10 @@ The secondary goal of the producer is to ensure maximum Quality of Experience (Q
 
 This means the producer tries to fulfill the following [Service Level Objectives (SLOs)](#service-level-objectives-slos)
 
-Under the constraints of the SLOs the  producer aims to maximise the following parameters (goals):
-- maximize the result of the YOLOv11 inference (Maximize WorkLoad)
-- keep fps as close as possible to the source-fps of the underlying video-stream
-- keep resolution as close as possible to the source-resolution of the video-stream
+Under the constraints of the SLOs the  producer aims to maximise the following parameters (goals) in the following order:
+1. keep resolution as close as possible to the source-resolution of the video-stream
+2. keep fps as close as possible to the source-fps of the underlying video-stream
+3. maximize the result of the YOLOv11 inference (Maximize WorkLoad)
 
 While the producer tries to fulfill the SLOs and maximize parameters (Workload, fps, resolution) at the same time, it is crucial that the SLO are of a much higher priority compared to the parameters.
 Especially since the parameters directly influence the probability of fulfilling the SLOs. Maximizing the parameters is more a preference, rather than a priority
@@ -160,6 +160,7 @@ task: numpy.ndarray
 ##### Registration
 TODO REST
 
+# ---------------------------------------------------------------
 # TODO
 Check if Instruction dataclass is actually useful, or if it can be merged with Task dataclass
 Document and test heuristic agent
@@ -174,7 +175,6 @@ Optional:
 
 ## How to send numpy arrays using 0MQ efficiently:
 https://pyzmq.readthedocs.io/en/latest/howto/serialization.html#example-numpy-arrays
-
 
 
 # Implementation

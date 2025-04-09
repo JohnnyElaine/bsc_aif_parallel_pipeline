@@ -4,7 +4,7 @@ import pymdp.utils as utils
 
 from producer.elasticity.agent.action.action_type import ActionType
 from producer.elasticity.agent.elasticity_agent import ElasticityAgent
-from producer.elasticity.slo.slo_status import SLOStatus
+from producer.elasticity.slo.slo_status import SloStatus
 from producer.elasticity.handler.elasticity_handler import ElasticityHandler
 
 
@@ -16,15 +16,23 @@ class ActiveInferenceAgent(ElasticityAgent):
     The agent monitors the system's state and takes actions to optimize the quality
     of experience while ensuring computational resources are properly utilized.
     """
-    RESOLUTION_INDEX = 0
-    FPS_INDEX = 1
-    WORK_LOAD_INDEX = 2
-    QUEUE_SIZE_INDEX = 3
-    MEMORY_USAGE_INDEX = 4
+    # Observations
+    OBS_RESOLUTION_INDEX = 0
+    OBS_FPS_INDEX = 1
+    OBS_WORK_LOAD_INDEX = 2
+    OBS_QUEUE_SIZE_INDEX = 3
+    OBS_MEMORY_USAGE_INDEX = 4
 
+    # Observation preferences
     STRONG_PREFERENCE = 4.0
     MEDIUM_PREFERENCE = 2.0
-    STRONG_AVERSION = -4.0
+    LOW_PREFERENCE = 1.0
+    VERY_LOW_PREFERENCE = 0.5
+    NEUTRAL = 0.0
+    STRONG_AVERSION = -STRONG_PREFERENCE
+    MEDIUM_AVERSION = -MEDIUM_PREFERENCE
+    LOW_AVERSION = -LOW_PREFERENCE
+    VERY_LOW_AVERSION = -VERY_LOW_PREFERENCE
 
     def __init__(self, elasticity_handler: ElasticityHandler, planning_horizon: int = 2):
         """
@@ -32,8 +40,6 @@ class ActiveInferenceAgent(ElasticityAgent):
 
         Args:
             elasticity_handler: The handler for changing system parameters
-            target_fps: The source video fps
-            target_resolution: The source video resolution
             planning_horizon: Number of time steps to plan ahead (default: 2)
         """
         super().__init__(elasticity_handler)
@@ -45,14 +51,42 @@ class ActiveInferenceAgent(ElasticityAgent):
         self.num_resolution_states = len(self.possible_resolutions)
         self.num_fps_states = len(self.possible_fps)
         self.num_work_load_states = len(self.possible_work_loads)
-        self.num_queue_states = 2  # Queue is either OK or too large
-        self.num_memory_states = 2  # Memory usage is either OK or too high
+
+        # 3 states for SLO status: SATISFIED, WARNING, UNSATISFIED
+        self.num_queue_states = len(SloStatus)
+        self.num_memory_states = len(SloStatus)
 
         # Define actions
         self.actions = list(ActionType)
         self.num_actions = len(self.actions)
 
         self._setup_generative_model(planning_horizon)
+
+    def step(self) -> tuple[ActionType, bool]:
+        """
+        Perform a single step of the active inference loop
+
+        Returns:
+            tuple[ActionType, bool]: The action taken and whether it was successful
+        """
+        # Get current observations
+        observations = self._get_observations()
+
+        # Perform active inference
+        q_pi, q_s = self.agent.infer_states(observations)
+        action = self.agent.sample_action()
+
+        # Perform the selected action
+        success = self._perform_action(action)
+
+        # Update agent's beliefs based on the action taken
+        self.agent.infer_states(observations, action)
+
+        return self.actions[action], success
+
+    def reset(self):
+        """Reset the agent's beliefs"""
+        self.agent.reset()
 
     def _setup_generative_model(self, planning_horizon: int):
         """
@@ -99,41 +133,40 @@ class ActiveInferenceAgent(ElasticityAgent):
 
         # Observation 0: Resolution state - direct mapping
         for i in range(self.num_resolution_states):
-            A[ActiveInferenceAgent.RESOLUTION_INDEX][i, i, :, :] = 1.0
+            A[ActiveInferenceAgent.OBS_RESOLUTION_INDEX][i, i, :, :] = 1.0
 
         # Observation 1: FPS state - direct mapping
         for i in range(self.num_fps_states):
-            A[ActiveInferenceAgent.FPS_INDEX][i, :, i, :] = 1.0
+            A[ActiveInferenceAgent.OBS_FPS_INDEX][i, :, i, :] = 1.0
 
         # Observation 2: Work load state - direct mapping
         for i in range(self.num_work_load_states):
-            A[ActiveInferenceAgent.WORK_LOAD_INDEX][i, :, :, i] = 1.0
+            A[ActiveInferenceAgent.OBS_WORK_LOAD_INDEX][i, :, :, i] = 1.0
 
         # Observation 3: Queue size status - depends on FPS and Work load
         # Higher FPS and higher work load increase probability of large queue
         for res_idx in range(self.num_resolution_states):
             for fps_idx in range(self.num_fps_states):
                 for wl_idx in range(self.num_work_load_states):
-                    # TODO IDEA: Just check the actual SLO here and set the value accordingly instead of predicting
-                    # Queue size probability depends on FPS, resolution, and work load
-                    # Higher FPS, higher resolution, or higher work load increases probability of large queue
+                    # Get probability distributions for queue SLO states
+                    queue_probs = self.slo_manager.get_queue_slo_state_probabilities()
 
-                    queue_ok_prob = self.slo_manager.probability_queue_slo_satisfied()
-
-                    A[ActiveInferenceAgent.QUEUE_SIZE_INDEX][SLOStatus.SATISFIED.value, res_idx, fps_idx, wl_idx] = queue_ok_prob
-                    A[ActiveInferenceAgent.QUEUE_SIZE_INDEX][SLOStatus.UNSATISFIED.value, res_idx, fps_idx, wl_idx] = 1.0 - queue_ok_prob
+                    # Set probabilities for each SLO state
+                    A[ActiveInferenceAgent.OBS_QUEUE_SIZE_INDEX][SloStatus.OK.value, res_idx, fps_idx, wl_idx] = queue_probs[SloStatus.OK.value]
+                    A[ActiveInferenceAgent.OBS_QUEUE_SIZE_INDEX][SloStatus.WARNING.value, res_idx, fps_idx, wl_idx] = queue_probs[SloStatus.WARNING.value]
+                    A[ActiveInferenceAgent.OBS_QUEUE_SIZE_INDEX][SloStatus.CRITICAL.value, res_idx, fps_idx, wl_idx] = queue_probs[SloStatus.CRITICAL.value]
 
         # Observation 4: Memory usage status - depends on resolution, FPS, and work load
         for res_idx in range(self.num_resolution_states):
             for fps_idx in range(self.num_fps_states):
                 for wl_idx in range(self.num_work_load_states):
-                    # Memory usage probability depends on resolution, FPS, and work load
-                    # Higher resolution, higher FPS, or higher work load increases memory usage
-                    memory_ok_prob = self.slo_manager.probability_memory_slo_satisfied()
+                    # Get probability distributions for memory SLO states
+                    memory_probs = self.slo_manager.get_memory_slo_state_probabilities()
 
-                    A[ActiveInferenceAgent.MEMORY_USAGE_INDEX][SLOStatus.SATISFIED.value, res_idx, fps_idx, wl_idx] = memory_ok_prob
-                    A[ActiveInferenceAgent.MEMORY_USAGE_INDEX][SLOStatus.UNSATISFIED.value, res_idx, fps_idx, wl_idx] = 1.0 - memory_ok_prob
-
+                    # Set probabilities for each SLO state
+                    A[ActiveInferenceAgent.OBS_MEMORY_USAGE_INDEX][SloStatus.OK.value, res_idx, fps_idx, wl_idx] = memory_probs[SloStatus.OK.value]
+                    A[ActiveInferenceAgent.OBS_MEMORY_USAGE_INDEX][SloStatus.WARNING.value, res_idx, fps_idx, wl_idx] = memory_probs[SloStatus.WARNING.value]
+                    A[ActiveInferenceAgent.OBS_MEMORY_USAGE_INDEX][SloStatus.CRITICAL.value, res_idx, fps_idx, wl_idx] = memory_probs[SloStatus.CRITICAL.value]
         return A
 
     def _construct_B_matrix(self):
@@ -152,17 +185,17 @@ class ActiveInferenceAgent(ElasticityAgent):
 
         # State 0 - Resolution: Transitions for Resolution states based on actions
 
-        self._construct_sub_transition_model(B, ActiveInferenceAgent.RESOLUTION_INDEX, self.num_actions,
+        self._construct_sub_transition_model(B, ActiveInferenceAgent.OBS_RESOLUTION_INDEX, self.num_actions,
                                              self.num_resolution_states, ActionType.INCREASE_RESOLUTION,
                                              ActionType.DECREASE_RESOLUTION, probability_to_change_state)
 
         # State 1 - FPS: Transitions for FPS states based on actions
-        self._construct_sub_transition_model(B, ActiveInferenceAgent.FPS_INDEX, self.num_actions,
+        self._construct_sub_transition_model(B, ActiveInferenceAgent.OBS_FPS_INDEX, self.num_actions,
                                              self.num_fps_states, ActionType.INCREASE_FPS,
                                              ActionType.DECREASE_FPS, probability_to_change_state)
 
         # State 2 - Work Load: Transitions for Work load states based on actions
-        self._construct_sub_transition_model(B, ActiveInferenceAgent.WORK_LOAD_INDEX, self.num_actions,
+        self._construct_sub_transition_model(B, ActiveInferenceAgent.OBS_WORK_LOAD_INDEX, self.num_actions,
                                              self.num_work_load_states, ActionType.INCREASE_WORK_LOAD,
                                              ActionType.DECREASE_WORK_LOAD, probability_to_change_state)
 
@@ -183,27 +216,29 @@ class ActiveInferenceAgent(ElasticityAgent):
         # Mild preference for higher resolution
         for i in range(self.num_resolution_states):
             normalized_pref = i / (self.num_resolution_states - 1) * ActiveInferenceAgent.MEDIUM_PREFERENCE # Scale to max of 2.0
-            C[ActiveInferenceAgent.RESOLUTION_INDEX][i] = normalized_pref
+            C[ActiveInferenceAgent.OBS_RESOLUTION_INDEX][i] = normalized_pref
 
         # Preferences for FPS - higher is better
         # Mild preference for higher FPS
         for i in range(self.num_fps_states):
             normalized_pref = i / (self.num_fps_states - 1) * ActiveInferenceAgent.MEDIUM_PREFERENCE   # Scale to max of 2.0
-            C[ActiveInferenceAgent.FPS_INDEX][i] = normalized_pref
+            C[ActiveInferenceAgent.OBS_FPS_INDEX][i] = normalized_pref
 
         # Preferences for work load - higher is better (better quality)
         # Mild preference for higher work load (higher quality)
         for i in range(self.num_work_load_states):
             normalized_pref = i / (self.num_work_load_states - 1) * ActiveInferenceAgent.MEDIUM_PREFERENCE  # Scale to max of 2.0
-            C[ActiveInferenceAgent.WORK_LOAD_INDEX][i] = normalized_pref
+            C[ActiveInferenceAgent.OBS_WORK_LOAD_INDEX][i] = normalized_pref
 
-        # Preferences for queue size - strongly prefer below threshold
-        C[ActiveInferenceAgent.QUEUE_SIZE_INDEX][SLOStatus.SATISFIED.value] = ActiveInferenceAgent.STRONG_PREFERENCE
-        C[ActiveInferenceAgent.QUEUE_SIZE_INDEX][SLOStatus.UNSATISFIED.value] = ActiveInferenceAgent.STRONG_AVERSION
+        # Preferences for queue size - 3 states now
+        C[ActiveInferenceAgent.OBS_QUEUE_SIZE_INDEX][SloStatus.OK.value] = ActiveInferenceAgent.STRONG_PREFERENCE
+        C[ActiveInferenceAgent.OBS_QUEUE_SIZE_INDEX][SloStatus.WARNING.value] = ActiveInferenceAgent.VERY_LOW_AVERSION
+        C[ActiveInferenceAgent.OBS_QUEUE_SIZE_INDEX][SloStatus.CRITICAL.value] = ActiveInferenceAgent.STRONG_AVERSION
 
-        # Preferences for memory usage - strongly prefer below threshold
-        C[ActiveInferenceAgent.MEMORY_USAGE_INDEX][SLOStatus.SATISFIED.value] = ActiveInferenceAgent.STRONG_PREFERENCE
-        C[ActiveInferenceAgent.MEMORY_USAGE_INDEX][SLOStatus.UNSATISFIED.value] = ActiveInferenceAgent.STRONG_AVERSION
+        # Preferences for memory usage - 3 states now
+        C[ActiveInferenceAgent.OBS_MEMORY_USAGE_INDEX][SloStatus.OK.value] = ActiveInferenceAgent.STRONG_PREFERENCE
+        C[ActiveInferenceAgent.OBS_MEMORY_USAGE_INDEX][SloStatus.WARNING.value] = ActiveInferenceAgent.VERY_LOW_AVERSION
+        C[ActiveInferenceAgent.OBS_MEMORY_USAGE_INDEX][SloStatus.CRITICAL.value] = ActiveInferenceAgent.STRONG_AVERSION
 
         return C
 
@@ -218,11 +253,11 @@ class ActiveInferenceAgent(ElasticityAgent):
 
         # Set the actual starting state as prior
         # State 0 - Resolution
-        D[ActiveInferenceAgent.RESOLUTION_INDEX][self.elasticity_handler.state_resolution.current_index] = 1.0
+        D[ActiveInferenceAgent.OBS_RESOLUTION_INDEX][self.elasticity_handler.state_resolution.current_index] = 1.0
         # State 1 - FPS
-        D[ActiveInferenceAgent.FPS_INDEX][self.elasticity_handler.state_fps.current_index] = 1.0
+        D[ActiveInferenceAgent.OBS_FPS_INDEX][self.elasticity_handler.state_fps.current_index] = 1.0
         # State 2 - Work Load
-        D[ActiveInferenceAgent.WORK_LOAD_INDEX][self.elasticity_handler.state_work_load.current_index] = 1.0
+        D[ActiveInferenceAgent.OBS_WORK_LOAD_INDEX][self.elasticity_handler.state_work_load.current_index] = 1.0
 
         # Normalize to ensure they are proper probability distributions
         for state_idx in range(len(self.state_dims)):
@@ -261,22 +296,22 @@ class ActiveInferenceAgent(ElasticityAgent):
                 for i in range(num_states):
                     B[state_index][i, i, action_idx] = 1.0
 
-    def _get_observations(self) -> list:
+    def _get_observations(self) -> list[int]:
         """
         Get current observations of the system
 
         Returns:
             list: Current observations for all observation modalities
         """
-        is_queue_slo_satisfied = self.slo_manager.is_queue_slo_satisfied()
-        is_memory_slo_satisfied = self.slo_manager.is_memory_slo_satisfied()
+        queue_slo_status = self.slo_manager.get_qsize_slo_status().value
+        memory_slo_status = self.slo_manager.get_memory_slo_status().value
 
         observations = [
             self.elasticity_handler.state_resolution.current_index,
             self.elasticity_handler.state_fps.current_index,
             self.elasticity_handler.state_work_load.current_index,
-            SLOStatus.SATISFIED.value if is_queue_slo_satisfied else SLOStatus.UNSATISFIED.value,
-            SLOStatus.SATISFIED.value if is_memory_slo_satisfied else SLOStatus.UNSATISFIED.value
+            queue_slo_status,
+            memory_slo_status
         ]
 
         return observations
@@ -310,29 +345,3 @@ class ActiveInferenceAgent(ElasticityAgent):
                 return self.elasticity_handler.decrease_work_load()
             case _:
                 raise ValueError(f"Unknown action type: {action}")
-
-    def step(self) -> tuple[ActionType, bool]:
-        """
-        Perform a single step of the active inference loop
-
-        Returns:
-            tuple[ActionType, bool]: The action taken and whether it was successful
-        """
-        # Get current observations
-        observations = self._get_observations()
-
-        # Perform active inference
-        q_pi, q_s = self.agent.infer_states(observations)
-        action = self.agent.sample_action()
-
-        # Perform the selected action
-        success = self._perform_action(action)
-
-        # Update agent's beliefs based on the action taken
-        self.agent.infer_states(observations, action)
-
-        return self.actions[action], success
-
-    def reset(self):
-        """Reset the agent's beliefs"""
-        self.agent.reset()
