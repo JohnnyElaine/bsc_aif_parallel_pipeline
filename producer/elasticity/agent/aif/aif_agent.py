@@ -29,10 +29,11 @@ class ActiveInferenceAgent(ElasticityAgent):
     LOW_PREFERENCE = 1.0
     VERY_LOW_PREFERENCE = 0.5
     NEUTRAL = 0.0
-    STRONG_AVERSION = -STRONG_PREFERENCE
-    MEDIUM_AVERSION = -MEDIUM_PREFERENCE
-    LOW_AVERSION = -LOW_PREFERENCE
     VERY_LOW_AVERSION = -VERY_LOW_PREFERENCE
+    LOW_AVERSION = -LOW_PREFERENCE
+    MEDIUM_AVERSION = -MEDIUM_PREFERENCE
+    STRONG_AVERSION = -STRONG_PREFERENCE
+
 
     def __init__(self, elasticity_handler: ElasticityHandler, planning_horizon: int = 2):
         """
@@ -232,12 +233,12 @@ class ActiveInferenceAgent(ElasticityAgent):
 
         # Preferences for queue size - 3 states now
         C[ActiveInferenceAgent.OBS_QUEUE_SIZE_INDEX][SloStatus.OK.value] = ActiveInferenceAgent.STRONG_PREFERENCE
-        C[ActiveInferenceAgent.OBS_QUEUE_SIZE_INDEX][SloStatus.WARNING.value] = ActiveInferenceAgent.VERY_LOW_AVERSION
+        C[ActiveInferenceAgent.OBS_QUEUE_SIZE_INDEX][SloStatus.WARNING.value] = ActiveInferenceAgent.NEUTRAL
         C[ActiveInferenceAgent.OBS_QUEUE_SIZE_INDEX][SloStatus.CRITICAL.value] = ActiveInferenceAgent.STRONG_AVERSION
 
         # Preferences for memory usage - 3 states now
         C[ActiveInferenceAgent.OBS_MEMORY_USAGE_INDEX][SloStatus.OK.value] = ActiveInferenceAgent.STRONG_PREFERENCE
-        C[ActiveInferenceAgent.OBS_MEMORY_USAGE_INDEX][SloStatus.WARNING.value] = ActiveInferenceAgent.VERY_LOW_AVERSION
+        C[ActiveInferenceAgent.OBS_MEMORY_USAGE_INDEX][SloStatus.WARNING.value] = ActiveInferenceAgent.NEUTRAL
         C[ActiveInferenceAgent.OBS_MEMORY_USAGE_INDEX][SloStatus.CRITICAL.value] = ActiveInferenceAgent.STRONG_AVERSION
 
         return C

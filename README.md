@@ -6,6 +6,7 @@ pip install ultralytics
 pip install msgpack
 pip install pyzmq
 pip install inferactively-pymdp
+pip install stable-baselines3
 
 
 pip freeze > requirements.txt
@@ -76,7 +77,7 @@ The Collector implements a ``zeromq.PULL`` socket that constantly accepts result
 The Producer tries to ensure Quality of Service (QoS) by providing certain elasticity features, when the underlying SLOs are not met.
 
 Should the computational resources of the system are not enough to uphold certain Service level objectives (SLOs), 
-i.e. processing time for x amount frames, energy consumption, etc then the producer has some options to change required computational load. These include:
+i.e. processing time for x amount frames, energy consumption, buffer size, memory usage, etc then the producer has some options to change required computational load. These include:
 
 - **Quality:** Switch to a different grade YOLOv11 model.
 - **FPS:** Change Source Stream FPS
@@ -86,6 +87,11 @@ The goal is to maximize QoS by utilizing the available resources of distributed 
 
 ## Service Level Objectives (SLOs)
 The Service Level Objectives (SLOs) are implemented by the Producer in order to ensure the highest possible Quality of Experience (QoE) given the current available resources.
+
+A SLO can have 3 types of states:
+- **OK:** The SLO is fulfilled
+- **WARNING:** The SLO is fulfilled, but close the the threshold of being unfulfilled
+- **CRITICAL:** The SLO is unfulfilled
 
 ### Memory Usage
 ```

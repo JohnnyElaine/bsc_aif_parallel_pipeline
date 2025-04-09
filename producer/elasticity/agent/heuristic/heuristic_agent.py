@@ -1,12 +1,9 @@
 from producer.elasticity.agent.action.action_type import ActionType
 from producer.elasticity.agent.elasticity_agent import ElasticityAgent
 from producer.elasticity.handler.elasticity_handler import ElasticityHandler
-import logging
 
 from producer.elasticity.slo.slo_manager import SloManager
 from producer.elasticity.slo.slo_status import SloStatus
-
-log = logging.getLogger('producer')
 
 
 class HeuristicAgent(ElasticityAgent):
@@ -73,7 +70,6 @@ class HeuristicAgent(ElasticityAgent):
         self._update_action_history(action)
 
         return action, success
-
 
     def reset(self):
         """Reset the agent's state"""
