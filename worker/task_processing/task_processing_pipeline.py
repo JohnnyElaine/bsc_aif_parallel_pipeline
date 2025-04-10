@@ -1,15 +1,14 @@
 import time
+from multiprocessing import Process, Pipe, Event
 
 import cv2 as cv
 from numpy import ndarray
-from multiprocessing import Process, Pipe, Event
 
 import packages.logging as logging
-from packages.data import TaskType, ChangeType, Task
-from packages.data.types.signal_type import SignalType
+from packages.data import TaskType, Task
 from packages.enums import WorkLoad
-from worker.task_processing.task_processing.task_processor.task_processor_factory import TaskProcessorFactory
 from worker.data.work_config import WorkConfig
+from worker.task_processing.task_processing.task_processor.task_processor_factory import TaskProcessorFactory
 
 
 class TaskProcessingPipeline(Process):

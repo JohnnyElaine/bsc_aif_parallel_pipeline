@@ -1,8 +1,8 @@
 import logging
-from threading import Thread
 from queue import Queue
+from threading import Thread
 
-from packages.data.types.signal_type import SignalType
+from packages.data.types.task_type import TaskType
 from packages.network_messages import RepType
 from worker.communication.channel.push_channel import PushChannel
 
@@ -24,7 +24,7 @@ class ResultSender(Thread):
         while self._is_running:
             result = self._queue.get() # LocalMessage Dataclass
 
-            if result.type == SignalType.END:
+            if result.type == TaskType.END:
                 self._channel.send_info(dict(type=RepType.END))
                 self._is_running = False
                 break

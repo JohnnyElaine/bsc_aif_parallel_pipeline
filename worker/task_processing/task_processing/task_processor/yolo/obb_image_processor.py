@@ -4,6 +4,7 @@ import numpy as np
 from packages.enums import WorkLoad, LoadingMode
 from worker.task_processing.task_processing.task_processor.yolo.yolo_image_processor import YOLOTaskProcessor
 
+
 class OBBYOLOImageProcessor(YOLOTaskProcessor):
     def __init__(self, work_load: WorkLoad, model_loading_mode: LoadingMode, model_paths: dict):
         super().__init__(work_load, model_loading_mode, model_paths)

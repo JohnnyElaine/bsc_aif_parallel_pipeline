@@ -1,6 +1,5 @@
-import numpy as np
-import zmq
 import msgpack
+import zmq
 
 from packages.data import Task
 from packages.network_messages import RepType

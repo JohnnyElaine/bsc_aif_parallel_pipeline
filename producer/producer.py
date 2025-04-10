@@ -1,15 +1,15 @@
-import pandas as pd
 from multiprocessing import Process
 from queue import Queue
+
+import pandas as pd
 
 import packages.logging as logging
 from producer.communication.request_handler import RequestHandler
 from producer.data.task_config import TaskConfig
 from producer.data.video import Video
+from producer.elasticity.agent_pipeline import AgentPipeline
 from producer.elasticity.handler.elasticity_handler import ElasticityHandler
 from producer.producer_config import ProducerConfig
-from producer.elasticity.agent_pipeline import AgentPipeline
-from producer.statistics.worker_statistics import WorkerStatistics
 from producer.task_generation.task_generator import TaskGenerator
 
 

@@ -3,13 +3,13 @@ from queue import Queue
 
 import numpy as np
 
+from packages.data import Task
 from packages.data.types.task_type import TaskType
+from packages.network_messages import RepType
 from worker.communication.channel.request_channel import RequestChannel
 from worker.work_requesting.work_requester.work_requester import WorkRequester
-from packages.data import Task
-from packages.network_messages import RepType
 
-log = logging.getLogger('work_requesting')
+log = logging.getLogger('worker')
 
 
 class ZmqWorkRequester(WorkRequester):

@@ -1,11 +1,12 @@
 import logging
+
 import producer.elasticity.handler.possible_values.aspect_ratios as AllAspectRatios
-from producer.elasticity.handler.possible_values.resolutions import AllResolutions
 from packages.enums import WorkLoad
 from producer.communication.request_handler import RequestHandler
 from producer.data.resolution import Resolution
 from producer.data.task_config import TaskConfig
 from producer.elasticity.handler.data.state import State
+from producer.elasticity.handler.possible_values.resolutions import AllResolutions
 from producer.task_generation.task_generator import TaskGenerator
 
 log = logging.getLogger('producer')
@@ -214,7 +215,7 @@ class ElasticityHandler:
         state.current_index += 1
         change_function(state.value)
 
-        log.debug(f'{change_function.__name__}: {state.possible_states[state.current_index] - 1} -> {state.possible_states[state.current_index]}')
+        log.debug(f'{change_function.__name__}: {state.possible_states[state.current_index- 1]} -> {state.possible_states[state.current_index]}')
 
         return True
 
@@ -236,7 +237,7 @@ class ElasticityHandler:
         state.current_index -= 1
         change_function(state.value)
 
-        log.debug(f'{change_function.__name__}: {state.possible_states[state.current_index] + 1} -> {state.possible_states[state.current_index]}')
+        log.debug(f'{change_function.__name__}: {state.possible_states[state.current_index + 1]} -> {state.possible_states[state.current_index]}')
 
         return True
 

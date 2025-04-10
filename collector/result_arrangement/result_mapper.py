@@ -1,7 +1,7 @@
 import logging
 import time
-from threading import Thread
 from queue import Queue
+from threading import Thread
 
 import numpy as np
 
@@ -15,6 +15,7 @@ log = logging.getLogger('collector')
 class ResultMapper(Thread):
     WAIT_TIME = int(1/30) # TODO find more suitable wait time
     MAX_STRIKES = 3
+
     def __init__(self, result_dict: BlockingDict, output_queue: Queue):
         super().__init__()
         self._result_dict = result_dict # key = result_id, val = result
@@ -40,6 +41,7 @@ class ResultMapper(Thread):
         result = self._result_dict.pop(self._expected_id)
 
         if END_TASK_ID in self._result_dict:
+            self._stop_output_viewer()
             return False
 
         if result is None:

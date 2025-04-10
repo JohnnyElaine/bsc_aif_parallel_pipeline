@@ -1,2 +1,0 @@
-class ChangeType:
-    CHANGE_WORK_LOAD = 'CHANGE_WORK_LOAD'

@@ -1,4 +1,3 @@
-from packages.data import Change
 from packages.data.local_messages.task import Task
 from packages.network_messages import RepType
 

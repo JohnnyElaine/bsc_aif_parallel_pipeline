@@ -1,5 +1,6 @@
 import msgpack
 import zmq
+
 from packages.data import Task, TaskType
 from packages.network_messages import RepType
 

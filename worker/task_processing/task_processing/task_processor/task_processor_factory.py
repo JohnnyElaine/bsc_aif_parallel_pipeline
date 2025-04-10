@@ -1,9 +1,10 @@
-from packages.enums import WorkLoad, WorkType, LoadingMode
+from packages.enums import WorkType
 from worker.data.work_config import WorkConfig
-from worker.task_processing.task_processing.task_processor.default_task_processor import DefaultTaskProcessor
-from worker.task_processing.task_processing.task_processor.yolo.detection_image_processor import DetectionYOLOImageProcessor
-from worker.task_processing.task_processing.task_processor.yolo.obb_image_processor import OBBYOLOImageProcessor
 from worker.global_variables import WorkerGlobalVariables
+from worker.task_processing.task_processing.task_processor.default_task_processor import DefaultTaskProcessor
+from worker.task_processing.task_processing.task_processor.yolo.detection_image_processor import \
+    DetectionYOLOImageProcessor
+from worker.task_processing.task_processing.task_processor.yolo.obb_image_processor import OBBYOLOImageProcessor
 
 
 class TaskProcessorFactory:

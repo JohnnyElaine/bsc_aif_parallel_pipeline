@@ -1,7 +1,7 @@
 import logging
 from multiprocessing import Pipe
-from threading import Thread
 from queue import Queue
+from threading import Thread
 
 log = logging.getLogger('result_sending')
 

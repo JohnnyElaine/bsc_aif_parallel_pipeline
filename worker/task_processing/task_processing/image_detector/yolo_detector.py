@@ -1,5 +1,6 @@
-import torch
 import logging.handlers
+
+import torch
 from ultralytics import YOLO
 
 log = logging.getLogger('task_processing')

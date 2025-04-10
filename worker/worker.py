@@ -14,7 +14,7 @@ class Worker(Process):
         self.config = config
 
     def run(self):
-        log = logging.setup_logging('work_requesting')
+        log = logging.setup_logging('worker')
 
         log.info(f'starting worker-{self.config.identity}')
         

@@ -1,10 +1,10 @@
 import logging
-from threading import Thread
 from queue import Queue
+from threading import Thread
 
-from packages.data.types.signal_type import SignalType
+from packages.data.types.task_type import TaskType
 
-log = logging.getLogger('work_requesting')
+log = logging.getLogger('worker')
 
 
 class PipeTaskSender(Thread):
@@ -25,7 +25,7 @@ class PipeTaskSender(Thread):
             # Indicate that enqueued task is complete and more tasks can be processed. (unblocks .join())
             self._queue.task_done()
 
-            if data.type == SignalType.END:
+            if data.type == TaskType.END:
                 self._is_running = False
 
         log.debug('stopped pipe-task-sender')

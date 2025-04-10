@@ -1,5 +1,5 @@
-import time
 import logging
+import time
 from threading import Thread, Event
 
 from producer.elasticity.agent.agent_factory import AgentFactory

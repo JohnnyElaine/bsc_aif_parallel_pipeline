@@ -1,8 +1,8 @@
 import logging
 import time
 from queue import PriorityQueue
-from threading import Thread
 from queue import Queue
+from threading import Thread
 
 from packages.data import Task
 

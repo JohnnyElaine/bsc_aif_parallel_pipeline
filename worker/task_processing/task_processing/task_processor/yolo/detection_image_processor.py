@@ -4,6 +4,7 @@ import numpy as np
 from packages.enums import WorkLoad, LoadingMode
 from worker.task_processing.task_processing.task_processor.yolo.yolo_image_processor import YOLOTaskProcessor
 
+
 class DetectionYOLOImageProcessor(YOLOTaskProcessor):
     def __init__(self, compute_load: WorkLoad, model_loading_mode: LoadingMode, model_paths: dict):
         super().__init__(compute_load, model_loading_mode, model_paths)
@@ -18,7 +19,7 @@ class DetectionYOLOImageProcessor(YOLOTaskProcessor):
         """
 
         for xyxy, class_id, confidence in zip(boxes, class_ids, confidences):
-            x1, y1, x2, y2 = np.int0(xyxy)
+            x1, y1, x2, y2 = np.intp(xyxy)
 
             self._draw_bounding_boxes(image, x1, y1, x2, y2)
             self._draw_labels(image, class_id, confidence, x1, y1)

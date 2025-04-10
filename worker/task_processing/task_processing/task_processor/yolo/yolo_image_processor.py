@@ -1,11 +1,12 @@
 import logging
-import numpy as np
-import cv2 as cv
 from abc import abstractmethod, ABC
 
+import cv2 as cv
+import numpy as np
+
+from packages.enums import WorkLoad, LoadingMode
 from worker.task_processing.task_processing.image_detector.yolo_detector import YoloDetector
 from worker.task_processing.task_processing.task_processor.task_processor import TaskProcessor
-from packages.enums import WorkLoad, LoadingMode
 
 log = logging.getLogger('task_processing')
 

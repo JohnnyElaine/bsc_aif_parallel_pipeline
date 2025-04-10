@@ -1,21 +1,19 @@
 import logging
 import time
 from dataclasses import asdict
-
-import pandas as pd
-from threading import Thread, Event
 from queue import Queue
+from threading import Thread, Event
 
 import numpy as np
+import pandas as pd
 
-from packages.data import Change, ChangeType
 from packages.data.local_messages.task import Task
 from packages.data.types.task_type import TaskType
+from packages.enums import LoadingMode
 from packages.enums import WorkType, WorkLoad
 from packages.network_messages import ReqType, RepType
 from producer.communication.channel.router_channel import RouterChannel
 from producer.data.worker_info import WorkerInfo
-from packages.enums import LoadingMode
 from producer.statistics.worker_statistics import WorkerStatistics
 
 log = logging.getLogger("producer")

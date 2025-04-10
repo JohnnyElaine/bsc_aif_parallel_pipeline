@@ -1,8 +1,9 @@
 import pandas as pd
 import psutil
+
 from producer.elasticity.handler.elasticity_handler import ElasticityHandler
-from producer.statistics.slo_statistics import SloStatistics
 from producer.elasticity.slo.slo_status import SloStatus
+from producer.statistics.slo_statistics import SloStatistics
 
 
 class SloManager:

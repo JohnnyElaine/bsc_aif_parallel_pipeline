@@ -1,8 +1,11 @@
 import logging
 import time
-import cv2 as cv
-from threading import Thread
+
+import numpy as np
 from queue import Queue
+from threading import Thread
+
+import cv2 as cv
 from numpy import ndarray
 
 import packages.time_util as time_util
@@ -30,7 +33,7 @@ class OutputViewer(Thread):
         iteration_start_time = time.perf_counter()
         frame = self._output_queue.get()
 
-        if frame == END_TASK_ID:
+        if np.array_equal(frame, END_TASK_ID):
             return False
 
         if not OutputViewer._display_frame(frame):

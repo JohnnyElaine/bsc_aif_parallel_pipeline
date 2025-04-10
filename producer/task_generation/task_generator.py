@@ -1,14 +1,13 @@
 import logging
 import time
-from threading import Thread
 from queue import Queue
+from threading import Thread
 
 import numpy as np
 from cv2 import error as cvError
 
 import packages.time_util as time_util
 from packages.data import Task, TaskType
-from packages.data.types.signal_type import SignalType
 from producer.data.resolution import Resolution
 from producer.data.video import Video
 
@@ -92,7 +91,7 @@ class TaskGenerator(Thread):
         self._queue.put(Task(TaskType.INFERENCE, task_id ,data))
 
     def _stop_request_handler(self):
-        self._queue.put(Task(SignalType.END, -1, np.empty(0)))
+        self._queue.put(Task(TaskType.END, -1, np.empty(0)))
 
     def _is_resolution_changed(self):
         return self._target_resolution[0]

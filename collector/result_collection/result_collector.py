@@ -7,8 +7,8 @@ from collector.communication.channel.pull_channel import PullChannel
 from collector.constants.constants import END_TASK_ID
 from collector.datastructures.blocking_dict import BlockingDict
 from packages.data.local_messages.task import Task
-from packages.data.types.signal_type import SignalType
 from packages.data.types.task_type import TaskType
+from packages.network_messages import RepType
 
 log = logging.getLogger('collector')
 
@@ -41,15 +41,14 @@ class ResultCollector(Thread):
         info, results = self._channel.get_results() # info = dict, results = list of Task()
 
         match info['type']:
-            case SignalType.END:
+            case RepType.END:
                 # notify the ResultMapper that it should also stop
-                self._result_dict[END_TASK_ID] = Task(TaskType.COLLECT, END_TASK_ID, np.empty(0))
+                self._result_dict[END_TASK_ID] = Task(TaskType.END, END_TASK_ID, np.empty(0))
                 return False
             case _:
                 for result in results:
                     self._result_dict[result.id] = result
-
-                    #self._result_queue.put(result)
+                    # TODO do not add tasks with result.id < ResultMapper._expected_id
 
         return True
         
