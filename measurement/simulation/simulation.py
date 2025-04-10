@@ -27,16 +27,11 @@ class Simulation(ABC):
         self.agent_type = agent_type
         self.worker_processing_delays = worker_processing_delays
         self.vid_path = vid_path
-        self.results = None
 
     @abstractmethod
     def run(self):
         pass
 
-    @abstractmethod
-    def get_results(self):
-        pass
-
     @staticmethod
     def create_workers(processing_delays: list[float], producer_ip: str, producer_port: int, collector_ip: str, collector_port: int):
-        return [Worker(WorkerConfig(i, producer_ip, producer_port, collector_ip, collector_port, delay)) for i, delay in processing_delays]
+        return [Worker(WorkerConfig(i, producer_ip, producer_port, collector_ip, collector_port, delay)) for i, delay in enumerate(processing_delays)]

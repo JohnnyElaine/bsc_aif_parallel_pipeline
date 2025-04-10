@@ -57,9 +57,8 @@ class Producer(Process):
         self._slo_stats = slo_agent.get_slo_statistics()
         self._worker_stats = request_handler.get_worker_statistics()
 
-
     def get_slo_statistics(self) -> pd.DataFrame:
         return self._slo_stats
 
-    def get_worker_statistics(self) -> dict[bytes, WorkerStatistics]:
+    def get_worker_statistics(self) -> pd.DataFrame:
         return self._worker_stats

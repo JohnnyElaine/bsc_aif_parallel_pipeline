@@ -1,3 +1,5 @@
+import pandas as pd
+
 from collector.collector import Collector
 from collector.collector_config import CollectorConfig
 from measurement.simulation.simulation import Simulation
@@ -27,7 +29,7 @@ class BasicSimulation(Simulation):
         super().__init__(producer_ip, producer_port, collector_ip, collector_port, work_type, loading_mode,
                          max_work_load, agent_type, worker_processing_delays, vid_path)
 
-    def run(self):
+    def run(self) -> tuple[pd.DataFrame, pd.DataFrame]:
         producer_config = ProducerConfig(self.producer_port, self.work_type,
                                          self.loading_mode, self.max_work_load,
                                          self.agent_type, self.vid_path)
@@ -52,9 +54,7 @@ class BasicSimulation(Simulation):
         collector.join()
 
         # collect simulation data
-        slo_statistics= producer.get_slo_statistics()
+        slo_statistics = producer.get_slo_statistics()
         worker_statistics = producer.get_worker_statistics()
-        self.results = []
 
-    def get_results(self):
-        return self.results
+        return slo_statistics, worker_statistics

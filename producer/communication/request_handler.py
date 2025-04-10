@@ -1,5 +1,8 @@
 import logging
 import time
+from dataclasses import asdict
+
+import pandas as pd
 from threading import Thread, Event
 from queue import Queue
 
@@ -53,7 +56,20 @@ class RequestHandler(Thread):
         self._work_load = work_load
         self._broadcast_change(Task(TaskType.CHANGE_WORK_LOAD, -1, np.array(work_load.value)))
 
-    def get_worker_statistics(self):
+    def get_worker_statistics(self) -> pd.DataFrame:
+        # Create a nested dictionary with worker addresses as keys
+        # and WorkerStatistics asdict() values as inner dictionaries
+        data_dict = {
+            addr.decode('utf-8'): asdict(stats)
+            for addr, stats in self._worker_statistics.items()
+        }
+
+        # Convert to DataFrame using from_dict with orient='index' to make worker worker_addr the index
+        df = pd.DataFrame.from_dict(data_dict, orient='index')
+        df.index.name = 'worker_addr'
+
+        return df
+
         return self._worker_statistics
 
     def _handle_request(self, address: bytes, request: dict) -> bool:
