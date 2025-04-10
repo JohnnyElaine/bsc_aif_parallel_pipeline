@@ -34,12 +34,12 @@ class TaskProcessingPipeline(Process):
 
     def run(self):
         self.log = logging.setup_logging('task_processing')
-        self.log.debug('initializing task-processing-timeline')
+        self.log.debug('initializing task-processing-pipeline')
         self._task_processor = TaskProcessorFactory.create_task_processor(self._work_config)
         self._task_processor.initialize()
         self._task_processor_initialized.set()
 
-        self.log.debug('starting task-processing-timeline')
+        self.log.debug('starting task-processing-pipeline')
         self._is_running = True
         try:
             ok = True
@@ -48,10 +48,10 @@ class TaskProcessingPipeline(Process):
         except EOFError:
             print('Producer disconnected. Node exiting.')
 
-        self.log.info('stopped task-processing-timeline')
+        self.log.info('stopped task-processing-pipeline')
 
     def stop(self):
-        self.log.info('stopping task-processing-timeline')
+        self.log.info('stopping task-processing-pipeline')
         self._is_running = False
 
     def _iteration(self) -> bool:
@@ -75,14 +75,14 @@ class TaskProcessingPipeline(Process):
             case TaskType.CHANGE_WORK_LOAD:
                 w = WorkLoad.int_to_enum(task.data.item())
                 self._task_processor.change_work_load(w)
-                self.log.debug(f'successfully changed work-load to {w}')
+                self.log.info(f'successfully changed work-load to {w}')
 
             case TaskType.END:
                 self._result_pipe.send(task) # notify collector that the transmission has ended
                 return False # stop the main process loop
 
             case _:
-                self.log.debug(f'task-processing-timeline received unknown work-type: {task.type}')
+                self.log.debug(f'task-processing-pipeline received unknown work-type: {task.type}')
                 pass
 
         return True

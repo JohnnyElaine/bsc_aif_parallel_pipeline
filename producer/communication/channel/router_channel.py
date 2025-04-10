@@ -15,9 +15,8 @@ class RouterChannel:
         self._socket.bind(f'tcp://*:{self._port}')
 
     def close(self):
-        self._socket.unbind(f'tcp://*:{self._port}')
         self._socket.close()
-        self._context.destroy()
+        self._context.term()
 
     def stop_workers(self, num_workers: int):
         for _ in range(num_workers):

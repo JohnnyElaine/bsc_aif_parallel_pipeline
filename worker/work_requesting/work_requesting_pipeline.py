@@ -14,7 +14,7 @@ class WorkRequestingPipeline(Process):
         self._task_pipe = task_pipe_sending_end
 
     def run(self):
-        log = logging.setup_logging('worker')
+        log = logging.setup_logging('work_requesting')
 
         log.debug('starting work-requesting-pipeline')
         # create shared (frame buffer) queue for work_requester & pipe sender

@@ -37,3 +37,5 @@ class Collector(Process):
         result_collector.join()
         result_mapper.join()
         output_viewer.join()
+
+        log.info('stopped collector')

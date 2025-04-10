@@ -34,17 +34,19 @@ class Worker(Process):
         result_pipe_recv_end, result_pipe_send_end = Pipe(False) # task processor -> result-sender
 
         task_processor_ready = Event()
-        task_processor = TaskProcessingPipeline(self.config.identity, work_config, task_processor_ready,
+        task_processing_pipeline = TaskProcessingPipeline(self.config.identity, work_config, task_processor_ready,
                                                 task_pipe_recv_end, result_pipe_send_end, self.config.process_delay_s)
-        task_requester = WorkRequestingPipeline(request_channel, task_pipe_send_end)
-        result_sender = ResultSendingPipeline(self.config.collector_ip, self.config.collector_port, result_pipe_recv_end)
+        work_requesting_pipeline = WorkRequestingPipeline(request_channel, task_pipe_send_end)
+        result_sending_pipeline = ResultSendingPipeline(self.config.collector_ip, self.config.collector_port, result_pipe_recv_end)
 
-        task_processor.start()
-        result_sender.start()
+        task_processing_pipeline.start()
+        result_sending_pipeline.start()
 
         # only start requesting work, when the task-handler is ready
         task_processor_ready.wait()
-        task_requester.run() # avoid spawning additional process
+        work_requesting_pipeline.run() # avoid spawning additional process
 
-        task_processor.join()
-        result_sender.join()
+        task_processing_pipeline.join()
+        result_sending_pipeline.join()
+
+        log.info(f'stopped worker-{self.config.identity}')

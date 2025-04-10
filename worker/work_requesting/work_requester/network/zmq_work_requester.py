@@ -9,7 +9,7 @@ from packages.network_messages import RepType
 from worker.communication.channel.request_channel import RequestChannel
 from worker.work_requesting.work_requester.work_requester import WorkRequester
 
-log = logging.getLogger('worker')
+log = logging.getLogger('work_requesting')
 
 
 class ZmqWorkRequester(WorkRequester):

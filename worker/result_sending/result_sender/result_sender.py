@@ -17,7 +17,7 @@ class ResultSender(Thread):
         self._is_running = False
 
     def run(self):
-        log.debug('starting pipe-result-receiver')
+        log.debug('starting result-sender')
         self._is_running = True
         self._channel.connect()
 
@@ -32,8 +32,9 @@ class ResultSender(Thread):
             self._channel.send_results([result]) # TODO maybe send more results at once if possible
 
         self._channel.close()
+        log.debug('stopped result-sender')
 
     def stop(self):
         self._is_running = False
         self._channel.close()
-        log.info('stopped pipe-result-receiver')
+        log.info('stopping result-sender')

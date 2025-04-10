@@ -16,7 +16,7 @@ from producer.communication.channel.router_channel import RouterChannel
 from producer.data.worker_info import WorkerInfo
 from producer.statistics.worker_statistics import WorkerStatistics
 
-log = logging.getLogger("producer")
+log = logging.getLogger('producer')
 
 
 class RequestHandler(Thread):

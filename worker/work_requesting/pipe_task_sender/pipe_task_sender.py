@@ -4,7 +4,7 @@ from threading import Thread
 
 from packages.data.types.task_type import TaskType
 
-log = logging.getLogger('worker')
+log = logging.getLogger('work_requesting')
 
 
 class PipeTaskSender(Thread):

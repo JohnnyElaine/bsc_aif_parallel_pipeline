@@ -27,7 +27,7 @@ class PushChannel:
 
         # Close sockets before destroying context
         self._socket.close()
-        self._context.destroy() # TODO check what happens if context is closed somewhere else first (i.e. in RequestChannel)
+        self._context.term() # TODO check what happens if context is closed somewhere else first (i.e. in RequestChannel)
 
     def send_info(self, info: dict):
         msg = [msgpack.packb(info)]

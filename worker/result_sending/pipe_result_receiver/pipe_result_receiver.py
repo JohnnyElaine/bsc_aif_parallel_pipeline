@@ -3,6 +3,8 @@ from multiprocessing import Pipe
 from queue import Queue
 from threading import Thread
 
+from packages.data.types.task_type import TaskType
+
 log = logging.getLogger('result_sending')
 
 
@@ -21,6 +23,11 @@ class PipeResultReceiver(Thread):
             result = self._result_pipe.recv() # result = Task(type, id, data)
             self._queue.put(result)
 
+            if result.type == TaskType.END:
+                self._is_running = False
+
+        log.debug('stopped pipe-result-receiver')
+
     def stop(self):
         self._is_running = False
-        log.info('stopped pipe-result-receiver')
+        log.info('stopped pipe-pipe-result-receiver')

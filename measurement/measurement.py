@@ -13,11 +13,13 @@ class Measurement:
     LOCALHOST = 'localhost'
     LOADING_MODE = LoadingMode.LAZY
     WORK_LOAD = WorkLoad.HIGH
-    VID_PATH = WorkerGlobalVariables.PROJECT_ROOT / 'media' / 'vid' / 'general_detection' / '1080p Video of Highway Traffic! [KBsqQez-O4w].mp4'
+    VID_PATH = WorkerGlobalVariables.PROJECT_ROOT / 'media' / 'vid' / 'general_detection' / '1080p Video of Highway Traffic! [KBsqQez-O4w]_20seconds.mp4'
 
     @staticmethod
     def run_all_simulations():
         slo_statistics, worker_statistics = Measurement.basic_simulation(AgentType.ACTIVE_INFERENCE)
+        print(slo_statistics)
+        print(worker_statistics)
 
     @staticmethod
     def basic_simulation(agent_type: AgentType) -> tuple[pd.DataFrame, pd.DataFrame]:

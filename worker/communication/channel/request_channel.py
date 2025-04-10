@@ -30,7 +30,7 @@ class RequestChannel:
 
         # Close sockets before destroying context
         self._socket.close()
-        self._context.destroy()
+        self._context.term()
         
     def send(self, msg):
         self._socket.send(msgpack.packb(msg))

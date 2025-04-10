@@ -14,10 +14,9 @@ class PullChannel:
         self._socket.bind(f'tcp://*:{self._port}')
 
     def close(self):
-        self._socket.unbind(f'tcp://*:{self._port}')
         self._socket.close()
-        self._context.destroy()
-        
+        self._context.term()
+
     def get_results(self) -> tuple[dict, list[Task]]:
         msg = self._socket.recv_multipart()
 
