@@ -2,9 +2,6 @@ import gym
 from gym import spaces
 import numpy as np
 import pandas as pd
-from abc import ABC, abstractmethod
-from enum import Enum
-from dataclasses import dataclass
 from typing import List, Tuple, Dict
 import logging
 
@@ -18,7 +15,7 @@ from producer.elasticity.slo.slo_status import SloStatus
 from producer.elasticity.handler.elasticity_handler import ElasticityHandler
 
 # Set up logging
-log = logging.getLogger(__name__)
+log = logging.getLogger('producer')
 
 
 class VideoProcessorEnv(gym.Env):

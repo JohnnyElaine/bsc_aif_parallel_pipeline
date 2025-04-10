@@ -2,7 +2,7 @@ import torch
 import logging.handlers
 from ultralytics import YOLO
 
-log = logging.getLogger('task_handler')
+log = logging.getLogger('task_processing')
 
 class YoloDetector:
     def __init__(self, model_path):

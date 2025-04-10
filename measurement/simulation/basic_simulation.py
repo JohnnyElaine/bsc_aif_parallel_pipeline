@@ -9,6 +9,9 @@ from producer.producer_config import ProducerConfig
 
 
 class BasicSimulation(Simulation):
+    """
+    All workers start at the same time and stop when the producer is finished
+    """
 
     def __init__(self,
                  producer_ip: str,
@@ -49,6 +52,8 @@ class BasicSimulation(Simulation):
         collector.join()
 
         # collect simulation data
+        slo_statistics= producer.get_slo_statistics()
+        worker_statistics = producer.get_worker_statistics()
         self.results = []
 
     def get_results(self):

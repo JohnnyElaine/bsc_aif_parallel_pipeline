@@ -28,6 +28,8 @@ class PipeTaskSender(Thread):
             if data.type == SignalType.END:
                 self._is_running = False
 
+        log.debug('stopped pipe-task-sender')
+
     def stop(self):
         log.info('stopping pipe-task-sender')
         self._is_running = False

@@ -1,6 +1,7 @@
 from multiprocessing import Process, Pipe
 from queue import Queue
 
+import packages.logging as logging
 from worker.communication.channel.request_channel import RequestChannel
 from worker.work_requesting.work_requester.network.zmq_work_requester import ZmqWorkRequester
 from worker.work_requesting.pipe_task_sender.pipe_task_sender import PipeTaskSender
@@ -12,6 +13,9 @@ class WorkRequestingPipeline(Process):
         self._task_pipe = task_pipe_sending_end
 
     def run(self):
+        log = logging.setup_logging('work_requesting')
+
+        log.debug('starting work-requesting-pipeline')
         # create shared (frame buffer) queue for work_requester & pipe sender
         task_queue = Queue()
         work_requester = ZmqWorkRequester(task_queue, self._channel)
@@ -22,3 +26,5 @@ class WorkRequestingPipeline(Process):
 
         work_requester.join()
         pipe_sender.join()
+
+        log.debug('stopped work-requesting-pipeline')

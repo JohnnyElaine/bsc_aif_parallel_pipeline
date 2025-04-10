@@ -45,12 +45,15 @@ class TaskGenerator(Thread):
             log.error("Out of memory while processing video.")
         except OSError as e:
             # Handle file I/O or system-related errors
-            log.error(f"System error while streaming video file {self._video.path}: {e}")
+            log.error(f'System error while streaming video file {self._video.path}: {e}')
         finally:
-            self.stop()
+            self._stop_request_handler()
+            self._video.close()
+
+        log.debug('stopped task-generator')
 
     def stop(self):
-        self._add_stop_signal_to_queue()
+        self._stop_request_handler()
         self._video.close()
 
     def queue_size(self):
@@ -88,7 +91,7 @@ class TaskGenerator(Thread):
     def _add_to_queue(self, task_id: int, data: np.ndarray):
         self._queue.put(Task(TaskType.INFERENCE, task_id ,data))
 
-    def _add_stop_signal_to_queue(self):
+    def _stop_request_handler(self):
         self._queue.put(Task(SignalType.END, -1, np.empty(0)))
 
     def _is_resolution_changed(self):

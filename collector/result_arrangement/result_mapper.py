@@ -31,6 +31,8 @@ class ResultMapper(Thread):
         while self._is_running and ok:
             ok = self._iteration()
 
+        log.debug('stopped result-mapper')
+
     def stop(self):
         self._is_running = False
 

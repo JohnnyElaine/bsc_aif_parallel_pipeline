@@ -34,13 +34,13 @@ class TaskProcessingPipeline(Process):
         self._process_task_function = self._process_task if process_delay_s <= 0 else self._process_task_with_delay
 
     def run(self):
-        self.log = logging.setup_logging('task_handler')
-        self.log.debug('initializing task-processor')
+        self.log = logging.setup_logging('task_processing')
+        self.log.debug('initializing task-processing-timeline')
         self._task_processor = TaskProcessorFactory.create_task_processor(self._work_config)
         self._task_processor.initialize()
         self._task_processor_initialized.set()
 
-        self.log.debug('starting task-handler')
+        self.log.debug('starting task-processing-timeline')
         self._is_running = True
         try:
             ok = True
@@ -49,10 +49,10 @@ class TaskProcessingPipeline(Process):
         except EOFError:
             print('Producer disconnected. Node exiting.')
 
-        self.log.info('stopped task-handler')
+        self.log.info('stopped task-processing-timeline')
 
     def stop(self):
-        self.log.info('stopping task-handler')
+        self.log.info('stopping task-processing-timeline')
         self._is_running = False
 
     def _iteration(self) -> bool:
@@ -83,7 +83,7 @@ class TaskProcessingPipeline(Process):
                 return False # stop the main process loop
 
             case _:
-                self.log.debug(f'task-processor received unknown work-type: {task.type}')
+                self.log.debug(f'task-processing-timeline received unknown work-type: {task.type}')
                 pass
 
         return True

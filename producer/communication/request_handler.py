@@ -43,6 +43,7 @@ class RequestHandler(Thread):
             self._handle_request(address, request)
 
         self._channel.close()
+        log.debug('stopped request-handler')
 
     def stop(self):
         self._is_running = False

@@ -19,7 +19,7 @@ class ZmqWorkRequester(WorkRequester):
         self._channel = request_channel
 
     def run(self):
-        log.debug("starting work-requester")
+        log.debug('starting work-requester')
         self._is_running = True
 
         try:
@@ -28,12 +28,12 @@ class ZmqWorkRequester(WorkRequester):
                 ok = self._iteration()
 
         except EOFError:
-            log.info("Producer disconnected. Worker exiting.")
+            log.info('Producer disconnected. Worker exiting.')
 
-        log.debug("stopped work-requester")
+        log.debug('stopped work-requester')
 
     def stop(self):
-        log.info("stopping work-requester")
+        log.info('stopping work-requester')
         self._is_running = False
 
     def _iteration(self) -> bool:

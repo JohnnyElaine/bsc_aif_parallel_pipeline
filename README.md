@@ -7,6 +7,7 @@ pip install msgpack
 pip install pyzmq
 pip install inferactively-pymdp
 pip install stable-baselines3
+pip install gym
 
 
 pip freeze > requirements.txt

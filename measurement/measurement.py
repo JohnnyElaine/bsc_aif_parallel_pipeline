@@ -1,4 +1,4 @@
-from measurement.simulation_config import SimulationConfig
+from measurement.simulation.basic_simulation import BasicSimulation
 from packages.enums import WorkType, WorkLoad
 from packages.enums.loading_mode import LoadingMode
 from producer.enums.agent_type import AgentType
@@ -14,12 +14,17 @@ class Measurement:
     PRODUCER_PORT = 10000
     COLLECTOR_PORT = 10001
     LOCALHOST = 'localhost'
+    VID_PATH = WorkerGlobalVariables.PROJECT_ROOT / 'media' / 'vid' / 'general_detection' / '1080p Video of Highway Traffic! [KBsqQez-O4w].mp4'
 
     def __init__(self):
         pass
 
+    def simulation(self):
+        sim = BasicSimulation(Measurement.LOCALHOST, Measurement.PRODUCER_PORT, Measurement.LOCALHOST,
+                              Measurement.COLLECTOR_PORT, WorkType.YOLO_DETECTION, LoadingMode.LAZY, WorkLoad.HIGH,
+                              AgentType.ACTIVE_INFERENCE, 0, )
+
     def simulation1(self):
-        vid_path = WorkerGlobalVariables.PROJECT_ROOT / 'media' / 'vid' / 'general_detection' / '1080p Video of Highway Traffic! [KBsqQez-O4w].mp4'
         num_workers = 2
 
         producer_config = ProducerConfig(10000, vid_path, WorkType.YOLO_DETECTION, WorkLoad.LOW, LoadingMode.LAZY)

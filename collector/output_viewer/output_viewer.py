@@ -1,3 +1,4 @@
+import logging
 import time
 import cv2 as cv
 from threading import Thread
@@ -6,6 +7,8 @@ from numpy import ndarray
 
 import packages.time_util as time_util
 from collector.constants.constants import END_TASK_ID
+
+log = logging.getLogger('collector')
 
 
 class OutputViewer(Thread):
@@ -20,6 +23,8 @@ class OutputViewer(Thread):
         ok = True
         while self._is_running and ok:
             ok = self._iteration()
+
+        log.debug('stopped output-viewer')
 
     def _iteration(self) -> bool:
         iteration_start_time = time.perf_counter()

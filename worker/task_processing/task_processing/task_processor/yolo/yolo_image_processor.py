@@ -7,7 +7,7 @@ from worker.task_processing.task_processing.image_detector.yolo_detector import 
 from worker.task_processing.task_processing.task_processor.task_processor import TaskProcessor
 from packages.enums import WorkLoad, LoadingMode
 
-log = logging.getLogger('task_handler')
+log = logging.getLogger('task_processing')
 
 
 class YOLOTaskProcessor(TaskProcessor, ABC):
