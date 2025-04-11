@@ -1,10 +1,10 @@
-from multiprocessing import Process
+import pickle
+import pandas as pd
+from multiprocessing import Process, Manager
 from queue import Queue
 
-import pandas as pd
-
 import packages.logging as logging
-from producer.communication.request_handler import RequestHandler
+from producer.request_handling.request_handler import RequestHandler
 from producer.data.task_config import TaskConfig
 from producer.data.video import Video
 from producer.elasticity.agent_pipeline import AgentPipeline
@@ -14,7 +14,7 @@ from producer.task_generation.task_generator import TaskGenerator
 
 
 class Producer(Process):
-    def __init__(self, config: ProducerConfig):
+    def __init__(self, config: ProducerConfig, shared_stats_dict):
         """
         Initialize the coordinator with the video path and edge node information.
         :param port: port the producer listens on.
@@ -22,8 +22,8 @@ class Producer(Process):
         """
         super().__init__()
         self.config = config
-        self._slo_stats = None
-        self._worker_stats = None
+        self._stats = shared_stats_dict
+        #self._stats = self._manager.dict()
 
     def run(self):
         log = logging.setup_logging('producer')
@@ -54,13 +54,14 @@ class Producer(Process):
         slo_agent_pipeline.join()
 
         # Collect statistics before shutting down
-        self._slo_stats = slo_agent_pipeline.get_slo_statistics()
-        self._worker_stats = request_handler.get_worker_statistics()
+        self._stats['slo_stats'] = slo_agent_pipeline.get_slo_statistics()
+        self._stats['worker_stats'] = request_handler.get_worker_statistics()
 
         log.info('stopped producer')
 
-    def get_slo_statistics(self) -> pd.DataFrame:
-        return self._slo_stats
-
-    def get_worker_statistics(self) -> pd.DataFrame:
-        return self._worker_stats
+    def get_statistics(self) -> dict[str, pd.DataFrame]:
+        """Retrieve and deserialize statistics"""
+        return {
+            'slo_stats': pickle.loads(self._stats['slo_stats']) if 'slo_stats' in self._stats else None,
+            'worker_stats': pickle.loads(self._stats['worker_stats']) if 'worker_stats' in self._stats else None
+        }

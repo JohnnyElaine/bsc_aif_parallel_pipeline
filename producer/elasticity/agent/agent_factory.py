@@ -9,9 +9,11 @@ from producer.enums.agent_type import AgentType
 
 class AgentFactory:
     @staticmethod
-    def create(agent_type: AgentType, elasticity_handler: ElasticityHandler) -> ElasticityAgent:
+    def create(agent_type: AgentType, elasticity_handler: ElasticityHandler) -> ElasticityAgent | None:
         match agent_type:
-            case AgentType.ACTIVE_INFERENCE:
+            case AgentType.NONE:
+                return None
+            case AgentType.TEST:
                 return TestAgent(elasticity_handler)
             case AgentType.ACTIVE_INFERENCE:
                 return ActiveInferenceAgent(elasticity_handler)

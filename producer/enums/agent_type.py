@@ -2,7 +2,8 @@ from enum import Enum
 
 
 class AgentType(Enum):
-    TEST = 0
-    ACTIVE_INFERENCE = 1
-    REINFORCEMENT_LEARNING = 2
-    HEURISTIC = 3
+    NONE = 0
+    TEST = 1
+    ACTIVE_INFERENCE = 2
+    REINFORCEMENT_LEARNING = 3
+    HEURISTIC = 4

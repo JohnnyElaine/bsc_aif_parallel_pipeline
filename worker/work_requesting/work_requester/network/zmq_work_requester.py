@@ -51,6 +51,7 @@ class ZmqWorkRequester(WorkRequester):
 
         match rep_type:
             case RepType.END:
+                log.debug('received stop (END)')
                 self._notify_task_processor_of_end()
                 return False # Stop the loop by returning False
             case RepType.WORK:

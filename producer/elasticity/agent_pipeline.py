@@ -20,6 +20,9 @@ class AgentPipeline(Thread):
         self._is_running = False
 
     def run(self):
+        if self._agent is None:
+            return
+
         log.debug('starting agent-pipeline')
         self._is_running = True
         log.debug("agent-pipeline is waiting for task generator to start")

@@ -1,4 +1,5 @@
 import pandas as pd
+from multiprocessing import Process, Manager
 
 from collector.collector import Collector
 from collector.collector_config import CollectorConfig
@@ -29,13 +30,16 @@ class BasicSimulation(Simulation):
         super().__init__(producer_ip, producer_port, collector_ip, collector_port, work_type, loading_mode,
                          max_work_load, agent_type, worker_processing_delays, vid_path)
 
-    def run(self) -> tuple[pd.DataFrame, pd.DataFrame]:
+    def run(self) -> dict[str, pd.DataFrame]:
         producer_config = ProducerConfig(self.producer_port, self.work_type,
                                          self.loading_mode, self.max_work_load,
                                          self.agent_type, self.vid_path)
         collector_config = CollectorConfig(self.collector_port)
 
-        producer = Producer(producer_config)
+        manager = Manager()
+        stats = manager.dict()
+
+        producer = Producer(producer_config, stats)
         workers = Simulation.create_workers(self.worker_processing_delays, self.producer_ip,
                                              self.producer_port, self.collector_ip,
                                              self.collector_port)
@@ -54,7 +58,6 @@ class BasicSimulation(Simulation):
         collector.join()
 
         # collect simulation data
-        slo_statistics = producer.get_slo_statistics()
-        worker_statistics = producer.get_worker_statistics()
+        #stats = producer.get_statistics()
 
-        return slo_statistics, worker_statistics
+        return stats

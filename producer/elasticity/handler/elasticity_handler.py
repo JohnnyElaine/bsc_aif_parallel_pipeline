@@ -2,7 +2,7 @@ import logging
 
 import producer.elasticity.handler.possible_values.aspect_ratios as AllAspectRatios
 from packages.enums import WorkLoad
-from producer.communication.request_handler import RequestHandler
+from producer.request_handling.request_handler import RequestHandler
 from producer.data.resolution import Resolution
 from producer.data.task_config import TaskConfig
 from producer.elasticity.handler.data.state import State

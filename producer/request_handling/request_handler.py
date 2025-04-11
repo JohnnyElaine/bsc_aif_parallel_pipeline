@@ -12,7 +12,7 @@ from packages.data.types.task_type import TaskType
 from packages.enums import LoadingMode
 from packages.enums import WorkType, WorkLoad
 from packages.network_messages import ReqType, RepType
-from producer.communication.channel.router_channel import RouterChannel
+from producer.request_handling.channel.router_channel import RouterChannel
 from producer.data.worker_info import WorkerInfo
 from producer.statistics.worker_statistics import WorkerStatistics
 
@@ -68,8 +68,6 @@ class RequestHandler(Thread):
 
         return df
 
-        return self._worker_statistics
-
     def _handle_request(self, address: bytes, request: dict) -> bool:
         req_type = request['type']
 
@@ -115,7 +113,7 @@ class RequestHandler(Thread):
 
     def _handle_first_work_request(self, address: bytes):
         self._handle_work_request_function = self._handle_work_request # use regular '_handle_work_request' after
-        self.start_task_generator_event.set() # start the task generator when a worker is ready
+        self.start_task_generator_event.set() # start the task generator when a worker is ready to receive work
         self._handle_work_request(address)
 
     def _broadcast_change(self, change: Task):
@@ -141,4 +139,5 @@ class RequestHandler(Thread):
         info = {'type': RepType.END}
 
         self._channel.send_information(address, info)
+        log.debug(f'sent stop (END) to {address}')
 

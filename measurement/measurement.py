@@ -12,17 +12,20 @@ class Measurement:
     COLLECTOR_PORT = 10001
     LOCALHOST = 'localhost'
     LOADING_MODE = LoadingMode.LAZY
-    WORK_LOAD = WorkLoad.HIGH
-    VID_PATH = WorkerGlobalVariables.PROJECT_ROOT / 'media' / 'vid' / 'general_detection' / '1080p Video of Highway Traffic! [KBsqQez-O4w]_20seconds.mp4'
+    WORK_LOAD = WorkLoad.LOW
+    VID_PATH = WorkerGlobalVariables.PROJECT_ROOT / 'media' / 'vid' / 'general_detection' / '1080p Video of Highway Traffic! [KBsqQez-O4w]_5seconds.mp4'
 
     @staticmethod
     def run_all_simulations():
-        slo_statistics, worker_statistics = Measurement.basic_simulation(AgentType.ACTIVE_INFERENCE)
-        print(slo_statistics)
-        print(worker_statistics)
+        stats = Measurement.basic_simulation(AgentType.ACTIVE_INFERENCE)
+        slo_stats = stats['slo_stats']
+        worker_stats = stats['worker_stats']
+
+        print(slo_stats)
+        print(worker_stats)
 
     @staticmethod
-    def basic_simulation(agent_type: AgentType) -> tuple[pd.DataFrame, pd.DataFrame]:
+    def basic_simulation(agent_type: AgentType) -> dict[str, pd.DataFrame]:
         # dictates number of workers
         worker_processing_delays = [0, 0, 0]
 

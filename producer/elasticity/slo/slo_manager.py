@@ -46,6 +46,7 @@ class SloManager:
     def get_qsize_ratio(self):
         queue_size = self._elasticity_handler.queue_size()
         ratio = queue_size / self._max_qsize
+
         # track statistics
         self._statistics.queue_size.append(queue_size)
         self._statistics.queue_size_ratio.append(ratio)
@@ -55,6 +56,7 @@ class SloManager:
     def get_mem_ratio(self):
         mem_usage = psutil.virtual_memory().percent / 100
         ratio = mem_usage / self._max_mem_usage
+
         # track statistics
         self._statistics.memory_usage.append(mem_usage)
         self._statistics.memory_usage_ratio.append(ratio)
