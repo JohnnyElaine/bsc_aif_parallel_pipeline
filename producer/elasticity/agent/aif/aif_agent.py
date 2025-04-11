@@ -216,19 +216,19 @@ class ActiveInferenceAgent(ElasticityAgent):
         # Preferences for resolution - higher is better
         # Mild preference for higher resolution
         for i in range(self.num_resolution_states):
-            normalized_pref = i / (self.num_resolution_states - 1) * ActiveInferenceAgent.MEDIUM_PREFERENCE # Scale to max of 2.0
+            normalized_pref = i / max(self.num_resolution_states - 1, 1) * ActiveInferenceAgent.MEDIUM_PREFERENCE # Scale to max of 2.0
             C[ActiveInferenceAgent.OBS_RESOLUTION_INDEX][i] = normalized_pref
 
         # Preferences for FPS - higher is better
         # Mild preference for higher FPS
         for i in range(self.num_fps_states):
-            normalized_pref = i / (self.num_fps_states - 1) * ActiveInferenceAgent.MEDIUM_PREFERENCE   # Scale to max of 2.0
+            normalized_pref = i / max(self.num_fps_states - 1, 1) * ActiveInferenceAgent.MEDIUM_PREFERENCE   # Scale to max of 2.0
             C[ActiveInferenceAgent.OBS_FPS_INDEX][i] = normalized_pref
 
         # Preferences for work load - higher is better (better quality)
         # Mild preference for higher work load (higher quality)
         for i in range(self.num_work_load_states):
-            normalized_pref = i / (self.num_work_load_states - 1) * ActiveInferenceAgent.MEDIUM_PREFERENCE  # Scale to max of 2.0
+            normalized_pref = i / max(self.num_work_load_states - 1, 1) * ActiveInferenceAgent.MEDIUM_PREFERENCE  # Scale to max of 2.0
             C[ActiveInferenceAgent.OBS_WORK_LOAD_INDEX][i] = normalized_pref
 
         # Preferences for queue size - 3 states now

@@ -66,89 +66,54 @@ class SloManager:
     def get_queue_slo_state_probabilities(self) -> list:
         """
         Calculate probabilities for each queue SLO state (SATISFIED, WARNING, UNSATISFIED).
+        Uses the ratio of current queue size to maximum allowed queue size.
 
         Returns:
             list: Probabilities for each SLO state [p_satisfied, p_warning, p_unsatisfied]
         """
-        queue_size = self._elasticity_handler.queue_size()
-
-        # Simple linear model for probabilities
-        if queue_size <= self._max_qsize_warning:
-            # In satisfied region
-            p_satisfied = 1.0 - (queue_size / self._max_qsize_warning) * 0.2  # 0.8-1.0 range
-            p_warning = 1.0 - p_satisfied
-            p_unsatisfied = 0.0
-        elif queue_size <= self._max_qsize:
-            # In warning region
-            range_size = self._max_qsize - self._max_qsize_warning
-            position = queue_size - self._max_qsize_warning
-            p_warning = 1.0 - (position / range_size) * 0.2  # 0.8-1.0 range
-            p_unsatisfied = 1.0 - p_warning
-            p_satisfied = 0.0
-        else:
-            # In unsatisfied region
-            p_unsatisfied = 1.0
-            p_satisfied = 0.0
-            p_warning = 0.0
-
-        return [p_satisfied, p_warning, p_unsatisfied]
+        return SloManager.get_slo_state_probabilities(self.get_qsize_ratio())
 
     def get_memory_slo_state_probabilities(self) -> list:
         """
         Calculate probabilities for each memory SLO state (SATISFIED, WARNING, UNSATISFIED).
+        Uses the ratio of current memory usage to maximum allowed memory usage.
 
         Returns:
             list: Probabilities for each SLO state [p_satisfied, p_warning, p_unsatisfied]
         """
-        memory_usage_percent = psutil.virtual_memory().percent
+        return SloManager.get_slo_state_probabilities(self.get_mem_ratio())
 
-        # Simple linear model for probabilities
-        if memory_usage_percent <= self._max_mem_percentage_warning:
-            # In satisfied region
-            p_satisfied = 1.0 - (memory_usage_percent / self._max_mem_percentage_warning) * 0.2  # 0.8-1.0 range
+    @staticmethod
+    def get_slo_state_probabilities(ratio: float):
+        if ratio <= SloManager.WARNING_THRESHOLD:
+            # In satisfied region (OK zone)
+            # As ratio approaches WARNING_THRESHOLD, satisfaction probability decreases
+            p_satisfied = 1.0 - (ratio / SloManager.WARNING_THRESHOLD) * 0.2  # 0.8-1.0 range
             p_warning = 1.0 - p_satisfied
             p_unsatisfied = 0.0
-        elif memory_usage_percent <= self._max_mem_usage:
+        elif ratio <= SloManager.CRITICAL_THRESHOLD:
             # In warning region
-            range_size = self._max_mem_usage - self._max_mem_percentage_warning
-            position = memory_usage_percent - self._max_mem_percentage_warning
+            # As ratio approaches CRITICAL_THRESHOLD, warning probability decreases
+            range_size = SloManager.CRITICAL_THRESHOLD - SloManager.WARNING_THRESHOLD
+            position = ratio - SloManager.WARNING_THRESHOLD
             p_warning = 1.0 - (position / range_size) * 0.2  # 0.8-1.0 range
             p_unsatisfied = 1.0 - p_warning
             p_satisfied = 0.0
         else:
-            # In unsatisfied region
+            # In unsatisfied region (CRITICAL zone)
             p_unsatisfied = 1.0
             p_satisfied = 0.0
             p_warning = 0.0
 
         return [p_satisfied, p_warning, p_unsatisfied]
 
-    def queue_slo_ratio(self) -> float:
-        """
-        Calculate the ratio of current queue size to maximum allowed queue size.
-
-        Returns:
-            float: Ratio of current queue size to maximum allowed queue size
-        """
-        queue_size = self._elasticity_handler.queue_size()
-        return queue_size / self._max_qsize
-
-    def memory_slo_ratio(self) -> float:
-        """
-        Calculate the ratio of current memory usage to maximum allowed memory usage.
-
-        Returns:
-            float: Ratio of current memory usage to maximum allowed memory usage
-        """
-        memory_usage_percent = psutil.virtual_memory().percent
-        return memory_usage_percent / self._max_mem_usage
 
     @staticmethod
     def get_slo_status(ratio: float):
-        if ratio <= SloManager.WARNING_THRESHOLD:
+        if ratio <= SloManager.WARNING_THRESHOLD: # Safe zone
             return SloStatus.OK
-        elif ratio <= SloManager.CRITICAL_THRESHOLD:
+        elif ratio <= SloManager.CRITICAL_THRESHOLD: # warning zone
             return SloStatus.WARNING
         else:
-            return SloStatus.CRITICAL
+            return SloStatus.CRITICAL # critical zone (slo not satisfied)
 
