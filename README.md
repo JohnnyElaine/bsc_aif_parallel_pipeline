@@ -114,15 +114,6 @@ GOAL: Make sure there is enough compute power to handle tasks in real time.
 
 GOAL: Workers should run YOLO-inference at higher quality if possible.
 
-### Resolution
-```
-current_res >= source_res * T
-```
-- `T` Tolerance. e.g. `T = 0.9` for 90% Tolerance
-
-GOAL: Video should run at source resolution if possible.
-
-
 
 ## Work-API
 Implemented by the Producer and used by the Worker.

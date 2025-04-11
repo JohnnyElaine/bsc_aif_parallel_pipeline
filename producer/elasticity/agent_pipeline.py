@@ -41,4 +41,5 @@ class AgentPipeline(Thread):
         return self._agent.get_slo_statistics()
 
     def _iteration(self):
-        action_type, success = self._agent.step()
+        action, success = self._agent.step()
+        log.debug(f'chose action {action}, success: {success}')

@@ -73,17 +73,26 @@ class ActiveInferenceAgent(ElasticityAgent):
         # Get current observations
         observations = self._get_observations()
 
-        # Perform active inference
-        q_pi, q_s = self.agent.infer_states(observations)
+        # Perform active inference, q_s = Q(s) = Posterior believes Q over hidden states  s
+        q_s = self.agent.infer_states(observations)
+        q_pi, efe = self.agent.infer_policies()
         action = self.agent.sample_action()
+        print(f'sampled action: {action}') # TODO check which actions are returned
+
+        resolution_action = int(action[0])  # First element controls resolution
+        fps_action = int(action[1])  # Second element controls FPS
+        work_load_action = int(action[2])  # Third element controls work load
+
+        action_to_perform = resolution_action
 
         # Perform the selected action
-        success = self._perform_action(action)
+        success = self._perform_action(action_to_perform)
 
         # Update agent's beliefs based on the action taken
-        self.agent.infer_states(observations, action)
+        # Note: should not be needed, because we get the observations dynamically
+        #self.agent.infer_states(observations, action)
 
-        return self.actions[action], success
+        return self.actions[action_to_perform], success
 
     def reset(self):
         """Reset the agent's beliefs"""
@@ -111,6 +120,10 @@ class ActiveInferenceAgent(ElasticityAgent):
             self.num_fps_states,  # FPS state
             self.num_work_load_states,  # Work load state
         ]
+        # In pymdp, there's a fundamental assumption that each state dimension can be controlled by a
+        # separate action dimension. This has 3 state dimensions (Resolution, fps, workload), so
+        # pymdp agent.sample_action() function is returning an action for each dimension - hence the array of 3 values.
+
 
         self.control_dims = [self.num_actions]
 
@@ -185,7 +198,6 @@ class ActiveInferenceAgent(ElasticityAgent):
         probability_to_change_state = 0.9
 
         # State 0 - Resolution: Transitions for Resolution states based on actions
-
         self._construct_sub_transition_model(B, ActiveInferenceAgent.OBS_RESOLUTION_INDEX, self.num_actions,
                                              self.num_resolution_states, ActionType.INCREASE_RESOLUTION,
                                              ActionType.DECREASE_RESOLUTION, probability_to_change_state)
@@ -216,19 +228,19 @@ class ActiveInferenceAgent(ElasticityAgent):
         # Preferences for resolution - higher is better
         # Mild preference for higher resolution
         for i in range(self.num_resolution_states):
-            normalized_pref = i / max(self.num_resolution_states - 1, 1) * ActiveInferenceAgent.MEDIUM_PREFERENCE # Scale to max of 2.0
+            normalized_pref = i / max(self.num_resolution_states - 1, 1) * ActiveInferenceAgent.LOW_PREFERENCE # Scale to max of 2.0
             C[ActiveInferenceAgent.OBS_RESOLUTION_INDEX][i] = normalized_pref
 
         # Preferences for FPS - higher is better
         # Mild preference for higher FPS
         for i in range(self.num_fps_states):
-            normalized_pref = i / max(self.num_fps_states - 1, 1) * ActiveInferenceAgent.MEDIUM_PREFERENCE   # Scale to max of 2.0
+            normalized_pref = i / max(self.num_fps_states - 1, 1) * ActiveInferenceAgent.LOW_PREFERENCE   # Scale to max of 2.0
             C[ActiveInferenceAgent.OBS_FPS_INDEX][i] = normalized_pref
 
         # Preferences for work load - higher is better (better quality)
         # Mild preference for higher work load (higher quality)
         for i in range(self.num_work_load_states):
-            normalized_pref = i / max(self.num_work_load_states - 1, 1) * ActiveInferenceAgent.MEDIUM_PREFERENCE  # Scale to max of 2.0
+            normalized_pref = i / max(self.num_work_load_states - 1, 1) * ActiveInferenceAgent.LOW_PREFERENCE  # Scale to max of 2.0
             C[ActiveInferenceAgent.OBS_WORK_LOAD_INDEX][i] = normalized_pref
 
         # Preferences for queue size - 3 states now
@@ -252,7 +264,14 @@ class ActiveInferenceAgent(ElasticityAgent):
         for state_idx in range(len(self.state_dims)):
             D[state_idx] = np.ones(self.state_dims[state_idx]) / self.state_dims[state_idx]
 
-        # Set the actual starting state as prior
+        # Here's the problematic part - you're trying to set specific indices to 1.0
+        # which breaks the probability distribution. Instead:
+
+        # Reset to zeros first
+        for state_idx in range(len(self.state_dims)):
+            D[state_idx] = np.zeros(self.state_dims[state_idx])
+
+        # Set the actual starting state as prior (with probability 1.0)
         # State 0 - Resolution
         D[ActiveInferenceAgent.OBS_RESOLUTION_INDEX][self.elasticity_handler.state_resolution.current_index] = 1.0
         # State 1 - FPS
@@ -260,9 +279,12 @@ class ActiveInferenceAgent(ElasticityAgent):
         # State 2 - Work Load
         D[ActiveInferenceAgent.OBS_WORK_LOAD_INDEX][self.elasticity_handler.state_work_load.current_index] = 1.0
 
-        # Normalize to ensure they are proper probability distributions
+        # Ensure they are proper probability distributions
         for state_idx in range(len(self.state_dims)):
-            D[state_idx] = D[state_idx] / np.sum(D[state_idx])
+            if np.sum(D[state_idx]) == 0:  # Handle case where index might be out of bounds
+                D[state_idx] = np.ones(self.state_dims[state_idx]) / self.state_dims[state_idx]
+            else:
+                D[state_idx] = D[state_idx] / np.sum(D[state_idx])
 
         return D
 
@@ -274,19 +296,21 @@ class ActiveInferenceAgent(ElasticityAgent):
                                         increase_action: ActionType,
                                         decrease_action: ActionType,
                                         probability_to_change_state: float):
-
+        """
+        Construct a  sub-B matrix (transition model) - Mapping from current states and actions to next states
+        B[current-state, next-state, action] = probability (0 - 1)
+        """
         # Identity matrix (stay in same state) for all actions except increase/decrease
         for action_idx in range(num_actions):
-            if action_idx == increase_action.value:
+            if action_idx == decrease_action.value: # TODO: maybe switch with increase_action.value
                 for i in range(num_states):
                     if i < num_states - 1:
-
                         B[state_index][i + 1, i, action_idx] = probability_to_change_state
                         B[state_index][i, i, action_idx] = 1 - probability_to_change_state
                     else:
                         B[state_index][i, i, action_idx] = 1.0  # Already at max
-            elif action_idx == decrease_action.value:
-                for i in range(num_states):
+            elif action_idx == increase_action.value:
+                for i in range(num_states): # TODO: maybe switch with decrease_action.value
                     if i > 0:
                         B[state_index][i - 1, i, action_idx] = probability_to_change_state
                         B[state_index][i, i, action_idx] = 1 - probability_to_change_state
