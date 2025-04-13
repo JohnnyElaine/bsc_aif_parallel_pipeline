@@ -26,13 +26,15 @@ class Measurement:
 
     @staticmethod
     def basic_simulation(agent_type: AgentType) -> dict[str, pd.DataFrame]:
+        num_workers = 3
         # dictates number of workers
-        worker_processing_delays = [0.2, 0.2, 0.2]
+        #worker_capacities = [0.8 for i in range(num_workers)]
+        worker_capacities = [0.1 for i in range(num_workers)]
 
 
         sim = BasicSimulation(Measurement.LOCALHOST, Measurement.PRODUCER_PORT, Measurement.LOCALHOST,
                               Measurement.COLLECTOR_PORT, WorkType.YOLO_DETECTION, Measurement.LOADING_MODE,
-                              Measurement.WORK_LOAD, agent_type, worker_processing_delays,
+                              Measurement.WORK_LOAD, agent_type, worker_capacities,
                               Measurement.VID_PATH)
 
         return sim.run()

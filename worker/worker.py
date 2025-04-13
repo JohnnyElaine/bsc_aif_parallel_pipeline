@@ -35,7 +35,8 @@ class Worker(Process):
 
         task_processor_ready = Event()
         task_processing_pipeline = TaskProcessingPipeline(self.config.identity, work_config, task_processor_ready,
-                                                task_pipe_recv_end, result_pipe_send_end, self.config.process_delay_s)
+                                                          task_pipe_recv_end, result_pipe_send_end,
+                                                          self.config.processing_capacity)
         work_requesting_pipeline = WorkRequestingPipeline(request_channel, task_pipe_send_end)
         result_sending_pipeline = ResultSendingPipeline(self.config.collector_ip, self.config.collector_port, result_pipe_recv_end)
 

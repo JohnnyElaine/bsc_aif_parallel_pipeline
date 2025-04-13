@@ -24,15 +24,17 @@ class ActiveInferenceAgent(ElasticityAgent):
     OBS_MEMORY_USAGE_INDEX = 4
 
     # Observation preferences
-    STRONG_PREFERENCE = 4.0
-    MEDIUM_PREFERENCE = 2.0
-    LOW_PREFERENCE = 1.0
-    VERY_LOW_PREFERENCE = 0.5
+    VERY_STRONG_PREFERENCE = 4.0
+    STRONG_PREFERENCE = VERY_STRONG_PREFERENCE * 0.75
+    MEDIUM_PREFERENCE = VERY_STRONG_PREFERENCE * 0.5
+    LOW_PREFERENCE = VERY_STRONG_PREFERENCE * 0.25
+    VERY_LOW_PREFERENCE = VERY_STRONG_PREFERENCE * 0.1
     NEUTRAL = 0.0
     VERY_LOW_AVERSION = -VERY_LOW_PREFERENCE
     LOW_AVERSION = -LOW_PREFERENCE
     MEDIUM_AVERSION = -MEDIUM_PREFERENCE
     STRONG_AVERSION = -STRONG_PREFERENCE
+    VERY_STRONG_AVERSION = -VERY_STRONG_PREFERENCE
 
 
     def __init__(self, elasticity_handler: ElasticityHandler, planning_horizon: int = 2):
@@ -76,14 +78,11 @@ class ActiveInferenceAgent(ElasticityAgent):
         # Perform active inference, q_s = Q(s) = Posterior believes Q over hidden states  s
         q_s = self.agent.infer_states(observations)
         q_pi, efe = self.agent.infer_policies()
-        action = self.agent.sample_action()
-        print(f'sampled action: {action}') # TODO check which actions are returned
 
-        resolution_action = int(action[0])  # First element controls resolution
-        fps_action = int(action[1])  # Second element controls FPS
-        work_load_action = int(action[2])  # Third element controls work load
+        actions = self.agent.sample_action()
+        print(f'sampled actions: {actions}') # TODO check which actions are returned
 
-        action_to_perform = resolution_action
+        action_to_perform = self.select_action(actions)
 
         # Perform the selected action
         success = self._perform_action(action_to_perform)
@@ -92,7 +91,7 @@ class ActiveInferenceAgent(ElasticityAgent):
         # Note: should not be needed, because we get the observations dynamically
         #self.agent.infer_states(observations, action)
 
-        return self.actions[action_to_perform], success
+        return action_to_perform, success
 
     def reset(self):
         """Reset the agent's beliefs"""
@@ -226,32 +225,30 @@ class ActiveInferenceAgent(ElasticityAgent):
             C[obs_idx] = np.zeros(self.obs_dims[obs_idx])
 
         # Preferences for resolution - higher is better
-        # Mild preference for higher resolution
+        # Each level has a mildly higher preference then the one before, Scale to max defined via LOW_PREFERENCE
         for i in range(self.num_resolution_states):
-            normalized_pref = i / max(self.num_resolution_states - 1, 1) * ActiveInferenceAgent.LOW_PREFERENCE # Scale to max of 2.0
+            normalized_pref = i / max(self.num_resolution_states - 1, 1) * ActiveInferenceAgent.MEDIUM_PREFERENCE
             C[ActiveInferenceAgent.OBS_RESOLUTION_INDEX][i] = normalized_pref
 
         # Preferences for FPS - higher is better
-        # Mild preference for higher FPS
         for i in range(self.num_fps_states):
-            normalized_pref = i / max(self.num_fps_states - 1, 1) * ActiveInferenceAgent.LOW_PREFERENCE   # Scale to max of 2.0
+            normalized_pref = i / max(self.num_fps_states - 1, 1) * ActiveInferenceAgent.MEDIUM_PREFERENCE
             C[ActiveInferenceAgent.OBS_FPS_INDEX][i] = normalized_pref
 
         # Preferences for work load - higher is better (better quality)
-        # Mild preference for higher work load (higher quality)
         for i in range(self.num_work_load_states):
-            normalized_pref = i / max(self.num_work_load_states - 1, 1) * ActiveInferenceAgent.LOW_PREFERENCE  # Scale to max of 2.0
+            normalized_pref = i / max(self.num_work_load_states - 1, 1) * ActiveInferenceAgent.LOW_PREFERENCE # less prio for increasing work load
             C[ActiveInferenceAgent.OBS_WORK_LOAD_INDEX][i] = normalized_pref
 
         # Preferences for queue size - 3 states now
-        C[ActiveInferenceAgent.OBS_QUEUE_SIZE_INDEX][SloStatus.OK.value] = ActiveInferenceAgent.STRONG_PREFERENCE
+        C[ActiveInferenceAgent.OBS_QUEUE_SIZE_INDEX][SloStatus.OK.value] = ActiveInferenceAgent.VERY_STRONG_PREFERENCE
         C[ActiveInferenceAgent.OBS_QUEUE_SIZE_INDEX][SloStatus.WARNING.value] = ActiveInferenceAgent.NEUTRAL
-        C[ActiveInferenceAgent.OBS_QUEUE_SIZE_INDEX][SloStatus.CRITICAL.value] = ActiveInferenceAgent.STRONG_AVERSION
+        C[ActiveInferenceAgent.OBS_QUEUE_SIZE_INDEX][SloStatus.CRITICAL.value] = ActiveInferenceAgent.VERY_STRONG_AVERSION
 
         # Preferences for memory usage - 3 states now
-        C[ActiveInferenceAgent.OBS_MEMORY_USAGE_INDEX][SloStatus.OK.value] = ActiveInferenceAgent.STRONG_PREFERENCE
+        C[ActiveInferenceAgent.OBS_MEMORY_USAGE_INDEX][SloStatus.OK.value] = ActiveInferenceAgent.VERY_STRONG_PREFERENCE
         C[ActiveInferenceAgent.OBS_MEMORY_USAGE_INDEX][SloStatus.WARNING.value] = ActiveInferenceAgent.NEUTRAL
-        C[ActiveInferenceAgent.OBS_MEMORY_USAGE_INDEX][SloStatus.CRITICAL.value] = ActiveInferenceAgent.STRONG_AVERSION
+        C[ActiveInferenceAgent.OBS_MEMORY_USAGE_INDEX][SloStatus.CRITICAL.value] = ActiveInferenceAgent.VERY_STRONG_AVERSION
 
         return C
 
@@ -309,8 +306,8 @@ class ActiveInferenceAgent(ElasticityAgent):
                         B[state_index][i, i, action_idx] = 1 - probability_to_change_state
                     else:
                         B[state_index][i, i, action_idx] = 1.0  # Already at max
-            elif action_idx == increase_action.value:
-                for i in range(num_states): # TODO: maybe switch with decrease_action.value
+            elif action_idx == increase_action.value: # TODO: maybe switch with decrease_action.value
+                for i in range(num_states):
                     if i > 0:
                         B[state_index][i - 1, i, action_idx] = probability_to_change_state
                         B[state_index][i, i, action_idx] = 1 - probability_to_change_state
@@ -341,17 +338,16 @@ class ActiveInferenceAgent(ElasticityAgent):
 
         return observations
 
-    def _perform_action(self, action_idx: int) -> bool:
+    def _perform_action(self, action: ActionType) -> bool:
         """
         Perform the selected action using match-case structure.
 
         Args:
-            action_idx: Index of the action to perform
+            action: The action to perform
 
         Returns:
             bool: True if the action was successful, False otherwise
         """
-        action = self.actions[action_idx]
 
         match action:
             case ActionType.DO_NOTHING:
@@ -370,3 +366,10 @@ class ActiveInferenceAgent(ElasticityAgent):
                 return self.elasticity_handler.decrease_work_load()
             case _:
                 raise ValueError(f"Unknown action type: {action}")
+
+    def select_action(self, actions_idxs: list) -> ActionType:
+        for action_idx in reversed(actions_idxs):
+            if action_idx != ActionType.DO_NOTHING:
+                return self.actions[int(action_idx)]
+
+        return ActionType.DO_NOTHING

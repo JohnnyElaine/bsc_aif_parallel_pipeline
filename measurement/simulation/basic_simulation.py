@@ -25,10 +25,10 @@ class BasicSimulation(Simulation):
                  loading_mode: LoadingMode,
                  max_work_load: WorkLoad,
                  agent_type: AgentType,
-                 worker_processing_delays: list[float],
+                 worker_capacities: list[float],
                  vid_path: str):
         super().__init__(producer_ip, producer_port, collector_ip, collector_port, work_type, loading_mode,
-                         max_work_load, agent_type, worker_processing_delays, vid_path)
+                         max_work_load, agent_type, worker_capacities, vid_path)
 
     def run(self) -> dict[str, pd.DataFrame]:
         producer_config = ProducerConfig(self.producer_port, self.work_type,
@@ -40,9 +40,9 @@ class BasicSimulation(Simulation):
         stats = manager.dict()
 
         producer = Producer(producer_config, stats)
-        workers = Simulation.create_workers(self.worker_processing_delays, self.producer_ip,
-                                             self.producer_port, self.collector_ip,
-                                             self.collector_port)
+        workers = Simulation.create_workers(self.worker_capacities, self.producer_ip,
+                                            self.producer_port, self.collector_ip,
+                                            self.collector_port)
         collector = Collector(collector_config)
 
         collector.start()

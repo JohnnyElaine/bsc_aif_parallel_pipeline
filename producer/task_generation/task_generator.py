@@ -82,7 +82,11 @@ class TaskGenerator(Thread):
             frame = self._video.resize_frame(frame, self._target_resolution.width, self._target_resolution.height)
 
         self._add_to_queue(frame_index, frame)
-
+        # TODO:
+        # When FPS is lower then original video fps
+        # Skip frames so video is still in real time, just with lower fps
+        # currently reducing fps will increase the total streaming time
+        # the total streaming time must stay consistent (length of original video)
         time_util.enforce_target_fps(iteration_start_time, self._target_frame_time)
 
         return True

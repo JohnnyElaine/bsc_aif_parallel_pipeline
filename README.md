@@ -160,7 +160,13 @@ TODO REST
 
 # ---------------------------------------------------------------
 # TODO
-Check if Instruction dataclass is actually useful, or if it can be merged with Task dataclass
+Task Generation
+    # TODO:
+    # When FPS is lower then original video fps
+    # Skip frames so video is still in real time, just with lower fps
+    # currently reducing fps will increase the total streaming time
+    # the total streaming time must stay consistent (length of original video)
+
 Document and test heuristic agent
 Finish simulation
 

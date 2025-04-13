@@ -17,20 +17,20 @@ class TaskProcessingPipeline(Process):
                  task_processor_initialized: Event,
                  task_pipe_recv_end: Pipe,
                  result_pipe_send_end: Pipe,
-                 process_delay_s: float):
+                 artificial_processing_capacity: float):
         super().__init__()
         self.identifier = identifier
         self._task_pipe = task_pipe_recv_end
         self._result_pipe = result_pipe_send_end
         self._work_config = work_config
         self._task_processor_initialized = task_processor_initialized
-        self._process_delay = process_delay_s
+        self._processing_capacity = artificial_processing_capacity # artificially limit capacity (1 = 100%, 0.5 = 50%, etc)
         self._task_processor = None
         self._is_running = False
         self.log = None
 
-        # add artificial delay for simulation testing
-        self._process_task_function = self._process_task if process_delay_s <= 0 else self._process_task_with_delay
+        # artificially limit capacity by adding a delay for simulation testing
+        self._process_task_function = self._process_task_with_delay if artificial_processing_capacity < 1 else self._process_task
 
     def run(self):
         self.log = logging.setup_logging('task_processing')
@@ -87,12 +87,16 @@ class TaskProcessingPipeline(Process):
 
         return True
 
-    def _process_task(self, task: ndarray):
+    def _process_task(self, task: ndarray) -> ndarray:
         return self._task_processor.process(task)
 
-    def _process_task_with_delay(self, task: ndarray):
-        time.sleep(self._process_delay)
-        return self._task_processor.process(task)
+    def _process_task_with_delay(self, task: ndarray) -> ndarray:
+        start_time = time.perf_counter()
+        processed_task = self._task_processor.process(task)
+        processing_time = time.perf_counter() - start_time
+        time.sleep(processing_time / self._processing_capacity - processing_time) # sleep to simulate less processing power
+
+        return processed_task
 
     def _display_frame(self, frame: ndarray):
         cv.imshow(f'Worker-{self.identifier}', frame)

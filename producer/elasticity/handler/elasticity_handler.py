@@ -190,12 +190,14 @@ class ElasticityHandler:
     @staticmethod
     def _generate_possible_fps(max_fps: int):
         """
-        Generates a list of possible frames per second (FPS) values.
+        Returns possible FPS values from max_fps down to 10, stepping by -2.
 
         Returns:
             list[int]: A list of possible FPS values.
         """
-        return [fps for fps in range(5, max_fps + 5, 5)]
+        a = list(range(max_fps, 9, -2))
+        a.reverse()
+        return a
 
     @staticmethod
     def _increase_state(state: State, change_function: callable):

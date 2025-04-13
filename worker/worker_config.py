@@ -8,7 +8,7 @@ class WorkerConfig:
     producer_port: int
     collector_ip: str
     collector_port: int
-    process_delay_s: float
+    processing_capacity: float
 
 
 

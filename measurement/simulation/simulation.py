@@ -15,7 +15,7 @@ class Simulation(ABC):
                  loading_mode: LoadingMode,
                  max_work_load: WorkLoad,
                  agent_type: AgentType,
-                 worker_processing_delays: list[float],
+                 worker_capacities: list[float],
                  vid_path: str):
         self.producer_ip = producer_ip
         self.producer_port = producer_port
@@ -25,7 +25,7 @@ class Simulation(ABC):
         self.loading_mode = loading_mode
         self.max_work_load = max_work_load
         self.agent_type = agent_type
-        self.worker_processing_delays = worker_processing_delays
+        self.worker_capacities = worker_capacities
         self.vid_path = vid_path
 
     @abstractmethod

@@ -13,8 +13,8 @@ log = logging.getLogger('collector')
 
 
 class ResultMapper(Thread):
-    WAIT_TIME = int(1/30) # TODO find more suitable wait time
-    MAX_STRIKES = 3
+    WAIT_TIME = int(1/20) # TODO find more suitable wait time
+    MAX_STRIKES = 5
 
     def __init__(self, result_dict: BlockingDict, output_queue: Queue):
         super().__init__()
