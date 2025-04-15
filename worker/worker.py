@@ -9,9 +9,10 @@ from worker.worker_config import WorkerConfig
 
 
 class Worker(Process):
-    def __init__(self, config: WorkerConfig):
+    def __init__(self, config: WorkerConfig, outage_config=None):
         super().__init__()
         self.config = config
+        self.outage_config = outage_config
 
     def run(self):
         log = logging.setup_logging('worker')
@@ -37,7 +38,7 @@ class Worker(Process):
         task_processing_pipeline = TaskProcessingPipeline(self.config.identity, work_config, task_processor_ready,
                                                           task_pipe_recv_end, result_pipe_send_end,
                                                           self.config.processing_capacity)
-        work_requesting_pipeline = WorkRequestingPipeline(request_channel, task_pipe_send_end)
+        work_requesting_pipeline = WorkRequestingPipeline(request_channel, task_pipe_send_end, outage_config=self.outage_config)
         result_sending_pipeline = ResultSendingPipeline(self.config.collector_ip, self.config.collector_port, result_pipe_recv_end)
 
         task_processing_pipeline.start()

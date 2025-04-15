@@ -6,11 +6,18 @@ from packages.network_messages import RepType
 
 
 class PushChannel:
-    def __init__(self, ip: str, port: int):
+    def __init__(self, ip: str, port: int, send_timeout_ms=2000, linger_timeout_ms=2000):
         self._ip = ip
         self._port = port
         self._context = zmq.Context().instance()
         self._socket = self._context.socket(zmq.PUSH)
+
+        # Controls what happens to unsent messages when the socket is closed
+        # If this is not set zeroMQ will block indefinitely
+        self._socket.setsockopt(zmq.LINGER, linger_timeout_ms)
+        # Sets the maximum time a send operation will block waiting to complete
+        self._socket.setsockopt(zmq.SNDTIMEO, send_timeout_ms)
+
         self._is_connected = False
 
     def connect(self):
@@ -27,12 +34,13 @@ class PushChannel:
 
         # Close sockets before destroying context
         self._socket.close()
-        self._context.term() # TODO check what happens if context is closed somewhere else first (i.e. in RequestChannel)
+        self._context.term()
 
     def send_info(self, info: dict):
         msg = [msgpack.packb(info)]
         self._socket.send_multipart(msg)
-        
+        #self._socket.send_multipart(msg, zmq.NOBLOCK) # raises ZMQError
+
     def send_results(self, results: list[Task]):
         info = {'type': RepType.WORK}
         msg = [msgpack.packb(info)]

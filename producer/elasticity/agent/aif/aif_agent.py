@@ -1,3 +1,4 @@
+import logging
 import numpy as np
 import pymdp.utils as utils
 from pymdp.agent import Agent
@@ -6,6 +7,8 @@ from producer.elasticity.agent.action.action_type import ActionType
 from producer.elasticity.agent.elasticity_agent import ElasticityAgent
 from producer.elasticity.handler.elasticity_handler import ElasticityHandler
 from producer.elasticity.slo.slo_status import SloStatus
+
+log = logging.getLogger('producer')
 
 
 class ActiveInferenceAgent(ElasticityAgent):
@@ -72,7 +75,6 @@ class ActiveInferenceAgent(ElasticityAgent):
         Returns:
             tuple[ActionType, bool]: The action taken and whether it was successful
         """
-        # Get current observations
         observations = self._get_observations()
 
         # Perform active inference, q_s = Q(s) = Posterior believes Q over hidden states  s
@@ -82,7 +84,7 @@ class ActiveInferenceAgent(ElasticityAgent):
         actions = self.agent.sample_action()
         print(f'sampled actions: {actions}') # TODO check which actions are returned
 
-        action_to_perform = self.select_action(actions)
+        action_to_perform = self.select_action(actions) # TODO refine action selection
 
         # Perform the selected action
         success = self._perform_action(action_to_perform)
@@ -328,6 +330,12 @@ class ActiveInferenceAgent(ElasticityAgent):
         queue_slo_status = self.slo_manager.get_qsize_slo_status().value
         memory_slo_status = self.slo_manager.get_memory_slo_status().value
 
+        if queue_slo_status == SloStatus.CRITICAL.value:
+            log.debug('queue SLO not fulfilled')
+
+        if memory_slo_status == SloStatus.CRITICAL.value:
+            log.debug('memory SLO not fulfilled')
+
         observations = [
             self.elasticity_handler.state_resolution.current_index,
             self.elasticity_handler.state_fps.current_index,
@@ -369,7 +377,7 @@ class ActiveInferenceAgent(ElasticityAgent):
 
     def select_action(self, actions_idxs: list) -> ActionType:
         for action_idx in reversed(actions_idxs):
-            if action_idx != ActionType.DO_NOTHING:
+            if action_idx != ActionType.DO_NOTHING.value:
                 return self.actions[int(action_idx)]
 
         return ActionType.DO_NOTHING

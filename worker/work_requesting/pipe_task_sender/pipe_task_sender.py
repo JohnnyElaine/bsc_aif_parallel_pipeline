@@ -2,7 +2,7 @@ import logging
 from queue import Queue
 from threading import Thread
 
-from packages.data.types.task_type import TaskType
+from packages.data.local_messages.task_type import TaskType
 
 log = logging.getLogger('work_requesting')
 

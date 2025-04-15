@@ -31,7 +31,3 @@ class Simulation(ABC):
     @abstractmethod
     def run(self):
         pass
-
-    @staticmethod
-    def create_workers(processing_delays: list[float], producer_ip: str, producer_port: int, collector_ip: str, collector_port: int):
-        return [Worker(WorkerConfig(i, producer_ip, producer_port, collector_ip, collector_port, delay)) for i, delay in enumerate(processing_delays)]

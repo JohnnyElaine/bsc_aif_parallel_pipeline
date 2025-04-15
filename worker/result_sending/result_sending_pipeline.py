@@ -27,6 +27,3 @@ class ResultSendingPipeline(Process):
         result_sender.join()
 
         log.debug('stopped result-sending-pipeline')
-
-    def stop(self):
-        pass

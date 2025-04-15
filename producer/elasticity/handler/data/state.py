@@ -14,6 +14,10 @@ class State:
     def value(self):
         return self.possible_states[self.current_index]
 
+    @property
+    def max(self):
+        return self.possible_states[len(self.possible_states) - 1]
+
     def can_increase(self) -> bool:
         return self.current_index < len(self.possible_states) - 1
 

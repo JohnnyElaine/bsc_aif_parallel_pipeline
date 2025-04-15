@@ -32,7 +32,7 @@ class SloManager:
         Returns:
             SloStatus: The current status of the queue SLO
         """
-        return SloManager.get_slo_status(self.get_qsize_ratio())
+        return SloManager.get_slo_status(self.get_qsize_ratio(track_statistics=True))
 
     def get_memory_slo_status(self) -> SloStatus:
         """
@@ -41,25 +41,25 @@ class SloManager:
         Returns:
             SloStatus: The current status of the memory SLO
         """
-        return SloManager.get_slo_status(self.get_mem_ratio())
+        return SloManager.get_slo_status(self.get_mem_ratio(track_statistics=True))
     
-    def get_qsize_ratio(self):
+    def get_qsize_ratio(self, track_statistics=False):
         queue_size = self._elasticity_handler.queue_size()
         ratio = queue_size / self._max_qsize
 
-        # track statistics
-        self._statistics.queue_size.append(queue_size)
-        self._statistics.queue_size_ratio.append(ratio)
+        if track_statistics:
+            self._statistics.queue_size.append(queue_size)
+            self._statistics.queue_size_ratio.append(ratio)
 
         return ratio
 
-    def get_mem_ratio(self):
+    def get_mem_ratio(self, track_statistics=False):
         mem_usage = psutil.virtual_memory().percent / 100
         ratio = mem_usage / self._max_mem_usage
 
-        # track statistics
-        self._statistics.memory_usage.append(mem_usage)
-        self._statistics.memory_usage_ratio.append(ratio)
+        if track_statistics:
+            self._statistics.memory_usage.append(mem_usage)
+            self._statistics.memory_usage_ratio.append(ratio)
 
         return ratio
 

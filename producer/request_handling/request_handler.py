@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 
 from packages.data.local_messages.task import Task
-from packages.data.types.task_type import TaskType
+from packages.data.local_messages.task_type import TaskType
 from packages.enums import LoadingMode
 from packages.enums import WorkType, WorkLoad
 from packages.network_messages import ReqType, RepType
@@ -20,7 +20,8 @@ log = logging.getLogger('producer')
 
 
 class RequestHandler(Thread):
-    def __init__(self, port: int, shared_queue: Queue, work_type: WorkType, work_load: WorkLoad, loading_mode: LoadingMode):
+    def __init__(self, port: int, shared_queue: Queue, work_type: WorkType, work_load: WorkLoad,
+                 loading_mode: LoadingMode, start_task_generation_event: Event):
         super().__init__()
         self._channel = RouterChannel(port)
         self._queue = shared_queue
@@ -32,7 +33,7 @@ class RequestHandler(Thread):
         self._is_running = False
 
         self._handle_work_request_function = self._handle_first_work_request
-        self.start_task_generator_event = Event()
+        self.start_task_generation_event = start_task_generation_event
 
     def run(self):
         self._is_running = True
@@ -113,7 +114,7 @@ class RequestHandler(Thread):
 
     def _handle_first_work_request(self, address: bytes):
         self._handle_work_request_function = self._handle_work_request # use regular '_handle_work_request' after
-        self.start_task_generator_event.set() # start the task generator when a worker is ready to receive work
+        self.start_task_generation_event.set() # start the task generator when a worker is ready to receive work
         self._handle_work_request(address)
 
     def _broadcast_change(self, change: Task):
@@ -139,5 +140,5 @@ class RequestHandler(Thread):
         info = {'type': RepType.END}
 
         self._channel.send_information(address, info)
-        log.debug(f'sent stop (END) to {address}')
+        log.debug(f'sent END to {address}')
 

@@ -8,10 +8,11 @@ from worker.work_requesting.work_requester.network.zmq_work_requester import Zmq
 
 
 class WorkRequestingPipeline(Process):
-    def __init__(self, channel: RequestChannel, task_pipe_sending_end: Pipe):
+    def __init__(self, channel: RequestChannel, task_pipe_sending_end: Pipe, outage_config=None):
         super().__init__()
         self._channel = channel
         self._task_pipe = task_pipe_sending_end
+        self._outage_config = outage_config
 
     def run(self):
         log = logging.setup_logging('work_requesting')
@@ -19,7 +20,7 @@ class WorkRequestingPipeline(Process):
         log.debug('starting work-requesting-pipeline')
         # create shared (frame buffer) queue for work_requester & pipe sender
         task_queue = Queue()
-        work_requester = ZmqWorkRequester(task_queue, self._channel)
+        work_requester = ZmqWorkRequester(task_queue, self._channel, outage_config=self._outage_config)
         pipe_sender = PipeTaskSender(task_queue, self._task_pipe)
 
         work_requester.start()

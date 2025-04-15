@@ -1,10 +1,11 @@
 import logging
+import time
 from queue import Queue
 
 import numpy as np
 
 from packages.data import Task
-from packages.data.types.task_type import TaskType
+from packages.data.local_messages.task_type import TaskType
 from packages.network_messages import RepType
 from worker.communication.channel.request_channel import RequestChannel
 from worker.work_requesting.work_requester.work_requester import WorkRequester
@@ -13,10 +14,13 @@ log = logging.getLogger('work_requesting')
 
 
 class ZmqWorkRequester(WorkRequester):
-    def __init__(self, shared_task_queue: Queue, request_channel: RequestChannel):
+    def __init__(self, shared_task_queue: Queue, request_channel: RequestChannel, outage_config=None):
         super().__init__(shared_task_queue)
         self._is_running = False
         self._channel = request_channel
+        self._outage_config = outage_config
+        self._get_work_function = self._get_work if outage_config is None else self._get_work_with_outage_config()
+        self._num_requested_tasks = 0
 
     def run(self):
         log.debug('starting work-requester')
@@ -32,17 +36,15 @@ class ZmqWorkRequester(WorkRequester):
 
         log.debug('stopped work-requester')
 
-    def stop(self):
-        log.info('stopping work-requester')
-        self._is_running = False
-
     def _iteration(self) -> bool:
         """
         :return: True if the iteration was successful. False otherwise.
         """
         self._queue.join() # Block until queue is empty
 
-        info, tasks = self._channel.get_work()
+        info, tasks = self._get_work_function()
+
+        self._num_requested_tasks += 1
 
         return self._handle_work(info, tasks)
 
@@ -51,7 +53,7 @@ class ZmqWorkRequester(WorkRequester):
 
         match rep_type:
             case RepType.END:
-                log.debug('received stop (END)')
+                log.debug('received END')
                 self._notify_task_processor_of_end()
                 return False # Stop the loop by returning False
             case RepType.WORK:
@@ -74,5 +76,16 @@ class ZmqWorkRequester(WorkRequester):
     def _add_tasks_to_queue(self, tasks: list[Task]):
         for task in tasks:
             self._queue.put(task)
+
+    def _get_work(self) -> tuple[dict, list[Task]]:
+        return self._channel.get_work()
+
+    def _get_work_with_outage_config(self) -> tuple[dict, list[Task]]:
+        if self._num_requested_tasks == self._outage_config.frames_until_outage:
+            log.debug(f'worker sleeping for {self._outage_config.duration}')
+            time.sleep(self._outage_config.duration)
+            log.debug(f'worker resuming operations')
+
+        return self._channel.get_work()
 
 

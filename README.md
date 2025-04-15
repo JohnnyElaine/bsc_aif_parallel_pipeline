@@ -156,10 +156,18 @@ task_metadata = {
 task: numpy.ndarray
 ```
 ##### Registration
-TODO REST
+CONTINUE HERE
 
 # ---------------------------------------------------------------
 # TODO
+
+Check why AIF Agent constantly seeks to increase FPS
+Figure out why worker dont always close: probably because the collector closes before them, so they wait endlessly to send their final result to the collector
+Figure out why agent tries to increase fps permanently
+Document and test heuristic agent
+Finish simulation
+Plot results
+
 Task Generation
     # TODO:
     # When FPS is lower then original video fps
@@ -167,8 +175,7 @@ Task Generation
     # currently reducing fps will increase the total streaming time
     # the total streaming time must stay consistent (length of original video)
 
-Document and test heuristic agent
-Finish simulation
+
 
 Properly close all programs after task generation is done. request_handler. find alternate stopping condition, if not all workers are online
 

@@ -7,7 +7,7 @@ from collector.communication.channel.pull_channel import PullChannel
 from collector.constants.constants import END_TASK_ID
 from collector.datastructures.blocking_dict import BlockingDict
 from packages.data.local_messages.task import Task
-from packages.data.types.task_type import TaskType
+from packages.data.local_messages.task_type import TaskType
 from packages.network_messages import RepType
 
 log = logging.getLogger('collector')
@@ -42,6 +42,7 @@ class ResultCollector(Thread):
 
         match info['type']:
             case RepType.END:
+                log.debug('received END from worker')
                 # notify the ResultMapper that it should also stop
                 self._result_dict[END_TASK_ID] = Task(TaskType.END, END_TASK_ID, np.empty(0))
                 return False

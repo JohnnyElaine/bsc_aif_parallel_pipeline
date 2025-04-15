@@ -90,8 +90,8 @@ class HeuristicAgent(ElasticityAgent):
         Returns:
             tuple[ActionType, bool]: Selected action and whether it was successful
         """
-        qsize_slo_ratio = self.slo_manager.get_qsize_ratio()
-        mem_slo_ratio = self.slo_manager.get_mem_ratio()
+        qsize_slo_ratio = self.slo_manager.get_qsize_ratio(track_statistics=True)
+        mem_slo_ratio = self.slo_manager.get_mem_ratio(track_statistics=True)
 
         qsize_slo_status = SloManager.get_slo_status(qsize_slo_ratio)
         mem_slo_status = SloManager.get_slo_status(mem_slo_ratio)

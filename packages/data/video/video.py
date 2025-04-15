@@ -10,6 +10,8 @@ class Video:
         self.video_capture = cv.VideoCapture(path)
         self.resolution = Resolution(int(self.video_capture.get(cv.CAP_PROP_FRAME_WIDTH)), int(self.video_capture.get(cv.CAP_PROP_FRAME_HEIGHT)))
         self.fps = round(self.video_capture.get(cv.CAP_PROP_FPS))
+        self.frame_count = int(self.video_capture.get(cv.CAP_PROP_FRAME_COUNT))
+        self.duration = int(self.video_capture.get(cv.CAP_PROP_FRAME_COUNT)) / self.video_capture.get(cv.CAP_PROP_FPS)
         self.frame_index = 0
 
     def read_frame(self) -> tuple[bool, ndarray, int]:

@@ -55,6 +55,16 @@ class ElasticityHandler:
         return self.state_resolution.value
 
     @property
+    def max_fps(self):
+        """
+        Returns the current frames per second (FPS).
+
+        Returns:
+            int: The current FPS value.
+        """
+        return self.state_fps.max
+
+    @property
     def fps(self):
         """
         Returns the current frames per second (FPS).

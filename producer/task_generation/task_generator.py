@@ -9,7 +9,7 @@ from cv2 import error as cvError
 import packages.time_util as time_util
 from packages.data import Task, TaskType
 from producer.data.resolution import Resolution
-from producer.data.video import Video
+from packages.data.video.video import Video
 
 log = logging.getLogger("producer")
 
@@ -48,12 +48,7 @@ class TaskGenerator(Thread):
         finally:
             self._stop_request_handler()
             self._video.close()
-
         log.debug('stopped task-generator')
-
-    def stop(self):
-        self._stop_request_handler()
-        self._video.close()
 
     def queue_size(self):
         """Return the approximate size of the queue (not reliable!)."""
