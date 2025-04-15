@@ -108,7 +108,7 @@ class VideoProcessorEnv(gym.Env):
             'fps': self.elasticity_handler.fps,
             'workload': self.elasticity_handler.work_load.name,
             'queue_status': self.slo_manager.get_qsize_slo_status().name,
-            'memory_status': self.slo_manager.get_memory_slo_status().name
+            'memory_status': self.slo_manager.get_mem_slo_status().name
         }
 
         return observation, reward, done, info
@@ -117,7 +117,7 @@ class VideoProcessorEnv(gym.Env):
         """Render the environment state"""
         if mode == 'human':
             queue_status = self.slo_manager.get_qsize_slo_status()
-            memory_status = self.slo_manager.get_memory_slo_status()
+            memory_status = self.slo_manager.get_mem_slo_status()
 
             status_str = (
                 f"Resolution: {self.elasticity_handler.resolution}, "
@@ -136,7 +136,7 @@ class VideoProcessorEnv(gym.Env):
             self.elasticity_handler.state_fps.current_index,
             self.elasticity_handler.state_work_load.current_index,
             self.slo_manager.get_qsize_slo_status().value,
-            self.slo_manager.get_memory_slo_status().value
+            self.slo_manager.get_mem_slo_status().value
         ], dtype=np.int32)
 
     def _perform_action(self, action: ActionType) -> bool:
@@ -186,7 +186,7 @@ class VideoProcessorEnv(gym.Env):
 
         # SLO rewards/penalties - these have highest priority
         queue_status = self.slo_manager.get_qsize_slo_status()
-        memory_status = self.slo_manager.get_memory_slo_status()
+        memory_status = self.slo_manager.get_mem_slo_status()
 
         # Calculate SLO rewards
         for status in [queue_status, memory_status]:
@@ -327,7 +327,7 @@ class ReinforcementLearningAgent(ElasticityAgent):
             'fps': self.elasticity_handler.fps,
             'workload': self.elasticity_handler.work_load.name,
             'queue_status': self.slo_manager.get_qsize_slo_status().name,
-            'memory_status': self.slo_manager.get_memory_slo_status().name
+            'memory_status': self.slo_manager.get_mem_slo_status().name
         }
 
     def get_action_statistics(self) -> pd.DataFrame:

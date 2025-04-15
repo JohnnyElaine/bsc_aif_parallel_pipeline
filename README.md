@@ -160,10 +160,9 @@ CONTINUE HERE
 
 # ---------------------------------------------------------------
 # TODO
-
-Check why AIF Agent constantly seeks to increase FPS
-Figure out why worker dont always close: probably because the collector closes before them, so they wait endlessly to send their final result to the collector
-Figure out why agent tries to increase fps permanently
+Add additional statistics: quality config for each time step
+Finish README
+Fix agent: somehow inverse, fps are constantly being changed
 Document and test heuristic agent
 Finish simulation
 Plot results

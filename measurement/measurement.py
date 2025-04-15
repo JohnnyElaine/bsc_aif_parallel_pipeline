@@ -14,7 +14,7 @@ class Measurement:
     LOCALHOST = 'localhost'
     LOADING_MODE = LoadingMode.EAGER
     WORK_LOAD = WorkLoad.MEDIUM
-    VID_PATH = WorkerGlobalVariables.PROJECT_ROOT / 'media' / 'vid' / 'general_detection' / '1080p Video of Highway Traffic! [KBsqQez-O4w]_5seconds.mp4'
+    VID_PATH = WorkerGlobalVariables.PROJECT_ROOT / 'media' / 'vid' / 'general_detection' / '1080p Video of Highway Traffic! [KBsqQez-O4w]_20seconds.mp4'
 
     @staticmethod
     def run_all_simulations():
@@ -32,10 +32,8 @@ class Measurement:
     @staticmethod
     def basic_simulation(agent_type: AgentType) -> dict[str, pd.DataFrame]:
         num_workers = 3
-        # dictates number of workers
         #worker_capacities = [0.8 for i in range(num_workers)]
-        worker_capacities = [0.4 for i in range(num_workers)]
-
+        worker_capacities = [1 for _ in range(num_workers)]
 
         sim = BasicSimulation(Measurement.LOCALHOST, Measurement.PRODUCER_PORT, Measurement.LOCALHOST,
                               Measurement.COLLECTOR_PORT, WorkType.YOLO_DETECTION, Measurement.LOADING_MODE,

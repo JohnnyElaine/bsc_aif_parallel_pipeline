@@ -18,6 +18,15 @@ class State:
     def max(self):
         return self.possible_states[len(self.possible_states) - 1]
 
+    def get_capacity(self):
+        """
+        Calculates and returns the current capacity for this state
+
+        Returns:
+            The current capacity (ratio) in the range (0-1)
+        """
+        return self.current_index / (len(self.possible_states) - 1)
+
     def can_increase(self) -> bool:
         return self.current_index < len(self.possible_states) - 1
 

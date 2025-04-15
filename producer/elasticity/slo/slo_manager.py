@@ -25,23 +25,35 @@ class SloManager:
     def get_statistics(self) -> pd.DataFrame:
         return self._statistics.to_dataframe()
 
-    def get_qsize_slo_status(self) -> SloStatus:
+    def get_all_slo_status(self, track_statistics=False):
+        qsize_slo_status = self.get_qsize_slo_status(track_statistics=track_statistics)
+        mom_slo_status = self.get_mem_slo_status(track_statistics=track_statistics)
+
+        if track_statistics:
+            self._statistics.fps_capacity.append(self._elasticity_handler.state_fps.get_capacity())
+            self._statistics.resolution_capacity.append(self._elasticity_handler.state_resolution.get_capacity())
+            self._statistics.work_load_capacity.append(self._elasticity_handler.state_work_load.get_capacity())
+
+
+        return qsize_slo_status, mom_slo_status
+
+    def get_qsize_slo_status(self, track_statistics=False) -> SloStatus:
         """
         Get the current queue SLO status (SATISFIED, WARNING, or UNSATISFIED).
 
         Returns:
             SloStatus: The current status of the queue SLO
         """
-        return SloManager.get_slo_status(self.get_qsize_ratio(track_statistics=True))
+        return SloManager.get_slo_status(self.get_qsize_ratio(track_statistics=track_statistics))
 
-    def get_memory_slo_status(self) -> SloStatus:
+    def get_mem_slo_status(self, track_statistics=False) -> SloStatus:
         """
         Get the current memory SLO status (SATISFIED, WARNING, or UNSATISFIED).
 
         Returns:
             SloStatus: The current status of the memory SLO
         """
-        return SloManager.get_slo_status(self.get_mem_ratio(track_statistics=True))
+        return SloManager.get_slo_status(self.get_mem_ratio(track_statistics=track_statistics))
     
     def get_qsize_ratio(self, track_statistics=False):
         queue_size = self._elasticity_handler.queue_size()
@@ -49,7 +61,7 @@ class SloManager:
 
         if track_statistics:
             self._statistics.queue_size.append(queue_size)
-            self._statistics.queue_size_ratio.append(ratio)
+            self._statistics.queue_size_slo_ratio.append(ratio)
 
         return ratio
 
@@ -59,7 +71,7 @@ class SloManager:
 
         if track_statistics:
             self._statistics.memory_usage.append(mem_usage)
-            self._statistics.memory_usage_ratio.append(ratio)
+            self._statistics.memory_usage_slo_ratio.append(ratio)
 
         return ratio
 
@@ -88,24 +100,23 @@ class SloManager:
         if ratio <= SloManager.WARNING_THRESHOLD:
             # In satisfied region (OK zone)
             # As ratio approaches WARNING_THRESHOLD, satisfaction probability decreases
-            p_satisfied = 1.0 - (ratio / SloManager.WARNING_THRESHOLD) * 0.2  # 0.8-1.0 range
-            p_warning = 1.0 - p_satisfied
-            p_unsatisfied = 0.0
+            p_ok = 1.0 - (ratio / SloManager.WARNING_THRESHOLD) * 0.2  # 0.8-1.0 range
+            p_warning = 1.0 - p_ok
+            p_critical = 0.0
         elif ratio <= SloManager.CRITICAL_THRESHOLD:
             # In warning region
             # As ratio approaches CRITICAL_THRESHOLD, warning probability decreases
             range_size = SloManager.CRITICAL_THRESHOLD - SloManager.WARNING_THRESHOLD
             position = ratio - SloManager.WARNING_THRESHOLD
             p_warning = 1.0 - (position / range_size) * 0.2  # 0.8-1.0 range
-            p_unsatisfied = 1.0 - p_warning
-            p_satisfied = 0.0
+            p_critical = 1.0 - p_warning
+            p_ok = 0.0
         else:
             # In unsatisfied region (CRITICAL zone)
-            p_unsatisfied = 1.0
-            p_satisfied = 0.0
+            p_critical = 1.0
+            p_ok = 0.0
             p_warning = 0.0
-
-        return [p_satisfied, p_warning, p_unsatisfied]
+        return [p_ok, p_warning, p_critical]
 
 
     @staticmethod

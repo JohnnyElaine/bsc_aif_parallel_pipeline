@@ -3,13 +3,18 @@ import pandas as pd
 
 class SloStatistics:
     def __init__(self):
+        # Quality config (percentage of max capacity (0-1), e.g. fps = 1.0 if streams runs at source fps)
+        self.fps_capacity = []
+        self.resolution_capacity = []
+        self.work_load_capacity = []
+
         # Raw metrics
         self.queue_size = []
         self.memory_usage = []
 
         # SLO ratios
-        self.queue_size_ratio = []
-        self.memory_usage_ratio = []
+        self.queue_size_slo_ratio = []
+        self.memory_usage_slo_ratio = []
 
     def to_dataframe(self) -> pd.DataFrame:
         """
@@ -19,28 +24,13 @@ class SloStatistics:
             pd.DataFrame: DataFrame containing SLO statistics
         """
         data = {
+            'fps_capacity': self.fps_capacity,
+            'resolution_capacity': self.resolution_capacity,
+            'work_load_capacity': self.work_load_capacity,
             'queue_size': self.queue_size,
             'memory_usage': self.memory_usage,
-            'queue_size_ratio': self.queue_size_ratio,
-            'memory_usage_ratio': self.memory_usage_ratio,
+            'queue_size_slo_ratio': self.queue_size_slo_ratio,
+            'memory_usage_slo_ratio': self.memory_usage_slo_ratio
         }
 
         return pd.DataFrame(data)
-
-    def __str__(self):
-        return (
-            f"SloStatistics:\n"
-            f"  queue_size (len={len(self.queue_size)}): {self.queue_size[:5]}{'...' if len(self.queue_size) > 5 else ''}\n"
-            f"  memory_usage (len={len(self.memory_usage)}): {self.memory_usage[:5]}{'...' if len(self.memory_usage) > 5 else ''}\n"
-            f"  queue_size_ratio (len={len(self.queue_size_ratio)}): {self.queue_size_ratio[:5]}{'...' if len(self.queue_size_ratio) > 5 else ''}\n"
-            f"  memory_usage_ratio (len={len(self.memory_usage_ratio)}): {self.memory_usage_ratio[:5]}{'...' if len(self.memory_usage_ratio) > 5 else ''}"
-        )
-
-    def __repr__(self):
-        return (
-            f"SloStatistics:\n"
-            f"  queue_size (len={len(self.queue_size)}): {self.queue_size[:5]}{'...' if len(self.queue_size) > 5 else ''}\n"
-            f"  memory_usage (len={len(self.memory_usage)}): {self.memory_usage[:5]}{'...' if len(self.memory_usage) > 5 else ''}\n"
-            f"  queue_size_ratio (len={len(self.queue_size_ratio)}): {self.queue_size_ratio[:5]}{'...' if len(self.queue_size_ratio) > 5 else ''}\n"
-            f"  memory_usage_ratio (len={len(self.memory_usage_ratio)}): {self.memory_usage_ratio[:5]}{'...' if len(self.memory_usage_ratio) > 5 else ''}"
-        )
