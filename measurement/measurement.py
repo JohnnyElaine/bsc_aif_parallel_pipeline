@@ -1,7 +1,10 @@
 import pandas as pd
 
-from measurement.plotting.slo_stats_plot import plot_all
+from measurement.plotting.slo_stats_plot import plot_all_slo_stats
+from measurement.plotting.worker_stats_plot import plot_all_worker_stats
 from measurement.simulation.basic_simulation import BasicSimulation
+from measurement.simulation.outage_and_recovery_simulation import OutageAndRecoverySimulation
+from measurement.simulation.simulation_type import SimulationType
 from packages.enums import WorkType, WorkLoad
 from packages.enums.loading_mode import LoadingMode
 from producer.enums.agent_type import AgentType
@@ -14,31 +17,57 @@ class Measurement:
     LOCALHOST = 'localhost'
     LOADING_MODE = LoadingMode.EAGER
     WORK_LOAD = WorkLoad.MEDIUM
-    VID_PATH = WorkerGlobalVariables.PROJECT_ROOT / 'media' / 'vid' / 'general_detection' / '1080p Video of Highway Traffic! [KBsqQez-O4w]_20seconds.mp4'
+    VID_PATH = WorkerGlobalVariables.PROJECT_ROOT / 'media' / 'vid' / 'general_detection' / '1080p Video of Highway Traffic! [KBsqQez-O4w]_5seconds.mp4'
 
     @staticmethod
     def run_all_simulations():
-        stats = Measurement.basic_simulation(AgentType.ACTIVE_INFERENCE)
-        slo_stats = stats['slo_stats']
-        worker_stats = stats['worker_stats']
-
-        print(slo_stats.info())
-        print(slo_stats)
-        print(worker_stats.info())
-        print(worker_stats)
-
-        plot_all(slo_stats)
+        stats = Measurement.run_basic_simulation(AgentType.ACTIVE_INFERENCE)
 
     @staticmethod
-    def basic_simulation(agent_type: AgentType) -> dict[str, pd.DataFrame]:
+    def run_and_plot_simulation(agent_type: AgentType, type: SimulationType):
+        stats = None
+        match type:
+            case SimulationType.BASIC:
+                stats = Measurement.run_basic_simulation(agent_type)
+            case SimulationType.OUTAGE_AND_RECOVERY:
+                stats = Measurement.run_outage_and_recovery_simulation(agent_type)
+
+        plot_all_slo_stats(stats['slo_stats'])
+        plot_all_worker_stats(stats['worker'])
+
+    @staticmethod
+    def run_basic_simulation(agent_type: AgentType) -> dict[str, pd.DataFrame]:
         num_workers = 3
-        #worker_capacities = [0.8 for i in range(num_workers)]
-        worker_capacities = [1 for _ in range(num_workers)]
+
+        #worker_capacities = [1 for _ in range(num_workers)]
+        worker_capacities = [1, 0.9, 0.8]
 
         sim = BasicSimulation(Measurement.LOCALHOST, Measurement.PRODUCER_PORT, Measurement.LOCALHOST,
                               Measurement.COLLECTOR_PORT, WorkType.YOLO_DETECTION, Measurement.LOADING_MODE,
-                              Measurement.WORK_LOAD, agent_type, worker_capacities,
-                              Measurement.VID_PATH)
+                              Measurement.WORK_LOAD, agent_type, Measurement.VID_PATH, worker_capacities)
+
+        stats = sim.run()
+
+        # add worker capacity information to df
+        worker_stats = stats['worker_stats']
+        worker_stats['capacity'] = [worker_capacities[identity] for identity in worker_stats.index]
+
+        return stats
+
+    @staticmethod
+    def run_outage_and_recovery_simulation(agent_type: AgentType) -> dict[str, pd.DataFrame]:
+        outage_at = 0.25
+        recovery_at = 0.75
+
+        num_regular_workers = 2
+        num_outage_workers = 1
+
+        regular_worker_capacities = [1 for _ in range(num_regular_workers)]
+        outage_worker_capacities = [1 for _ in range(num_outage_workers)]
+
+        sim = OutageAndRecoverySimulation(Measurement.LOCALHOST, Measurement.PRODUCER_PORT, Measurement.LOCALHOST,
+                                          Measurement.COLLECTOR_PORT, WorkType.YOLO_DETECTION, Measurement.LOADING_MODE,
+                                          Measurement.WORK_LOAD, agent_type, Measurement.VID_PATH,
+                                          regular_worker_capacities, outage_worker_capacities,outage_at, recovery_at)
 
         return sim.run()
-

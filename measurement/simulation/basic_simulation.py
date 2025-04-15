@@ -1,4 +1,3 @@
-import time
 import pandas as pd
 from multiprocessing import Manager
 
@@ -19,19 +18,12 @@ class BasicSimulation(Simulation):
     All workers start at the same time and stop when the producer is finished
     """
 
-    def __init__(self,
-                 producer_ip: str,
-                 producer_port: int,
-                 collector_ip: str,
-                 collector_port: int,
-                 work_type: WorkType,
-                 loading_mode: LoadingMode,
-                 max_work_load: WorkLoad,
-                 agent_type: AgentType,
-                 worker_capacities: list[float],
-                 vid_path: str):
+    def __init__(self, producer_ip: str, producer_port: int, collector_ip: str, collector_port: int,
+                 work_type: WorkType, loading_mode: LoadingMode, max_work_load: WorkLoad, agent_type: AgentType,
+                 vid_path: str, worker_capacities: list[float]):
         super().__init__(producer_ip, producer_port, collector_ip, collector_port, work_type, loading_mode,
-                         max_work_load, agent_type, worker_capacities, vid_path)
+                         max_work_load, agent_type, vid_path)
+        self.worker_capacities = worker_capacities
 
     def run(self) -> dict[str, pd.DataFrame]:
         producer_config = ProducerConfig(self.producer_port, self.work_type,

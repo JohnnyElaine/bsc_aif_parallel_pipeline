@@ -58,16 +58,15 @@ class RequestHandler(Thread):
     def get_worker_statistics(self) -> pd.DataFrame:
         # Create a nested dictionary with worker addresses as keys
         # and WorkerStatistics asdict() values as inner dictionaries
-        data_dict = {
-            addr.decode('utf-8'): asdict(stats)
-            for addr, stats in self._worker_statistics.items()
-        }
+
+        # only use id of worker-addr so the index can be an integer
+        data_dict = {int(addr.decode('utf-8').split('-')[1]): asdict(stats) for addr, stats in self._worker_statistics.items()}
 
         # Convert to DataFrame using from_dict with orient='index' to make worker worker_addr the index
         df = pd.DataFrame.from_dict(data_dict, orient='index')
-        df.index.name = 'worker_addr'
+        df.index.name = 'worker_id'
 
-        return df
+        return df.sort_index()
 
     def _handle_request(self, address: bytes, request: dict) -> bool:
         req_type = request['type']

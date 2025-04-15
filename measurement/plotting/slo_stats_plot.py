@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-def plot_all(slo_stats):
+def plot_all_slo_stats(slo_stats):
     plot_slo_ratios_over_time(slo_stats)
     plot_quality_metrics(slo_stats)
 

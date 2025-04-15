@@ -29,15 +29,35 @@ class OutageAndRecoverySimulation(Simulation):
                  loading_mode: LoadingMode,
                  max_work_load: WorkLoad,
                  agent_type: AgentType,
-                 worker_capacities: list[float],
                  vid_path: str,
+                 regular_worker_capacities: list[float],
+                 outage_worker_capacities: list[float],
                  outage_at: float,
-                 recovery_at):
+                 recovery_at: float):
+        """
+        Total number of workers = len(regular_worker_capacities) + len(outage_worker_capacities)
+        Args:
+            producer_ip:
+            producer_port:
+            collector_ip:
+            collector_port:
+            work_type:
+            loading_mode:
+            max_work_load:
+            agent_type:
+            vid_path:
+            regular_worker_capacities:
+            outage_worker_capacities:
+            outage_at:
+            recovery_at:
+        """
         super().__init__(producer_ip, producer_port, collector_ip, collector_port, work_type, loading_mode,
-                         max_work_load, agent_type, worker_capacities, vid_path)
+                         max_work_load, agent_type, vid_path)
+
+        self.regular_worker_capacities = regular_worker_capacities
+        self.outage_worker_capacities = outage_worker_capacities
         self.outage_at = outage_at
         self.recovery_at = recovery_at
-
 
     def run(self) -> dict[str, pd.DataFrame]:
         producer_config = ProducerConfig(self.producer_port, self.work_type,
@@ -72,15 +92,19 @@ class OutageAndRecoverySimulation(Simulation):
 
         return stats
 
-    def create_workers(self, capacities: list[float], producer_ip: str, producer_port: int, collector_ip: str, collector_port: int):
+    def create_workers(self, regular_worker_capacities: list[float], outage_worker_capacities: list[float] ,producer_ip: str, producer_port: int, collector_ip: str, collector_port: int):
         video = Video(self.vid_path)
         fps = video.fps
         total_num_of_frames = video.frame_count
-        total_capacity = sum(capacities)
+        total_capacity = sum(regular_worker_capacities + outage_worker_capacities)
 
         workers = []
 
-        for i, capacity in enumerate(capacities):
+        # regular workers
+        workers = [Worker(WorkerConfig(i, producer_ip, producer_port, collector_ip, collector_port, capacity)) for i, capacity in enumerate(regular_worker_capacities)]
+
+        # outage workers, i.e. worker that will temporarily halt task processing for a set amount of time to simulate an outage
+        for i, capacity in enumerate(outage_worker_capacities):
             config = WorkerConfig(i, producer_ip, producer_port, collector_ip, collector_port, capacity)
             outage_config = OutageAndRecoverySimulation.create_outage_config(capacity, total_num_of_frames,
                                                                              total_capacity, fps,
