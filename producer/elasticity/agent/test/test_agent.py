@@ -18,11 +18,11 @@ class TestAgent(ElasticityAgent):
         Returns:
             tuple[ActionType, bool]: The action taken and whether it was successful
         """
-        self.slo_manager.get_all_slo_status(track_statistics=True)
+        self.slo_manager.get_all_slo_status(track_stats=True)
 
         self.count += 1
-        if self.count == -1:
-            success = self.elasticity_handler.decrease_work_load()
-            return ActionType.DECREASE_WORK_LOAD, success
+        #if self.count == -1:
+        #    success = self.elasticity_handler.decrease_work_load()
+        #    return ActionType.DECREASE_WORK_LOAD, success
 
-        return ActionType.DO_NOTHING, True
+        return ActionType.NONE, True

@@ -131,12 +131,14 @@ class VideoProcessorEnv(gym.Env):
 
     def _get_observation(self):
         """Get the current state of the system as an observation"""
+        queue_slo_status, memory_slo_status = self.slo_manager.get_all_slo_status(track_stats=True)
+
         return np.array([
             self.elasticity_handler.state_resolution.current_index,
             self.elasticity_handler.state_fps.current_index,
             self.elasticity_handler.state_work_load.current_index,
-            self.slo_manager.get_qsize_slo_status().value,
-            self.slo_manager.get_mem_slo_status().value
+            queue_slo_status.value,
+            memory_slo_status.value
         ], dtype=np.int32)
 
     def _perform_action(self, action: ActionType) -> bool:
@@ -150,7 +152,7 @@ class VideoProcessorEnv(gym.Env):
             bool: Whether the action was successful
         """
         match action:
-            case ActionType.DO_NOTHING:
+            case ActionType.NONE:
                 return True
             case ActionType.INCREASE_RESOLUTION:
                 return self.elasticity_handler.increase_resolution()

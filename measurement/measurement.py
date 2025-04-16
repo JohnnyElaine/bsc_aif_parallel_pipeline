@@ -22,7 +22,7 @@ class Measurement:
     @staticmethod
     def run_all_simulations():
         #Measurement.run_and_plot_simulation(AgentType.ACTIVE_INFERENCE, SimulationType.BASIC)
-        Measurement.run_and_plot_simulation(AgentType.TEST, SimulationType.OUTAGE_AND_RECOVERY)
+        Measurement.run_and_plot_simulation(AgentType.TEST, SimulationType.BASIC)
 
     @staticmethod
     def run_and_plot_simulation(agent_type: AgentType, sim_type: SimulationType):
@@ -42,8 +42,8 @@ class Measurement:
     def run_basic_simulation(agent_type: AgentType) -> dict[str, pd.DataFrame]:
         num_workers = 3
 
-        #worker_capacities = [1 for _ in range(num_workers)]
-        worker_capacities = [1, 0.9, 0.8]
+        worker_capacities = [0.4 for _ in range(num_workers)]
+        #worker_capacities = [1, 0.9, 0.8]
 
         sim = BasicSimulation(Measurement.LOCALHOST, Measurement.PRODUCER_PORT, Measurement.LOCALHOST,
                               Measurement.COLLECTOR_PORT, WorkType.YOLO_DETECTION, Measurement.LOADING_MODE,

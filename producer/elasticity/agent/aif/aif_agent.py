@@ -27,7 +27,7 @@ class ActiveInferenceAgent(ElasticityAgent):
     OBS_MEMORY_USAGE_INDEX = 4
 
     # Observation preferences
-    VERY_STRONG_PREFERENCE = 2.0
+    VERY_STRONG_PREFERENCE = 4.0
     STRONG_PREFERENCE = VERY_STRONG_PREFERENCE * 0.75
     MEDIUM_PREFERENCE = VERY_STRONG_PREFERENCE * 0.5
     LOW_PREFERENCE = VERY_STRONG_PREFERENCE * 0.25
@@ -179,7 +179,7 @@ class ActiveInferenceAgent(ElasticityAgent):
             for fps_idx in range(self.num_fps_states):
                 for wl_idx in range(self.num_work_load_states):
                     # Get probability distributions for queue SLO states
-                    queue_probs = self.slo_manager.get_queue_slo_state_probabilities()
+                    queue_probs = self.slo_manager.get_qsize_slo_state_probabilities()
 
                     # Set probabilities for each SLO state
                     A[ActiveInferenceAgent.OBS_QUEUE_SIZE_INDEX][SloStatus.OK.value, res_idx, fps_idx, wl_idx] = queue_probs[SloStatus.OK.value]
@@ -191,7 +191,7 @@ class ActiveInferenceAgent(ElasticityAgent):
             for fps_idx in range(self.num_fps_states):
                 for wl_idx in range(self.num_work_load_states):
                     # Get probability distributions for memory SLO states
-                    memory_probs = self.slo_manager.get_memory_slo_state_probabilities()
+                    memory_probs = self.slo_manager.get_mem_slo_state_probabilities()
 
                     # Set probabilities for each SLO state
                     A[ActiveInferenceAgent.OBS_MEMORY_USAGE_INDEX][SloStatus.OK.value, res_idx, fps_idx, wl_idx] = memory_probs[SloStatus.OK.value]
@@ -353,7 +353,7 @@ class ActiveInferenceAgent(ElasticityAgent):
             list: Current observations for all observation modalities
         """
 
-        queue_slo_status, memory_slo_status = self.slo_manager.get_all_slo_status(track_statistics=True)
+        queue_slo_status, memory_slo_status = self.slo_manager.get_all_slo_status(track_stats=True)
 
         #if queue_slo_status == SloStatus.CRITICAL:
         #    log.debug('queue SLO not fulfilled')
@@ -383,7 +383,7 @@ class ActiveInferenceAgent(ElasticityAgent):
         """
 
         match action:
-            case ActionType.DO_NOTHING:
+            case ActionType.NONE:
                 return True
             case ActionType.INCREASE_RESOLUTION:
                 return self.elasticity_handler.increase_resolution()
@@ -415,7 +415,7 @@ class ActiveInferenceAgent(ElasticityAgent):
         # Otherwise use normal preference-driven selection
         for action_idx in actions_idxs:
             action = self.actions[int(action_idx)]
-            if action != ActionType.DO_NOTHING:
+            if action != ActionType.NONE:
                 return action
 
-        return ActionType.DO_NOTHING
+        return ActionType.NONE

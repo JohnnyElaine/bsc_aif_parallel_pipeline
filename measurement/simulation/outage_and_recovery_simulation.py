@@ -18,6 +18,8 @@ from worker.worker_config import WorkerConfig
 class OutageAndRecoverySimulation(Simulation):
     """
     All workers start at the same time and stop when the producer is finished
+    Pre-defined set of workers stop requesting tasks at a given % (outage_at) and
+    resume at a given % (recovery_at) of the total simulation time
     """
 
     def __init__(self,

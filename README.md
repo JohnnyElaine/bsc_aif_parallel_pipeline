@@ -106,13 +106,12 @@ GOAL: Ensure memory usage does not exceed capacity.
 ```
 task_queue <= X
 ```
-- ``X`` maximum acceptable number of tasks. e.g. ``X = current_fps * 2``
+- ``X`` maximum acceptable number of tasks. e.g. ``X = source_fps * 2``
 
 GOAL: Make sure there is enough compute power to handle tasks in real time.
 
 ### Quality/Workload
-
-GOAL: Workers should run YOLO-inference at higher quality if possible.
+GOAL: The stream should run at the highest possible quality (fps, resolution, workload) without violating any of the 
 
 
 ## Work-API

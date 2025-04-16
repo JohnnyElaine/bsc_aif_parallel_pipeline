@@ -2,7 +2,7 @@ from enum import Enum
 
 class ActionType(Enum):
     """Must be numerated from 0-n"""
-    DO_NOTHING = 0
+    NONE = 0
     INCREASE_RESOLUTION = 1
     DECREASE_RESOLUTION = 2
     INCREASE_FPS = 3
