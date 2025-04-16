@@ -159,12 +159,9 @@ CONTINUE HERE
 
 # ---------------------------------------------------------------
 # TODO
-Add additional statistics: quality config for each time step
+AIF Agent impl mit intelligentVehicle vergleichen, Fix agent: somehow inverse, fps are constantly being changed
 Finish README
-Fix agent: somehow inverse, fps are constantly being changed
-Document and test heuristic agent
-Finish simulation
-Plot results
+
 
 Task Generation
     # TODO:

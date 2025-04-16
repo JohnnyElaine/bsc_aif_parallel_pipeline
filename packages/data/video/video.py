@@ -14,12 +14,23 @@ class Video:
         self.duration = int(self.video_capture.get(cv.CAP_PROP_FRAME_COUNT)) / self.video_capture.get(cv.CAP_PROP_FPS)
         self.frame_index = 0
 
-    def read_frame(self) -> tuple[bool, ndarray, int]:
+    def read(self) -> tuple[bool, ndarray, int]:
         index = self.frame_index
         ret, frame = self.video_capture.read()
         self.frame_index += 1
 
         return ret, frame, index
+
+    def grab(self):
+        index = self.frame_index
+        grabbed = self.video_capture.grab()
+        self.frame_index += 1
+        self.video_capture.retrieve()
+        return grabbed, index
+
+    def retrieve(self):
+        return self.video_capture.retrieve()
+
 
     def release(self):
         if self.is_opened():

@@ -1,5 +1,5 @@
 
-from producer.elasticity.agent.action.action_type import ActionType
+from producer.elasticity.action.action_type import ActionType
 from producer.elasticity.agent.elasticity_agent import ElasticityAgent
 from producer.elasticity.handler.elasticity_handler import ElasticityHandler
 
@@ -24,5 +24,8 @@ class TestAgent(ElasticityAgent):
         #if self.count == -1:
         #    success = self.elasticity_handler.decrease_work_load()
         #    return ActionType.DECREASE_WORK_LOAD, success
+
+        if self.count % 2 == 0:
+            return ActionType.DECREASE_FPS, self.elasticity_handler.decrease_fps()
 
         return ActionType.NONE, True

@@ -3,7 +3,7 @@ import numpy as np
 import pymdp.utils as utils
 from pymdp.agent import Agent
 
-from producer.elasticity.agent.action.action_type import ActionType
+from producer.elasticity.action.action_type import ActionType
 from producer.elasticity.agent.elasticity_agent import ElasticityAgent
 from producer.elasticity.handler.elasticity_handler import ElasticityHandler
 from producer.elasticity.slo.slo_status import SloStatus

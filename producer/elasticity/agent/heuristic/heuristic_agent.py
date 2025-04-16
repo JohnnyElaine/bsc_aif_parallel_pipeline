@@ -1,7 +1,7 @@
 import logging
 from typing import Optional
 
-from producer.elasticity.agent.action.action_type import ActionType
+from producer.elasticity.action.action_type import ActionType
 from producer.elasticity.handler.elasticity_handler import ElasticityHandler
 from producer.elasticity.slo.slo_status import SloStatus
 from producer.elasticity.agent.elasticity_agent import ElasticityAgent

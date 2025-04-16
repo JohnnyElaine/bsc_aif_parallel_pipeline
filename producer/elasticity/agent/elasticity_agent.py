@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 
 import pandas as pd
 
-from producer.elasticity.agent.action.action_type import ActionType
+from producer.elasticity.action.action_type import ActionType
 from producer.elasticity.handler.elasticity_handler import ElasticityHandler
 from producer.elasticity.slo.slo_manager import SloManager
 
