@@ -19,7 +19,7 @@ class ZmqWorkRequester(WorkRequester):
         self._is_running = False
         self._channel = request_channel
         self._outage_config = outage_config
-        self._get_work_function = self._get_work if outage_config is None else self._get_work_with_outage_config()
+        self._get_work_function = self._get_work if outage_config is None else self._get_work_with_outage_config
         self._num_requested_tasks = 0
 
     def run(self):

@@ -17,23 +17,26 @@ class Measurement:
     LOCALHOST = 'localhost'
     LOADING_MODE = LoadingMode.EAGER
     WORK_LOAD = WorkLoad.MEDIUM
-    VID_PATH = WorkerGlobalVariables.PROJECT_ROOT / 'media' / 'vid' / 'general_detection' / '1080p Video of Highway Traffic! [KBsqQez-O4w]_5seconds.mp4'
+    VID_PATH = WorkerGlobalVariables.PROJECT_ROOT / 'media' / 'vid' / 'general_detection' / '1080p Video of Highway Traffic! [KBsqQez-O4w]_20seconds.mp4'
 
     @staticmethod
     def run_all_simulations():
-        stats = Measurement.run_basic_simulation(AgentType.ACTIVE_INFERENCE)
+        #Measurement.run_and_plot_simulation(AgentType.ACTIVE_INFERENCE, SimulationType.BASIC)
+        Measurement.run_and_plot_simulation(AgentType.TEST, SimulationType.OUTAGE_AND_RECOVERY)
 
     @staticmethod
-    def run_and_plot_simulation(agent_type: AgentType, type: SimulationType):
+    def run_and_plot_simulation(agent_type: AgentType, sim_type: SimulationType):
         stats = None
-        match type:
+        match sim_type:
             case SimulationType.BASIC:
                 stats = Measurement.run_basic_simulation(agent_type)
             case SimulationType.OUTAGE_AND_RECOVERY:
                 stats = Measurement.run_outage_and_recovery_simulation(agent_type)
+            case _:
+                raise ValueError('Unknown SimulationType')
 
         plot_all_slo_stats(stats['slo_stats'])
-        plot_all_worker_stats(stats['worker'])
+        plot_all_worker_stats(stats['worker_stats'])
 
     @staticmethod
     def run_basic_simulation(agent_type: AgentType) -> dict[str, pd.DataFrame]:

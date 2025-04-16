@@ -17,7 +17,7 @@ class Worker(Process):
     def run(self):
         log = logging.setup_logging('worker')
 
-        log.info(f'starting worker-{self.config.identity}')
+        log.info(f'starting worker-{self.config.identity}, config={self.config}, outage_config={self.outage_config}')
         
         request_channel = RequestChannel(self.config.producer_ip, self.config.producer_port, self.config.identity)
         request_channel.connect()
