@@ -9,7 +9,7 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
 
-from producer.elasticity.action.action_type import ActionType
+from producer.elasticity.action.general_action_type import GeneralActionType
 from producer.elasticity.agent.elasticity_agent import ElasticityAgent
 from producer.elasticity.handler.elasticity_handler import ElasticityHandler
 from producer.elasticity.slo.slo_status import SloStatus
@@ -40,7 +40,7 @@ class VideoProcessorEnv(gym.Env):
         self.slo_manager = slo_manager
 
         # Define action space
-        self.action_space = spaces.Discrete(len(ActionType))
+        self.action_space = spaces.Discrete(len(GeneralActionType))
 
         # Define observation space
         # [resolution_idx, fps_idx, workload_idx, queue_size_status, memory_usage_status]
@@ -83,7 +83,7 @@ class VideoProcessorEnv(gym.Env):
         Returns:
             observation, reward, done, info
         """
-        action_type = ActionType(action)
+        action_type = GeneralActionType(action)
         success = self._perform_action(action_type)
 
         # Get new observation
@@ -141,7 +141,7 @@ class VideoProcessorEnv(gym.Env):
             memory_slo_status.value
         ], dtype=np.int32)
 
-    def _perform_action(self, action: ActionType) -> bool:
+    def _perform_action(self, action: GeneralActionType) -> bool:
         """
         Execute the specified action on the elasticity handler
 
@@ -152,19 +152,19 @@ class VideoProcessorEnv(gym.Env):
             bool: Whether the action was successful
         """
         match action:
-            case ActionType.NONE:
+            case GeneralActionType.NONE:
                 return True
-            case ActionType.INCREASE_RESOLUTION:
+            case GeneralActionType.INCREASE_RESOLUTION:
                 return self.elasticity_handler.increase_resolution()
-            case ActionType.DECREASE_RESOLUTION:
+            case GeneralActionType.DECREASE_RESOLUTION:
                 return self.elasticity_handler.decrease_resolution()
-            case ActionType.INCREASE_FPS:
+            case GeneralActionType.INCREASE_FPS:
                 return self.elasticity_handler.increase_fps()
-            case ActionType.DECREASE_FPS:
+            case GeneralActionType.DECREASE_FPS:
                 return self.elasticity_handler.decrease_fps()
-            case ActionType.INCREASE_WORK_LOAD:
+            case GeneralActionType.INCREASE_WORK_LOAD:
                 return self.elasticity_handler.increase_work_load()
-            case ActionType.DECREASE_WORK_LOAD:
+            case GeneralActionType.DECREASE_WORK_LOAD:
                 return self.elasticity_handler.decrease_work_load()
             case _:
                 log.warning(f"Unknown action: {action}")
@@ -273,12 +273,12 @@ class ReinforcementLearningAgent(ElasticityAgent):
         self.reward_history = []
         self.state_history = []
 
-    def step(self) -> Tuple[ActionType, bool]:
+    def step(self) -> Tuple[GeneralActionType, bool]:
         """
         Perform a single step of reinforcement learning
 
         Returns:
-            tuple[ActionType, bool]: The action taken and whether it was successful
+            tuple[GeneralActionType, bool]: The action taken and whether it was successful
         """
         # Get the action from the model
         action, _ = self.model.predict(self.obs, deterministic=True)
@@ -287,7 +287,7 @@ class ReinforcementLearningAgent(ElasticityAgent):
         self.obs, reward, _, info = self.env.step(action)
 
         # Store history
-        action_type = ActionType(action[0])
+        action_type = GeneralActionType(action[0])
         action_success = info[0]['action_success']
 
         self.action_history.append(action_type)
@@ -343,7 +343,7 @@ class ReinforcementLearningAgent(ElasticityAgent):
             return pd.DataFrame()
 
         action_counts = {}
-        for action in ActionType:
+        for action in GeneralActionType:
             action_counts[action.name] = self.action_history.count(action)
 
         return pd.DataFrame(action_counts.items(), columns=['Action', 'Count'])

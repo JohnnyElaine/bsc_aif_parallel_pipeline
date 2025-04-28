@@ -1,4 +1,4 @@
-from producer.elasticity.action.action_type import ActionType
+from producer.elasticity.action.general_action_type import GeneralActionType
 from producer.elasticity.agent.elasticity_agent import ElasticityAgent
 from producer.elasticity.handler.elasticity_handler import ElasticityHandler
 
@@ -40,8 +40,8 @@ class HeuristicAgentOld(ElasticityAgent):
     # OSCILLATION_WINDOW_SIZE must be even for oscillation detection.
     OSCILLATION_WINDOW_SIZE = 2 * 2
 
-    INCREASE_ACTIONS = {action for action in ActionType if action.name.startswith("INCREASE")}
-    DECREASE_ACTIONS = {action for action in ActionType if action.name.startswith("DECREASE")}
+    INCREASE_ACTIONS = {action for action in GeneralActionType if action.name.startswith("INCREASE")}
+    DECREASE_ACTIONS = {action for action in GeneralActionType if action.name.startswith("DECREASE")}
 
     def __init__(self, elasticity_handler: ElasticityHandler):
         """
@@ -56,12 +56,12 @@ class HeuristicAgentOld(ElasticityAgent):
         self.previous_actions = []
         self.max_history = 5  # Number of previous actions to track
 
-    def step(self) -> tuple[ActionType, bool]:
+    def step(self) -> tuple[GeneralActionType, bool]:
         """
         Perform a single step of the heuristic decision process
 
         Returns:
-            tuple[ActionType, bool]: The action taken and whether it was successful
+            tuple[GeneralActionType, bool]: The action taken and whether it was successful
         """
 
         action, success = self._select_action()
@@ -75,7 +75,7 @@ class HeuristicAgentOld(ElasticityAgent):
         """Reset the agent's state"""
         self.previous_actions = []
 
-    def _select_action(self) -> tuple[ActionType, bool]:
+    def _select_action(self) -> tuple[GeneralActionType, bool]:
         """
         Select the best action based on current system state using heuristics
 
@@ -88,7 +88,7 @@ class HeuristicAgentOld(ElasticityAgent):
             max_wl_idx: Maximum workload index
 
         Returns:
-            tuple[ActionType, bool]: Selected action and whether it was successful
+            tuple[GeneralActionType, bool]: Selected action and whether it was successful
         """
         qsize_slo_ratio, mem_slo_ratio = self.slo_manager.get_all_slo_ratios(track_stats=True)
 
@@ -105,53 +105,53 @@ class HeuristicAgentOld(ElasticityAgent):
             # If queue is the bigger issue, prioritize reducing in order: workload, fps, resolution
             if qsize_slo_ratio > mem_slo_ratio:
                 if self.elasticity_handler.state_work_load.can_decrease():
-                    return ActionType.DECREASE_WORK_LOAD, self.elasticity_handler.decrease_work_load()
+                    return GeneralActionType.DECREASE_WORK_LOAD, self.elasticity_handler.decrease_work_load()
                 elif self.elasticity_handler.state_fps.can_decrease():
-                    return ActionType.DECREASE_FPS, self.elasticity_handler.decrease_fps()
+                    return GeneralActionType.DECREASE_FPS, self.elasticity_handler.decrease_fps()
                 elif self.elasticity_handler.state_resolution.can_decrease():
-                    return ActionType.DECREASE_RESOLUTION, self.elasticity_handler.decrease_resolution()
+                    return GeneralActionType.DECREASE_RESOLUTION, self.elasticity_handler.decrease_resolution()
 
             # If memory is the bigger issue, prioritize reducing in order: workload, resolution, fps
             else:
                 if self.elasticity_handler.state_work_load.can_decrease():
-                    return ActionType.DECREASE_WORK_LOAD, self.elasticity_handler.decrease_work_load()
+                    return GeneralActionType.DECREASE_WORK_LOAD, self.elasticity_handler.decrease_work_load()
                 elif self.elasticity_handler.state_resolution.can_decrease():
-                    return ActionType.DECREASE_RESOLUTION, self.elasticity_handler.decrease_resolution()
+                    return GeneralActionType.DECREASE_RESOLUTION, self.elasticity_handler.decrease_resolution()
                 elif self.elasticity_handler.state_fps.can_decrease():
-                    return ActionType.DECREASE_FPS, self.elasticity_handler.decrease_fps()
+                    return GeneralActionType.DECREASE_FPS, self.elasticity_handler.decrease_fps()
 
         # If we're in warning state, take a more measured approach
         if warning_slo_violation:
             print('Warning Violation')
             # Check if we're oscillating (repeatedly increasing and decreasing)
             if self._is_oscillating():
-                return ActionType.NONE, True  # Stabilize by doing nothing
+                return GeneralActionType.NONE, True  # Stabilize by doing nothing
 
             # Determine most effective action based on current state
             if qsize_slo_ratio > mem_slo_ratio:
                 # Queue issues - reduce workload or FPS
                 if self.elasticity_handler.state_work_load.can_decrease():
-                    return ActionType.DECREASE_WORK_LOAD, self.elasticity_handler.decrease_work_load()
+                    return GeneralActionType.DECREASE_WORK_LOAD, self.elasticity_handler.decrease_work_load()
                 elif self.elasticity_handler.state_fps.can_decrease():
-                    return ActionType.DECREASE_FPS, self.elasticity_handler.decrease_fps()
+                    return GeneralActionType.DECREASE_FPS, self.elasticity_handler.decrease_fps()
 
             else:
                 # Memory issues - reduce resolution or workload
                 if self.elasticity_handler.state_work_load.can_decrease():
-                    return ActionType.DECREASE_WORK_LOAD, self.elasticity_handler.decrease_work_load()
+                    return GeneralActionType.DECREASE_WORK_LOAD, self.elasticity_handler.decrease_work_load()
                 elif self.elasticity_handler.state_resolution.can_decrease():
-                    return ActionType.DECREASE_RESOLUTION, self.elasticity_handler.decrease_resolution()
+                    return GeneralActionType.DECREASE_RESOLUTION, self.elasticity_handler.decrease_resolution()
 
         if not (critical_slo_violation or warning_slo_violation):
             # If we're in a good state, try to improve quality (workload first, then resolution, then FPS)
             if self.elasticity_handler.state_resolution.can_increase():
-                return ActionType.INCREASE_RESOLUTION, self.elasticity_handler.increase_resolution()
+                return GeneralActionType.INCREASE_RESOLUTION, self.elasticity_handler.increase_resolution()
             elif self.elasticity_handler.state_fps.can_increase():
-                return ActionType.INCREASE_FPS, self.elasticity_handler.increase_fps()
+                return GeneralActionType.INCREASE_FPS, self.elasticity_handler.increase_fps()
             elif self.elasticity_handler.state_work_load.can_increase():
-                return ActionType.INCREASE_WORK_LOAD, self.elasticity_handler.increase_work_load()
+                return GeneralActionType.INCREASE_WORK_LOAD, self.elasticity_handler.increase_work_load()
 
-        return ActionType.NONE, True # We're at maximum quality already or unable to decrease further
+        return GeneralActionType.NONE, True # We're at maximum quality already or unable to decrease further
 
     def _is_oscillating(self, window_size=OSCILLATION_WINDOW_SIZE) -> bool:
         """
@@ -173,7 +173,7 @@ class HeuristicAgentOld(ElasticityAgent):
 
         return kinds == pattern1 or kinds == pattern2
 
-    def _update_action_history(self, action: ActionType):
+    def _update_action_history(self, action: GeneralActionType):
         """
         Update the history of previous actions
 

@@ -1,7 +1,7 @@
 import logging
 from typing import Optional
 
-from producer.elasticity.action.action_type import ActionType
+from producer.elasticity.action.general_action_type import GeneralActionType
 from producer.elasticity.handler.elasticity_handler import ElasticityHandler
 from producer.elasticity.slo.slo_status import SloStatus
 from producer.elasticity.agent.elasticity_agent import ElasticityAgent
@@ -29,12 +29,12 @@ class HeuristicAgent(ElasticityAgent):
 
     # Action opposites mapping
     ACTION_OPPOSITES = {
-        ActionType.INCREASE_FPS: ActionType.DECREASE_FPS,
-        ActionType.DECREASE_FPS: ActionType.INCREASE_FPS,
-        ActionType.INCREASE_RESOLUTION: ActionType.DECREASE_RESOLUTION,
-        ActionType.DECREASE_RESOLUTION: ActionType.INCREASE_RESOLUTION,
-        ActionType.INCREASE_WORK_LOAD: ActionType.DECREASE_WORK_LOAD,
-        ActionType.DECREASE_WORK_LOAD: ActionType.INCREASE_WORK_LOAD
+        GeneralActionType.INCREASE_FPS: GeneralActionType.DECREASE_FPS,
+        GeneralActionType.DECREASE_FPS: GeneralActionType.INCREASE_FPS,
+        GeneralActionType.INCREASE_RESOLUTION: GeneralActionType.DECREASE_RESOLUTION,
+        GeneralActionType.DECREASE_RESOLUTION: GeneralActionType.INCREASE_RESOLUTION,
+        GeneralActionType.INCREASE_WORK_LOAD: GeneralActionType.DECREASE_WORK_LOAD,
+        GeneralActionType.DECREASE_WORK_LOAD: GeneralActionType.INCREASE_WORK_LOAD
     }
 
     def __init__(self, elasticity_handler: ElasticityHandler):
@@ -54,12 +54,12 @@ class HeuristicAgent(ElasticityAgent):
 
         log.info("Heuristic Elasticity Agent initialized")
 
-    def step(self) -> tuple[ActionType, bool]:
+    def step(self) -> tuple[GeneralActionType, bool]:
         """
         Perform a single step of the agent's decision process.
 
         Returns:
-            tuple[ActionType, bool]: The action taken and whether it was successful
+            tuple[GeneralActionType, bool]: The action taken and whether it was successful
         """
         # Get current SLO ratios
         queue_ratio, memory_ratio = self.slo_manager.get_all_slo_ratios(track_stats=True)
@@ -76,7 +76,7 @@ class HeuristicAgent(ElasticityAgent):
         # Check if we're in cooldown period
         if self.cooldown_counter > 0:
             self.cooldown_counter -= 1
-            return ActionType.NONE, True
+            return GeneralActionType.NONE, True
 
         # Log current state
 
@@ -98,7 +98,7 @@ class HeuristicAgent(ElasticityAgent):
                 return action, success
 
         # Handle WARNING SLO states (Do nothing)
-        return ActionType.NONE, True
+        return GeneralActionType.NONE, True
 
         # Handle WARNING SLO states (proactive adjustments)
         #if queue_status == SloStatus.WARNING or memory_status == SloStatus.WARNING:
@@ -114,14 +114,14 @@ class HeuristicAgent(ElasticityAgent):
                 self._update_action_tracking(action)
                 return action, success
 
-        return ActionType.NONE, True
+        return GeneralActionType.NONE, True
 
-    def _handle_critical_slo(self) -> tuple[ActionType, bool]:
+    def _handle_critical_slo(self) -> tuple[GeneralActionType, bool]:
         """
         Handle CRITICAL SLO states with immediate balanced action across parameters.
 
         Returns:
-            tuple[ActionType, bool]: Action taken and whether it was successful
+            tuple[GeneralActionType, bool]: Action taken and whether it was successful
         """
         # Get current capacities
         res_capacity = self.elasticity_handler.state_resolution.get_capacity()
@@ -130,9 +130,9 @@ class HeuristicAgent(ElasticityAgent):
 
         # Find which parameter has the highest capacity (most room to decrease)
         capacities = [
-            (res_capacity, ActionType.DECREASE_RESOLUTION, self.elasticity_handler.state_resolution.can_decrease()),
-            (fps_capacity, ActionType.DECREASE_FPS, self.elasticity_handler.state_fps.can_decrease()),
-            (workload_capacity, ActionType.DECREASE_WORK_LOAD, self.elasticity_handler.state_work_load.can_decrease())
+            (res_capacity, GeneralActionType.DECREASE_RESOLUTION, self.elasticity_handler.state_resolution.can_decrease()),
+            (fps_capacity, GeneralActionType.DECREASE_FPS, self.elasticity_handler.state_fps.can_decrease()),
+            (workload_capacity, GeneralActionType.DECREASE_WORK_LOAD, self.elasticity_handler.state_work_load.can_decrease())
         ]
 
         # Filter to only those that can be decreased
@@ -140,7 +140,7 @@ class HeuristicAgent(ElasticityAgent):
 
         # all quality parameters are at minimum
         if not decreasable:
-            return ActionType.NONE, True
+            return GeneralActionType.NONE, True
 
         # Sort by capacity (highest first)
         decreasable.sort(key=lambda x: x[0], reverse=True)
@@ -149,9 +149,9 @@ class HeuristicAgent(ElasticityAgent):
         if self._are_capacities_even([cap for cap, _ in decreasable]):
             # If capacities are even, follow the specified order
             priority_order = [
-                ActionType.DECREASE_WORK_LOAD,
-                ActionType.DECREASE_FPS,
-                ActionType.DECREASE_RESOLUTION
+                GeneralActionType.DECREASE_WORK_LOAD,
+                GeneralActionType.DECREASE_FPS,
+                GeneralActionType.DECREASE_RESOLUTION
             ]
 
             for action in priority_order:
@@ -163,14 +163,14 @@ class HeuristicAgent(ElasticityAgent):
             _, action = decreasable[0]
             return self._execute_action(action)
 
-        return ActionType.NONE, True
+        return GeneralActionType.NONE, True
 
-    def _handle_warning_slo(self) -> tuple[ActionType, bool]:
+    def _handle_warning_slo(self) -> tuple[GeneralActionType, bool]:
         """
         Handle WARNING SLO states with proactive balanced adjustments.
 
         Returns:
-            tuple[ActionType, bool]: Action taken and whether it was successful
+            tuple[GeneralActionType, bool]: Action taken and whether it was successful
         """
         # Check if SLO trends are getting worse
         queue_trend = self._calculate_trend(self.queue_slo_ratio_history)
@@ -184,25 +184,25 @@ class HeuristicAgent(ElasticityAgent):
             return self._handle_critical_slo()
 
         # No concerning trends, so no action needed yet
-        return ActionType.NONE, True
+        return GeneralActionType.NONE, True
 
-    def _try_quality_improvement(self) -> tuple[ActionType, bool]:
+    def _try_quality_improvement(self) -> tuple[GeneralActionType, bool]:
         """
         Try to improve quality parameters in a balanced way when SLOs are well below thresholds.
 
         Returns:
-            tuple[ActionType, bool]: Action taken and whether it was successful
+            tuple[GeneralActionType, bool]: Action taken and whether it was successful
         """
         # Get current SLO ratios
         queue_ratio, memory_ratio = self.slo_manager.get_all_slo_ratios()
 
         # Only try to improve if both SLOs are comfortably below threshold
         if max(queue_ratio, memory_ratio) > self.upscale_threshold:
-            return ActionType.NONE, True
+            return GeneralActionType.NONE, True
 
         # Make sure we've been stable for a while before trying to improve
         if len(self.queue_slo_ratio_history) < self.SLO_HISTORY_SIZE:
-            return ActionType.NONE, True
+            return GeneralActionType.NONE, True
 
         # Check if trends are stable or improving
         queue_trend = self._calculate_trend(self.queue_slo_ratio_history)
@@ -210,7 +210,7 @@ class HeuristicAgent(ElasticityAgent):
 
         if queue_trend > self.IMPROVEMENT_TREND_THRESHOLD or memory_trend > self.IMPROVEMENT_TREND_THRESHOLD:
             # SLOs are trending worse, don't try to improve quality yet
-            return ActionType.NONE, True
+            return GeneralActionType.NONE, True
 
         log.debug("SLOs stable or improving - attempting quality improvement")
 
@@ -221,9 +221,9 @@ class HeuristicAgent(ElasticityAgent):
 
         # Find which parameter has the lowest capacity (most room to increase)
         capacities = [
-            (res_capacity, ActionType.INCREASE_RESOLUTION, self.elasticity_handler.state_resolution.can_increase()),
-            (fps_capacity, ActionType.INCREASE_FPS, self.elasticity_handler.state_fps.can_increase()),
-            (workload_capacity, ActionType.INCREASE_WORK_LOAD, self.elasticity_handler.state_work_load.can_increase())
+            (res_capacity, GeneralActionType.INCREASE_RESOLUTION, self.elasticity_handler.state_resolution.can_increase()),
+            (fps_capacity, GeneralActionType.INCREASE_FPS, self.elasticity_handler.state_fps.can_increase()),
+            (workload_capacity, GeneralActionType.INCREASE_WORK_LOAD, self.elasticity_handler.state_work_load.can_increase())
         ]
 
         # Filter to only those that can be increased
@@ -231,7 +231,7 @@ class HeuristicAgent(ElasticityAgent):
 
         if not increasable:
             log.debug("All parameters already at maximum quality")
-            return ActionType.NONE, True
+            return GeneralActionType.NONE, True
 
         # Sort by capacity (lowest first)
         increasable.sort()
@@ -240,9 +240,9 @@ class HeuristicAgent(ElasticityAgent):
         if self._are_capacities_even([cap for cap, _ in increasable]):
             # If capacities are even, follow the specified order
             priority_order = [
-                ActionType.INCREASE_RESOLUTION,
-                ActionType.INCREASE_FPS,
-                ActionType.INCREASE_WORK_LOAD
+                GeneralActionType.INCREASE_RESOLUTION,
+                GeneralActionType.INCREASE_FPS,
+                GeneralActionType.INCREASE_WORK_LOAD
             ]
 
             for action in priority_order:
@@ -254,7 +254,7 @@ class HeuristicAgent(ElasticityAgent):
             _, action = increasable[0]
             return self._execute_action(action)
 
-    def _execute_action(self, action: ActionType) -> tuple[ActionType, bool]:
+    def _execute_action(self, action: GeneralActionType) -> tuple[GeneralActionType, bool]:
         """
         Execute the given action and check if it would cause oscillation.
 
@@ -262,31 +262,31 @@ class HeuristicAgent(ElasticityAgent):
             action: The action to execute
 
         Returns:
-            tuple[ActionType, bool]: The action taken and whether it was successful
+            tuple[GeneralActionType, bool]: The action taken and whether it was successful
         """
         # Check if this would cause oscillation
         if action == self._get_opposite_action(self.last_action_type):
             log.debug(f"Skipping {action.name} to avoid oscillation")
-            return ActionType.NONE, True
+            return GeneralActionType.NONE, True
 
         # Check if we've done this action too many times in a row
         if action == self.last_action_type and self.consecutive_action_count >= self.MAX_CONSECUTIVE_ACTIONS:
             log.debug(f"Skipping {action.name} to avoid consecutive repetition")
-            return ActionType.NONE, True
+            return GeneralActionType.NONE, True
 
         # Execute the action
         success = False
-        if action == ActionType.DECREASE_RESOLUTION:
+        if action == GeneralActionType.DECREASE_RESOLUTION:
             success = self.elasticity_handler.decrease_resolution()
-        elif action == ActionType.DECREASE_FPS:
+        elif action == GeneralActionType.DECREASE_FPS:
             success = self.elasticity_handler.decrease_fps()
-        elif action == ActionType.DECREASE_WORK_LOAD:
+        elif action == GeneralActionType.DECREASE_WORK_LOAD:
             success = self.elasticity_handler.decrease_work_load()
-        elif action == ActionType.INCREASE_RESOLUTION:
+        elif action == GeneralActionType.INCREASE_RESOLUTION:
             success = self.elasticity_handler.increase_resolution()
-        elif action == ActionType.INCREASE_FPS:
+        elif action == GeneralActionType.INCREASE_FPS:
             success = self.elasticity_handler.increase_fps()
-        elif action == ActionType.INCREASE_WORK_LOAD:
+        elif action == GeneralActionType.INCREASE_WORK_LOAD:
             success = self.elasticity_handler.increase_work_load()
 
         if success:
@@ -311,7 +311,7 @@ class HeuristicAgent(ElasticityAgent):
 
         return max_capacity - min_capacity <= self.CAPACITY_EQUALITY_THRESHOLD
 
-    def _update_action_tracking(self, action: ActionType) -> None:
+    def _update_action_tracking(self, action: GeneralActionType) -> None:
         """
         Update the action tracking to prevent oscillations and repetitive actions.
 
@@ -344,7 +344,7 @@ class HeuristicAgent(ElasticityAgent):
         differences = [history[i] - history[i - 1] for i in range(1, len(history))]
         return sum(differences) / len(differences)
 
-    def _get_opposite_action(self, action: Optional[ActionType]) -> Optional[ActionType]:
+    def _get_opposite_action(self, action: Optional[GeneralActionType]) -> Optional[GeneralActionType]:
         """
         Get the opposite action for a given action type.
 
@@ -352,9 +352,9 @@ class HeuristicAgent(ElasticityAgent):
             action: The action to find the opposite for
 
         Returns:
-            ActionType: The opposite action, or None if input is None or NONE
+            GeneralActionType: The opposite action, or None if input is None or NONE
         """
-        if action is None or action == ActionType.NONE:
+        if action is None or action == GeneralActionType.NONE:
             return None
 
         return self.ACTION_OPPOSITES.get(action)

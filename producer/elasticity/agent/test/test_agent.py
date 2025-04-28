@@ -1,5 +1,5 @@
 
-from producer.elasticity.action.action_type import ActionType
+from producer.elasticity.action.general_action_type import GeneralActionType
 from producer.elasticity.agent.elasticity_agent import ElasticityAgent
 from producer.elasticity.handler.elasticity_handler import ElasticityHandler
 
@@ -12,11 +12,11 @@ class TestAgent(ElasticityAgent):
         self.count = 0
 
 
-    def step(self) -> tuple[ActionType, bool]:
+    def step(self) -> tuple[GeneralActionType, bool]:
         """
         Perform a single step of the test Agent
         Returns:
-            tuple[ActionType, bool]: The action taken and whether it was successful
+            tuple[GeneralActionType, bool]: The action taken and whether it was successful
         """
         self.slo_manager.get_all_slo_status(track_stats=True)
 
@@ -26,6 +26,6 @@ class TestAgent(ElasticityAgent):
         #    return ActionType.DECREASE_WORK_LOAD, success
 
         if self.count % 2 == 0:
-            return ActionType.DECREASE_FPS, self.elasticity_handler.decrease_fps()
+            return GeneralActionType.DECREASE_FPS, self.elasticity_handler.decrease_fps()
 
-        return ActionType.NONE, True
+        return GeneralActionType.NONE, True

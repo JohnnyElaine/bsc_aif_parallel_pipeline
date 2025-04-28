@@ -54,7 +54,6 @@ Under the constraints of the SLOs the  producer aims to maximise the following p
 While the producer tries to fulfill the SLOs and maximize parameters (Workload, fps, resolution) at the same time, it is crucial that the SLO are of a much higher priority compared to the parameters.
 Especially since the parameters directly influence the probability of fulfilling the SLOs. Maximizing the parameters is more a preference, rather than a priority
 
-
 ## Worker
 The workers constantly
 1. request work at the producer.
@@ -77,22 +76,28 @@ The Collector implements a ``zeromq.PULL`` socket that constantly accepts result
 ## Elasticity
 The Producer tries to ensure Quality of Service (QoS) by providing certain elasticity features, when the underlying SLOs are not met.
 
-Should the computational resources of the system are not enough to uphold certain Service level objectives (SLOs), 
-i.e. processing time for x amount frames, energy consumption, buffer size, memory usage, etc then the producer has some options to change required computational load. These include:
+If the computational resources of the system are not enough to uphold certain Service level objectives (SLOs), then the AIF agent may reduce the following quality parameters of the video stream:
 
 - **Quality:** Switch to a different grade YOLOv11 model.
 - **FPS:** Change Source Stream FPS
 - **Resolution:** Change source stream resolution
 
-The goal is to maximize QoS by utilizing the available resources of distributed system (workers).
+**Goal:** The goal is to maximize QoS (quality parameters) by utilizing the available resources of distributed system (workers), while fulfilling the given Service Level Objectives.
 
 ## Service Level Objectives (SLOs)
 The Service Level Objectives (SLOs) are implemented by the Producer in order to ensure the highest possible Quality of Experience (QoE) given the current available resources.
+
+Possible SLOs include  processing time for x amount frames, energy consumption, buffer size, memory usage.
+
 
 A SLO can have 3 types of states:
 - **OK:** The SLO is fulfilled
 - **WARNING:** The SLO is fulfilled, but close the the threshold of being unfulfilled
 - **CRITICAL:** The SLO is unfulfilled
+
+Currently only 2 SLOs are implemented:
+- Memory Usage
+- Queue Size
 
 ### Memory Usage
 ```
