@@ -1,9 +1,4 @@
 from measurement.measurement import Measurement
-from measurement.simulation.basic_simulation import BasicSimulation
-from packages.enums import WorkType, WorkLoad
-from packages.enums.loading_mode import LoadingMode
-from producer.enums.agent_type import AgentType
-from producer.global_variables import ProducerGlobalVariables
 from worker.worker import Worker
 from worker.worker_config import WorkerConfig
 

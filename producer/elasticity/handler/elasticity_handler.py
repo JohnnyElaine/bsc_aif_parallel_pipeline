@@ -227,7 +227,7 @@ class ElasticityHandler:
         state.current_index += 1
         change_function(state.value)
 
-        log.debug(f'{change_function.__name__}: {state.possible_states[state.current_index- 1]} -> {state.possible_states[state.current_index]}')
+        log.debug(f'INCREASE - {change_function.__name__}: {state.possible_states[state.current_index- 1]} -> {state.possible_states[state.current_index]}')
 
         return True
 
@@ -249,7 +249,7 @@ class ElasticityHandler:
         state.current_index -= 1
         change_function(state.value)
 
-        log.debug(f'{change_function.__name__}: {state.possible_states[state.current_index + 1]} -> {state.possible_states[state.current_index]}')
+        log.debug(f'DECREASE - {change_function.__name__}: {state.possible_states[state.current_index + 1]} -> {state.possible_states[state.current_index]}')
 
         return True
 

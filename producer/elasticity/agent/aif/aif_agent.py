@@ -83,20 +83,14 @@ class ActiveInferenceAgent(ElasticityAgent):
         q_s = self.agent.infer_states(observations)
         q_pi, efe = self.agent.infer_policies()
 
-        #print(q_s)
-        #print('-------------')
-        #print(q_pi)
-        #print('-------------')
-        #print(efe)
-        #print('-------------')
+        actions = np.array(self.agent.sample_action(), dtype=int).tolist()
+        print(f'sampled actions: {actions}')
 
-        actions = self.agent.sample_action()
-        print(f'sampled actions: {actions}') # TODO check which actions are returned
+        #self._perform_actions(actions)
+        #return ActionType.NONE, True
 
         are_slos_satisfied = all(slo == SloStatus.OK for slo in observations[-self.num_slo:])
-
-        action_to_perform = self.select_action(actions, are_slos_satisfied)
-
+        action_to_perform = self._select_action(actions, are_slos_satisfied)
         # Perform the selected action
         success = self._perform_action(action_to_perform)
 
@@ -400,13 +394,18 @@ class ActiveInferenceAgent(ElasticityAgent):
             case _:
                 raise ValueError(f"Unknown action type: {action}")
 
-    def select_action(self, actions_idxs: list, slo_satisfied) -> ActionType:
+    def _perform_actions(self, actions_idxs: list):
+        """Tries to perform all actions given by actions_idxs"""
+        for action_idx in actions_idxs:
+            self._perform_action(self.actions[action_idx])
+
+    def _select_action(self, actions_idxs: list[int], slo_satisfied) -> ActionType:
         """Smart action selection that considers SLO status"""
 
         # If SLOs are violated, prioritize corrective actions
         if not slo_satisfied:
             for action_idx in actions_idxs:
-                action = self.actions[int(action_idx)]
+                action = self.actions[action_idx]
                 if action in [ActionType.DECREASE_RESOLUTION,
                               ActionType.DECREASE_FPS,
                               ActionType.DECREASE_WORK_LOAD]:

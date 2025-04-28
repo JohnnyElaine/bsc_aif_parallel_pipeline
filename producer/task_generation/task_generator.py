@@ -74,6 +74,9 @@ class TaskGenerator(Thread):
         self._numerator //= gcd
         self._denominator //= gcd
 
+    def set_resolution(self, res: Resolution):
+        self._target_resolution = res
+
     def _stream_video(self):
         ok = True
         self._time_last_frame_generated_at = time.perf_counter() # init before first iteration
@@ -118,6 +121,3 @@ class TaskGenerator(Thread):
 
     def _stop_request_handler(self):
         self._queue.put(Task(TaskType.END, -1, np.empty(0)))
-
-    def _is_resolution_changed(self):
-        return self._target_resolution[0]
