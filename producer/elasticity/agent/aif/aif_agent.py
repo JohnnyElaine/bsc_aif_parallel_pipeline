@@ -361,12 +361,6 @@ class ActiveInferenceAgent(ElasticityAgent):
 
         queue_slo_status, memory_slo_status = self.slo_manager.get_all_slo_status(track_stats=True)
 
-        #if queue_slo_status == SloStatus.CRITICAL:
-        #    log.debug('queue SLO not fulfilled')
-
-        #if memory_slo_status == SloStatus.CRITICAL:
-        #    log.debug('memory SLO not fulfilled')
-
         observations = [
             self.elasticity_handler.state_resolution.current_index,
             self.elasticity_handler.state_fps.current_index,

@@ -21,11 +21,11 @@ class TestAgent(ElasticityAgent):
         self.slo_manager.get_all_slo_status(track_stats=True)
 
         self.count += 1
-        #if self.count == -1:
-        #    success = self.elasticity_handler.decrease_work_load()
-        #    return ActionType.DECREASE_WORK_LOAD, success
+        if self.count == 5:
+            success = self.elasticity_handler.decrease_work_load()
+            return GeneralActionType.DECREASE_WORK_LOAD, success
 
-        if self.count % 2 == 0:
-            return GeneralActionType.DECREASE_FPS, self.elasticity_handler.decrease_fps()
+        #if self.count % 2 == 0:
+        #    return GeneralActionType.DECREASE_FPS, self.elasticity_handler.decrease_fps()
 
         return GeneralActionType.NONE, True

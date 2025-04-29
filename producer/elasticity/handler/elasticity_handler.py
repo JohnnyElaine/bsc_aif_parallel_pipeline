@@ -42,8 +42,6 @@ class ElasticityHandler:
             target_config.max_work_load,
             ElasticityHandler._generate_possible_work_loads(target_config.max_work_load))
 
-        # TODO check if functions needs synchronization
-
     @property
     def resolution(self):
         """

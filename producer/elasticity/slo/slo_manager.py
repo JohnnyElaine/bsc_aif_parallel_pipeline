@@ -61,21 +61,21 @@ class SloManager:
 
     def get_qsize_slo_state_probabilities(self) -> list:
         """
-        Calculate probabilities for each queue SLO state (SATISFIED, WARNING, UNSATISFIED).
+        Calculate probabilities for each queue SLO state (OK, WARNING, CRITICAL).
         Uses the ratio of current queue size to maximum allowed queue size.
 
         Returns:
-            list: Probabilities for each SLO state [p_satisfied, p_warning, p_unsatisfied]
+            list: Probabilities for each SLO state [p_ok, p_warning, p_critical]
         """
         return SloManager._get_slo_state_probabilities(self.get_qsize_ratio())
 
     def get_mem_slo_state_probabilities(self) -> list:
         """
-        Calculate probabilities for each memory SLO state (SATISFIED, WARNING, UNSATISFIED).
+        Calculate probabilities for each memory SLO state (OK, WARNING, CRITICAL).
         Uses the ratio of current memory usage to maximum allowed memory usage.
 
         Returns:
-            list: Probabilities for each SLO state [p_satisfied, p_warning, p_unsatisfied]
+            list: Probabilities for each SLO state [p_ok, p_warning, p_critical]
         """
         return SloManager._get_slo_state_probabilities(self.get_mem_ratio())
     
@@ -92,7 +92,6 @@ class SloManager:
             return SloStatus.WARNING
         else:
             return SloStatus.CRITICAL # critical zone (slo not satisfied)
-
 
     @staticmethod
     def _get_slo_state_probabilities(ratio: float):

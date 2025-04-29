@@ -22,7 +22,7 @@ class Measurement:
     @staticmethod
     def run_all_simulations():
         #Measurement.run_and_plot_simulation(AgentType.ACTIVE_INFERENCE, SimulationType.BASIC)
-        Measurement.run_and_plot_simulation(AgentType.ACTIVE_INFERENCE, SimulationType.BASIC)
+        Measurement.run_and_plot_simulation(AgentType.TEST, SimulationType.BASIC)
 
     @staticmethod
     def run_and_plot_simulation(agent_type: AgentType, sim_type: SimulationType):

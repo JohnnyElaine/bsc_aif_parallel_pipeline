@@ -12,7 +12,7 @@ class ElasticityAgent(ABC):
     def __init__(self, elasticity_handler: ElasticityHandler):
         self.elasticity_handler = elasticity_handler
         self.slo_manager = SloManager(self.elasticity_handler, max_queue_size=self.elasticity_handler.max_fps * 3,
-                                      max_memory_usage= 0.8)
+                                      max_memory_usage= 0.9)
 
     @abstractmethod
     def step(self) -> tuple[GeneralActionType, bool]:
