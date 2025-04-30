@@ -15,12 +15,11 @@ class ElasticityAgent(ABC):
                                       max_memory_usage= 0.9)
 
     @abstractmethod
-    def step(self) -> tuple[GeneralActionType, bool]:
+    def step(self):
         """
         Perform a single step of the agent
 
         Returns:
-            tuple[GeneralActionType, bool]: The action taken and whether it was successful
         """
         pass
 

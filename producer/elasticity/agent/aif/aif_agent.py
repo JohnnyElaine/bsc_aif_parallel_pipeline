@@ -13,6 +13,7 @@ log = logging.getLogger('producer')
 
 
 class ActiveInferenceAgent(ElasticityAgent):
+    # TODO: figure out why agents actions are suddenly inverted
     """
     Active Inference Agent that uses the Free Energy Principle to maintain
     Service Level Objectives (SLOs) in a distributed video processing system.
@@ -26,6 +27,11 @@ class ActiveInferenceAgent(ElasticityAgent):
     OBS_WORK_LOAD_INDEX = 2
     OBS_QUEUE_SIZE_INDEX = 3
     OBS_MEMORY_USAGE_INDEX = 4
+
+    # Action indices
+    ACTION_RESOLUTION_INDEX = 0
+    ACTION_FPS_INDEX = 1
+    ACTION_WORK_LOAD_INDEX = 2
 
     # Observation preferences
     VERY_STRONG_PREFERENCE = 4.0
@@ -65,7 +71,11 @@ class ActiveInferenceAgent(ElasticityAgent):
         self.fps_actions = list(ActionType)
         self.work_load_actions = list(ActionType)
 
-        self.control_dims = [len(self.resolution_actions), len(self.fps_actions), len(self.work_load_actions)]
+        self.num_resolution_actions = len(self.resolution_actions)
+        self.num_fps_actions = len(self.fps_actions)
+        self.num_work_load_actions = len(self.work_load_actions)
+
+        self.control_dims = [self.num_resolution_actions, self.num_fps_actions, self.num_work_load_actions]
 
         # 3 states for SLO status: SATISFIED, WARNING, UNSATISFIED
         self.num_queue_states = len(SloStatus)
@@ -73,16 +83,12 @@ class ActiveInferenceAgent(ElasticityAgent):
 
         self.num_slo = 2
 
-        # Define all actions
-        self.actions = list(GeneralActionType)
-        self.num_actions = len(self.actions)
-
         # policy settings
         self.policy_length = policy_length
 
         self._setup_generative_model()
 
-    def step(self) -> tuple[GeneralActionType, bool]:
+    def step(self):
         """
         Perform a single step of the active inference loop
 
@@ -95,22 +101,18 @@ class ActiveInferenceAgent(ElasticityAgent):
         q_s = self.agent.infer_states(observations)
         q_pi, efe = self.agent.infer_policies()
 
-        actions = np.array(self.agent.sample_action(), dtype=int).tolist()
-        print(f'sampled actions: {actions}')
+        actions_idx = np.array(self.agent.sample_action(), dtype=int).tolist()
+        print(f'sampled actions: {actions_idx}')
 
-        #self._perform_actions(actions)
-        #return ActionType.NONE, True
+        success = self._perform_actions(actions_idx)
+        return ActionType.NONE, success
 
-        are_slos_satisfied = all(slo == SloStatus.OK for slo in observations[-self.num_slo:])
-        action_to_perform = self._select_action(actions, are_slos_satisfied)
-        # Perform the selected action
-        success = self._perform_action(action_to_perform)
+        # are_slos_satisfied = all(slo == SloStatus.OK for slo in observations[-self.num_slo:])
+        # action_to_perform = self._select_action(actions_idx, are_slos_satisfied)
+        # # Perform the selected action
+        # success = self._perform_action(action_to_perform)
 
-        # Update agent's beliefs based on the action taken
-        # Note: should not be needed, because we get the observations dynamically
-        #self.agent.infer_states(observations, action)
-
-        return action_to_perform, success
+        # return action_to_perform, success
 
     def reset(self):
         """Reset the agent's beliefs"""
@@ -124,7 +126,7 @@ class ActiveInferenceAgent(ElasticityAgent):
             planning_horizon: Number of time steps to plan ahead
         """
         # Define observation dimensions
-        self.obs_dims = [
+        self.num_obs = [
             self.num_resolution_states,  # Resolution state
             self.num_fps_states,  # FPS state
             self.num_work_load_states,  # Work load state
@@ -133,7 +135,7 @@ class ActiveInferenceAgent(ElasticityAgent):
         ]
 
         # Define state dimensions (hidden states)
-        self.state_dims = [
+        self.num_states = [
             self.num_resolution_states,  # Resolution state
             self.num_fps_states,  # FPS state
             self.num_work_load_states,  # Work load state
@@ -147,7 +149,15 @@ class ActiveInferenceAgent(ElasticityAgent):
         C = self._construct_C_matrix()
         D = self._construct_D_matrix()
 
-        self.agent = Agent(A=A, B=B, C=C, D=D)
+        #self.agent = Agent(A=A, B=B, C=C, D=D)
+        self.agent = Agent(
+            A=A, B=B, C=C, D=D,
+            num_controls=self.control_dims,
+            policy_len=self.policy_length,
+            control_fac_idx=[self.OBS_RESOLUTION_INDEX, self.OBS_FPS_INDEX, self.OBS_WORK_LOAD_INDEX],  # Indices that indicate which hidden state factors are directly controllable
+            inference_algo="VANILLA",
+            action_selection="deterministic"
+        )
 
     def _construct_A_matrix(self):
         """
@@ -158,11 +168,14 @@ class ActiveInferenceAgent(ElasticityAgent):
 
         A[observation][slo-status, resolution-state, fps-state, workload-state] = probability (0 - 1)
         """
-        A = utils.obj_array(len(self.obs_dims))
+        # TODO check if SLOs can be implemented differently
+        # TODO Idea. replace slo-status with dimensionality for each slo status, i.e. remove observation 3/4 and embedd them
+        # via A[observation][slo-status_qsize, slo_status_mem, resolution-state, fps-state, workload-state] = probability (0 - 1)
+        A = utils.obj_array(len(self.num_obs))
 
-        # For each observation modality, create a mapping from hidden states
-        for obs_idx in range(len(self.obs_dims)):
-            A[obs_idx] = np.zeros(self.obs_dims[obs_idx:obs_idx + 1] + self.state_dims)
+        # Initialize observation modalities
+        for obs_idx, obs_dim in enumerate(self.num_obs):
+            A[obs_idx] = np.zeros((obs_dim, *self.num_states))
 
         # Observation 0: Resolution state - direct mapping
         for i in range(self.num_resolution_states):
@@ -212,28 +225,23 @@ class ActiveInferenceAgent(ElasticityAgent):
         Because have multiple hidden state factors, the B becomes a list of arrays, one for each hidden state factor
         B[state-factor][s', s, a]
         """
-        B = utils.obj_array(len(self.state_dims))
+        B = utils.obj_array(len(self.num_states))
 
-        # TODO: check if probability_to_change_state = 1 (deterministic agent) is preffered
         probability_to_change_state = 1
 
         # State 0 - Resolution: Transitions for Resolution states based on actions
         B[ActiveInferenceAgent.OBS_RESOLUTION_INDEX] = self._construct_sub_transition_model(self.num_resolution_states,
-                                                                                            self.num_actions,
-                                                                                            GeneralActionType.INCREASE_RESOLUTION,
-                                                                                            GeneralActionType.DECREASE_RESOLUTION,
+                                                                                            self.num_resolution_actions,
                                                                                             probability_to_change_state)
 
         # State 1 - FPS: Transitions for FPS states based on actions
-        B[ActiveInferenceAgent.OBS_FPS_INDEX] = self._construct_sub_transition_model(self.num_fps_states, self.num_actions,
-                                                                                     GeneralActionType.INCREASE_FPS,
-                                                                                     GeneralActionType.DECREASE_FPS,
+        B[ActiveInferenceAgent.OBS_FPS_INDEX] = self._construct_sub_transition_model(self.num_fps_states,
+                                                                                     self.num_fps_actions,
                                                                                      probability_to_change_state)
 
         # State 2 - Work Load: Transitions for Work load states based on actions
-        B[ActiveInferenceAgent.OBS_WORK_LOAD_INDEX] = self._construct_sub_transition_model(self.num_work_load_states, self.num_actions,
-                                                                                     GeneralActionType.INCREASE_WORK_LOAD,
-                                                                                     GeneralActionType.DECREASE_WORK_LOAD,
+        B[ActiveInferenceAgent.OBS_WORK_LOAD_INDEX] = self._construct_sub_transition_model(self.num_work_load_states,
+                                                                                           self.num_work_load_actions,
                                                                                      probability_to_change_state)
 
         return B
@@ -243,11 +251,11 @@ class ActiveInferenceAgent(ElasticityAgent):
         Construct the C matrix (preference model) - Preferred observations
         C[observation-type, observation] = reward
         """
-        C = utils.obj_array(len(self.obs_dims))
+        C = utils.obj_array(len(self.num_obs))
 
         # For each observation modality, set preferences
-        for obs_idx in range(len(self.obs_dims)):
-            C[obs_idx] = np.zeros(self.obs_dims[obs_idx])
+        for obs_idx in range(len(self.num_obs)):
+            C[obs_idx] = np.zeros(self.num_obs[obs_idx])
 
         # Preferences for resolution - higher is better
         # Each level has a mildly higher preference then the one before, Scale to max defined via PREFERENCE
@@ -281,39 +289,21 @@ class ActiveInferenceAgent(ElasticityAgent):
 
     def _construct_D_matrix(self):
         """Construct the D matrix (prior preferences over states) - Initial state beliefs"""
-        # Initialize the D matrix with uniform prior over states
-        D = utils.obj_array(len(self.state_dims))
+        D = utils.obj_array(len(self.num_states))
 
-        # For each hidden state factor, set initial beliefs based on current state
-        for state_idx in range(len(self.state_dims)):
-            D[state_idx] = np.ones(self.state_dims[state_idx]) / self.state_dims[state_idx]
+        current_states = [
+            self.elasticity_handler.state_resolution.current_index,
+            self.elasticity_handler.state_fps.current_index,
+            self.elasticity_handler.state_work_load.current_index
+        ]
 
-        # Here's the problematic part - you're trying to set specific indices to 1.0
-        # which breaks the probability distribution. Instead:
-
-        # Reset to zeros first
-        for state_idx in range(len(self.state_dims)):
-            D[state_idx] = np.zeros(self.state_dims[state_idx])
-
-        # Set the actual starting state as prior (with probability 1.0)
-        # State 0 - Resolution
-        D[ActiveInferenceAgent.OBS_RESOLUTION_INDEX][self.elasticity_handler.state_resolution.current_index] = 1.0
-        # State 1 - FPS
-        D[ActiveInferenceAgent.OBS_FPS_INDEX][self.elasticity_handler.state_fps.current_index] = 1.0
-        # State 2 - Work Load
-        D[ActiveInferenceAgent.OBS_WORK_LOAD_INDEX][self.elasticity_handler.state_work_load.current_index] = 1.0
-
-        # Ensure they are proper probability distributions
-        for state_idx in range(len(self.state_dims)):
-            if np.sum(D[state_idx]) == 0:  # Handle case where index might be out of bounds
-                D[state_idx] = np.ones(self.state_dims[state_idx]) / self.state_dims[state_idx]
-            else:
-                D[state_idx] = D[state_idx] / np.sum(D[state_idx])
+        for i, state in enumerate(current_states):
+            D[i] = np.zeros(self.num_states[i])
+            D[i][state] = 1.0
 
         return D
 
-    def _construct_sub_transition_model(self, num_states: int, num_actions: int, increase_action: GeneralActionType,
-                                        decrease_action: GeneralActionType, probability_to_change_state: float):
+    def _construct_sub_transition_model(self, num_states: int, num_actions: int, probability_to_change_state: float):
         """
         Construct a  sub-B matrix (transition model) - Mapping from current states and actions to next states
         Specifies the probability of moving from one hidden state to another, given a particular action.
@@ -323,29 +313,23 @@ class ActiveInferenceAgent(ElasticityAgent):
 
         B = np.zeros((num_states, num_states, num_actions))
 
-        # Identity matrix (stay in same state) for all actions except increase/decrease
-        for action_idx in range(num_actions):
-            if action_idx == increase_action.value:
-                for i in range(num_states):
-                    if i == num_states - 1:  # Maximum state - can't increase further
-                        B[i, i, action_idx] = 1.0
-                    else:
-                        B[i + 1, i, action_idx] = probability_to_change_state
-                        B[i, i, action_idx] = 1 - probability_to_change_state
-
-            elif action_idx == decrease_action.value:
-                for i in range(num_states):
-                    if i == 0:  # Minimum state - can't decrease further
-                        B[i, i, action_idx] = 1.0
-                    else:
-                        B[i - 1, i, action_idx] = probability_to_change_state
-                        B[i, i, action_idx] = 1 - probability_to_change_state
-            else:
-                # For all other actions, state stays the same
-                for i in range(num_states):
-                    B[i, i, action_idx] = 1.0
+        for action in range(num_actions):
+            for state in range(num_states):
+                if action == ActionType.INCREASE.value:
+                    # increasing value leaves you at state+1 or at max if you cannot increase further
+                    next_state = min(state + 1, num_states - 1)
+                    B[next_state, state, action] = probability_to_change_state
+                elif action == ActionType.DECREASE.value:
+                    # decreasing value leaves you at state-11 or at 0 if you cannot decrease further
+                    next_state = max(state - 1, 0)
+                    B[next_state, state, action] = 1.0
+                else:
+                    # no action = no change in state
+                    next_state = state
+                    B[next_state, state, action] = 1.0
 
         return B
+
 
     def _get_observations(self) -> list[int]:
         """
@@ -396,27 +380,46 @@ class ActiveInferenceAgent(ElasticityAgent):
             case _:
                 raise ValueError(f"Unknown action type: {action}")
 
-    def _perform_actions(self, actions_idxs: list):
-        """Tries to perform all actions given by actions_idxs"""
-        for action_idx in actions_idxs:
-            self._perform_action(self.actions[action_idx])
+    def _perform_actions(self, actions: list[int]):
+        """Tries to perform for all state dimensions"""
+        success = True
 
-    def _select_action(self, actions_idxs: list[int], slo_satisfied) -> GeneralActionType:
-        """Smart action selection that considers SLO status"""
+        # Resolution action
+        if actions[self.ACTION_RESOLUTION_INDEX] == ActionType.INCREASE:
+            success &= self.elasticity_handler.increase_resolution()
+        elif actions[self.ACTION_RESOLUTION_INDEX] == ActionType.DECREASE:
+            success &= self.elasticity_handler.decrease_resolution()
 
-        # If SLOs are violated, prioritize corrective actions
-        if not slo_satisfied:
-            for action_idx in actions_idxs:
-                action = self.actions[action_idx]
-                if action in [GeneralActionType.DECREASE_RESOLUTION,
-                              GeneralActionType.DECREASE_FPS,
-                              GeneralActionType.DECREASE_WORK_LOAD]:
-                    return action
+        # FPS action
+        if actions[self.ACTION_FPS_INDEX] == ActionType.INCREASE:
+            success &= self.elasticity_handler.increase_fps()
+        elif actions[self.ACTION_FPS_INDEX] == ActionType.DECREASE:
+            success &= self.elasticity_handler.decrease_fps()
 
-        # Otherwise use normal preference-driven selection
-        for action_idx in actions_idxs:
-            action = self.actions[int(action_idx)]
-            if action != GeneralActionType.NONE:
-                return action
+        # Workload action
+        if actions[self.ACTION_WORK_LOAD_INDEX] == ActionType.INCREASE:
+            success &= self.elasticity_handler.increase_work_load()
+        elif actions[self.ACTION_WORK_LOAD_INDEX] == ActionType.DECREASE:
+            success &= self.elasticity_handler.decrease_work_load()
 
-        return GeneralActionType.NONE
+        return success
+
+    #def _select_action(self, actions_idxs: list[int], slo_satisfied) -> GeneralActionType:
+    #    """Smart action selection that considers SLO status"""
+#
+    #    # If SLOs are violated, prioritize corrective actions
+    #    if not slo_satisfied:
+    #        for action_idx in actions_idxs:
+    #            action = self.actions[action_idx]
+    #            if action in [GeneralActionType.DECREASE_RESOLUTION,
+    #                          GeneralActionType.DECREASE_FPS,
+    #                          GeneralActionType.DECREASE_WORK_LOAD]:
+    #                return action
+#
+    #    # Otherwise use normal preference-driven selection
+    #    for action_idx in actions_idxs:
+    #        action = self.actions[int(action_idx)]
+    #        if action != GeneralActionType.NONE:
+    #            return action
+#
+    #    return GeneralActionType.NONE

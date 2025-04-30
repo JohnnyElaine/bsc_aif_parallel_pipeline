@@ -42,7 +42,7 @@ class Measurement:
     def run_basic_simulation(agent_type: AgentType) -> dict[str, pd.DataFrame]:
         num_workers = 3
 
-        worker_capacities = [1 for _ in range(num_workers)]
+        worker_capacities = [0.3 for _ in range(num_workers)]
         #worker_capacities = [1, 1, 1]
 
         sim = BasicSimulation(Measurement.LOCALHOST, Measurement.PRODUCER_PORT, Measurement.LOCALHOST,
