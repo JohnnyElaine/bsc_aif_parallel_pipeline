@@ -60,18 +60,18 @@ class ActiveInferenceAgent(ElasticityAgent):
         self.num_fps_states = len(possible_fps)
         self.num_work_load_states = len(possible_work_loads)
 
-        # 3 states for SLO status: SATISFIED, WARNING, UNSATISFIED
-        self.num_queue_states = len(SloStatus)
-        self.num_memory_states = len(SloStatus)
-
-        self.num_slo = 2
-
-        # Define general actions (for each dimensionality)
+        # Define actions (for each state dimension)
         self.resolution_actions = list(ActionType)
         self.fps_actions = list(ActionType)
         self.work_load_actions = list(ActionType)
 
         self.control_dims = [len(self.resolution_actions), len(self.fps_actions), len(self.work_load_actions)]
+
+        # 3 states for SLO status: SATISFIED, WARNING, UNSATISFIED
+        self.num_queue_states = len(SloStatus)
+        self.num_memory_states = len(SloStatus)
+
+        self.num_slo = 2
 
         # Define all actions
         self.actions = list(GeneralActionType)
@@ -141,9 +141,6 @@ class ActiveInferenceAgent(ElasticityAgent):
         # In pymdp, there's a fundamental assumption that each state dimension can be controlled by a
         # separate action dimension. This has 3 state dimensions (Resolution, fps, workload), so
         # pymdp agent.sample_action() function is returning an action for each dimension - hence the array of 3 values.
-
-
-        self.control_dims = [self.num_actions]
 
         A = self._construct_A_matrix()
         B = self._construct_B_matrix()
@@ -217,27 +214,27 @@ class ActiveInferenceAgent(ElasticityAgent):
         """
         B = utils.obj_array(len(self.state_dims))
 
-        # For each hidden state factor, create a mapping based on actions
-        for state_idx in range(len(self.state_dims)):
-            B[state_idx] = np.zeros([self.state_dims[state_idx], self.state_dims[state_idx], self.num_actions])
-
-        # TODO: check if i should change probability to 100% & 0% to guarantee change of state
-        probability_to_change_state = 0.9
+        # TODO: check if probability_to_change_state = 1 (deterministic agent) is preffered
+        probability_to_change_state = 1
 
         # State 0 - Resolution: Transitions for Resolution states based on actions
-        self._construct_sub_transition_model(B, ActiveInferenceAgent.OBS_RESOLUTION_INDEX, self.num_actions,
-                                             self.num_resolution_states, GeneralActionType.INCREASE_RESOLUTION,
-                                             GeneralActionType.DECREASE_RESOLUTION, probability_to_change_state)
+        B[ActiveInferenceAgent.OBS_RESOLUTION_INDEX] = self._construct_sub_transition_model(self.num_resolution_states,
+                                                                                            self.num_actions,
+                                                                                            GeneralActionType.INCREASE_RESOLUTION,
+                                                                                            GeneralActionType.DECREASE_RESOLUTION,
+                                                                                            probability_to_change_state)
 
         # State 1 - FPS: Transitions for FPS states based on actions
-        self._construct_sub_transition_model(B, ActiveInferenceAgent.OBS_FPS_INDEX, self.num_actions,
-                                             self.num_fps_states, GeneralActionType.INCREASE_FPS,
-                                             GeneralActionType.DECREASE_FPS, probability_to_change_state)
+        B[ActiveInferenceAgent.OBS_FPS_INDEX] = self._construct_sub_transition_model(self.num_fps_states, self.num_actions,
+                                                                                     GeneralActionType.INCREASE_FPS,
+                                                                                     GeneralActionType.DECREASE_FPS,
+                                                                                     probability_to_change_state)
 
         # State 2 - Work Load: Transitions for Work load states based on actions
-        self._construct_sub_transition_model(B, ActiveInferenceAgent.OBS_WORK_LOAD_INDEX, self.num_actions,
-                                             self.num_work_load_states, GeneralActionType.INCREASE_WORK_LOAD,
-                                             GeneralActionType.DECREASE_WORK_LOAD, probability_to_change_state)
+        B[ActiveInferenceAgent.OBS_WORK_LOAD_INDEX] = self._construct_sub_transition_model(self.num_work_load_states, self.num_actions,
+                                                                                     GeneralActionType.INCREASE_WORK_LOAD,
+                                                                                     GeneralActionType.DECREASE_WORK_LOAD,
+                                                                                     probability_to_change_state)
 
         return B
 
@@ -315,41 +312,40 @@ class ActiveInferenceAgent(ElasticityAgent):
 
         return D
 
-    def _construct_sub_transition_model(self,
-                                        B: np.ndarray,
-                                        state_index: int,
-                                        num_actions: int,
-                                        num_states: int,
-                                        increase_action: GeneralActionType,
-                                        decrease_action: GeneralActionType,
-                                        probability_to_change_state: float):
+    def _construct_sub_transition_model(self, num_states: int, num_actions: int, increase_action: GeneralActionType,
+                                        decrease_action: GeneralActionType, probability_to_change_state: float):
         """
         Construct a  sub-B matrix (transition model) - Mapping from current states and actions to next states
         Specifies the probability of moving from one hidden state to another, given a particular action.
         B[s', s, a] = probability of transitioning from state s to s' under action a
         B[s', s, a] = (0-1)
         """
+
+        B = np.zeros((num_states, num_states, num_actions))
+
         # Identity matrix (stay in same state) for all actions except increase/decrease
         for action_idx in range(num_actions):
             if action_idx == increase_action.value:
                 for i in range(num_states):
                     if i == num_states - 1:  # Maximum state - can't increase further
-                        B[state_index][i, i, action_idx] = 1.0
+                        B[i, i, action_idx] = 1.0
                     else:
-                        B[state_index][i + 1, i, action_idx] = probability_to_change_state
-                        B[state_index][i, i, action_idx] = 1 - probability_to_change_state
+                        B[i + 1, i, action_idx] = probability_to_change_state
+                        B[i, i, action_idx] = 1 - probability_to_change_state
 
             elif action_idx == decrease_action.value:
                 for i in range(num_states):
                     if i == 0:  # Minimum state - can't decrease further
-                        B[state_index][i, i, action_idx] = 1.0
+                        B[i, i, action_idx] = 1.0
                     else:
-                        B[state_index][i - 1, i, action_idx] = probability_to_change_state
-                        B[state_index][i, i, action_idx] = 1 - probability_to_change_state
+                        B[i - 1, i, action_idx] = probability_to_change_state
+                        B[i, i, action_idx] = 1 - probability_to_change_state
             else:
                 # For all other actions, state stays the same
                 for i in range(num_states):
-                    B[state_index][i, i, action_idx] = 1.0
+                    B[i, i, action_idx] = 1.0
+
+        return B
 
     def _get_observations(self) -> list[int]:
         """

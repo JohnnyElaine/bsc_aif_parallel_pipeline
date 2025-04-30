@@ -11,7 +11,7 @@ from producer.elasticity.slo.slo_status import SloStatus
 log = logging.getLogger('producer')
 
 
-class ActiveInferenceAgentExperimental(ElasticityAgent):
+class ActiveInferenceAgentExperimental1(ElasticityAgent):
     # Observation indices
     OBS_RESOLUTION_INDEX = 0
     OBS_FPS_INDEX = 1
@@ -63,7 +63,12 @@ class ActiveInferenceAgentExperimental(ElasticityAgent):
 
         # Sample actions with SLO-aware adjustment
         action_indices = np.array(self.agent.sample_action(), dtype=int).tolist()
-        actions = self._adjust_actions_based_on_slo(action_indices, slo_status)
+        #actions = self._adjust_actions_based_on_slo(action_indices, slo_status)
+        actions = [
+            self.resolution_actions[action_indices[self.ACTION_RESOLUTION_INDEX]],
+            self.fps_actions[action_indices[self.ACTION_FPS_INDEX]],
+            self.work_load_actions[action_indices[self.ACTION_WORK_LOAD_INDEX]],
+        ]
 
         # Execute actions
         success = self._perform_actions(actions, slo_status)
