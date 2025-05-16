@@ -16,9 +16,9 @@ class ResultSendingPipeline(Process):
     def run(self):
         log = logging.setup_logging('result_sending')
         log.debug('starting result-sending-pipeline')
-        result_queue = Queue()
-        result_receiver = PipeResultReceiver(result_queue, self._result_pipe)
-        result_sender = ResultSender(result_queue, self._collector_ip, self._collector_port)
+        done_results_queue = Queue()
+        result_receiver = PipeResultReceiver(done_results_queue, self._result_pipe)
+        result_sender = ResultSender(done_results_queue, self._collector_ip, self._collector_port)
 
         result_receiver.start()
         result_sender.start()

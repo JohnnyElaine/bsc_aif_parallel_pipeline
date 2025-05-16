@@ -14,7 +14,7 @@ class WorkerInfo:
     def has_pending_changes(self):
         return len(self.change_backlog) > 0
 
-    def get_all_pending_changes(self):
+    def get_all_pending_changes(self) -> dict:
         # format changes as dict.
         # If there are multiple changes of the same type, only the most recent one (higher index in list) is used
         changes = {change.type: change.data.item() for change in self.change_backlog}

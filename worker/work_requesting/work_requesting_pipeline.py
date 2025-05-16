@@ -19,9 +19,9 @@ class WorkRequestingPipeline(Process):
 
         log.debug('starting work-requesting-pipeline')
         # create shared (frame buffer) queue for work_requester & pipe sender
-        task_queue = Queue()
-        work_requester = ZmqWorkRequester(task_queue, self._channel, outage_config=self._outage_config)
-        pipe_sender = PipeTaskSender(task_queue, self._task_pipe)
+        task_todo_queue = Queue()
+        work_requester = ZmqWorkRequester(task_todo_queue, self._channel, outage_config=self._outage_config)
+        pipe_sender = PipeTaskSender(task_todo_queue, self._task_pipe)
 
         work_requester.start()
         pipe_sender.start()
