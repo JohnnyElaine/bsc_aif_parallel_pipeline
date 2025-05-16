@@ -1,13 +1,17 @@
 # Description
-This is a general distributed Parallel Pipeline that processes streaming related tasks, in edge computing cases.
-The idea being that data stream is split up into smaller chunks, which are then distributed to multiple workers (edge computing devices) running in parallel. 
-The results of each worker are then collected and reconstructed outputting the modified stram.
+This project implements a distributed parallel pipeline for processing streaming data in edge computing environments. 
+The main idea is to split a data stream into smaller chunks that are distributed across multiple workers (edge nodes) running in parallel. 
+Each worker processes its chunk, and the results are aggregated to form a modified output stream.
 
-For evaluation purposes a video-stream was chosen as the stream source. The main computational task is running YOLOv11 inference said live video stream. 
+The architecture draws inspiration from a [Apache Storm Topology](https://storm.apache.org/releases/2.7.1/Tutorial.html), consisting of:
+A single Sprout (The collector), an internal layer of Bolts (Workers) and an aggregate Bolt (Collector).
 
-But this general framework is designed to work for arbitrary data streams with any type of computation that can be parallelized. (e.g. video-,audio-,LIDAR-,RADAR-,network-traffic-,sensor-data-streams, etc)
 
-Given the resources limited nature of edge computing, the system has to implement some elasticity measures to upholding a certain level of Quality of Experience (QoE) / Quality of Service (QoS) depending on the stream type.
+For evaluation, a video stream is used as input, with YOLOv11 running inference on live video frames. However, the framework is generic and applicable to any parallelizable data stream, such as audio, LIDAR, RADAR, network traffic, or sensor data.
+
+## Motivation
+Edge computing offers scalable, low-latency processing closer to data sources, but is constrained by limited resources. 
+This pipeline supports elasticity—the ability to dynamically adjust stream quality parameters in order to uphold a certain level of Quality of Experience (QoE) / Quality of Service (QoS) depending on the stream type, even when resources are constraint.
 Elasticity specifically meaning to ability to dynamically manipulate certain quality parameters of the datastream in order to control overall computational load on the worker-nodes. 
 Because we are in an edge computing scenario, we can't simply add more worker nodes when computational demand is high. 
 This means that if the output stream of the parallel pipeline is not up to predefined QoE standard, then the stream must reduce quality parameters of some kind in order to reduce overall computational load on the system.
@@ -17,17 +21,15 @@ Active Inference (AIF) is an emerging concept from neuroscience that describes h
 The goal if the AIF agent is to maximize the quality metrics of the output-stream while providing a predefined level of QoE. 
 This delicate balance is implemented using certain preference regarding the quality metrics of the stream and Service Level Objectives (SLOs) in order to keep resource usage within bounds.
 
-The distributed parallel pipeline consists of 3 programs:
-- Producer
-- Worker
-- Collector
+## Architecture
+The pipeline consists of three main components:
+- Producer: Generates and controls task flow.
+- Worker: Processes tasks (e.g., YOLO inference).
+- Collector: Aggregates processed results.
 
-The producer creates tasks that are then distributed to the workers. The [workers](#collector) run a processes the tasks. The results are then sent to the [collector](#collector), where they are reconstructed in order to form the output stream.
-
-The rest of the description will assume that the data-stream is a video-stream and the computational task is YOLOv11 inference.
-
+Throughout this README, examples refer to video streams and YOLOv11 inference, but the pipeline is general-purpose.
 ## Producer
-The producer constantly creates a stream of data. This data (e.g. frames in our example) comes in the form of `Task` objects. 
+The Producer continuously generates a stream of tasks. A ``Task`` object represents a single unit of work (e.g. a video frame).
 
 A `Task` consists of 3 fields:
 - `id` The `integer` id of the task
@@ -43,52 +45,49 @@ Task:
     data = np.ndarray
 ```
 
-During the producers runtime it continuously creates new tasks and stores them in an internal buffer, called the task queue. The tasks remain in this queue until a worker requests work via the [Work-API](#work-api).
-This implies that if the tasks are produced faster than they are consumed, then the task queue will grow indefinitely until the end of the runtime. In order to mitigate this problem the producers acts as a type of [controlling entity](#controlling-entity). 
+During the producers runtime it continuously creates new tasks and stores them in an internal buffer, called the task queue. The tasks remain in this queue until a worker requests work via the [Work-API](#work-api), consuming the task.
+If the tasks are produced faster than they are consumed, then the task queue will grow indefinitely. In order to mitigate this problem the producers acts as a type of [controlling entity](#controlling-entity). 
 Meaning that it can manipulate certain parameters to increase/decrease the overall required computational load in order to mitigate the concerns of a growing task queue.
 
 When the producer has finished it signals all workers to shut down by sending a `Task` with `type=END`
 
 ### Elasticity
-The producer also serves as a controlling entity regarding elasticity for the rest of the network, holding the information about the current state of the video stream and propagating changes when they occur.
-The secondary goal of the producer is to ensure maximum Quality of Experience (QoE) under the tight resource constraints of an edge computing network.
-Quality of Experience (QoE) in this context defines 3 user-centric parameters:
+The producer also monitors and adjusts stream parameters to maintain user-defined QoE under constrained resources
+It tracks information about the current state of the video stream and propagating changes when they occur.
+The three QoE parameters are:
 
-- **FPS:** FPS of the video stream
-- **Resolution:** Resolution of the video stream.
-- **Quality:** Grade of the YOLOv11 model used.
+1. **FPS:** FPS of the video stream
+2. **Resolution:** Resolution of the video stream.
+3. **Quality:** Grade of the YOLOv11 model used.
 
-In order to balance the QoE with the high demand for computational resources, the producer implements certain [Service Level Objectives (SLOs)](#service-level-objectives-slos).
+It aims to:
+- Maximize these parameters
+- While meeting certain [Service Level Objectives (SLOs)](#service-level-objectives-slos): Memory Usage, Task Queue Size
 
 Under the constraints of the SLOs the producer aims to maximise the following 3 parameters (goals):
 1. keep resolution as close as possible to the source-resolution of the video-stream
 2. keep fps as close as possible to the source-fps of the underlying video-stream
 3. maximize the result of the YOLOv11 inference (Maximize WorkLoad)
-
-While the producer tries to fulfill the SLOs and maximize parameters (Workload, fps, resolution) at the same time, it is crucial that the SLO are of a much higher priority compared to the parameters.
-Especially since the parameters directly influence the probability of fulfilling the SLOs. Maximizing the video stream parameters is more a preference, rather than a priority
+4. 
+Keep in mind that higher stream parameters lead to a higher computational demand from the workers.
 
 #### Video Stream Parameters
-The producers implements elasticity by directly controlling the 3 video stream parameters.
-
-If the computational resources of the system are not enough to uphold certain Service level objectives (SLOs), then the AIF agent may reduce the video stream parameters by:
+**Stream Parameter Adjustment:** If SLOs are at risk, the producer (via the AIF agent) may:
 
 - **Quality:** Switch to a different grade YOLOv11 model.
 - **FPS:** Change source stream FPS
 - **Resolution:** Change source stream resolution
 
-**Goal:** The goal is to maximize QoE (video stream parameters) by utilizing the available resources of distributed system (workers), while fulfilling the given Service Level Objectives (SLOs).
+While the producer tries to fulfill the SLOs and maximize parameters (Workload, fps, resolution) at the same time, it is crucial that the SLO are of a much higher priority compared to the parameters.
+Especially since the parameters directly influence the probability of fulfilling the SLOs. Maximizing the video stream parameters is more a preference, rather than a priority
 
-Keep in mind that higher video stream parameters lead to a higher computational demand from the workers.
 
 ### Service Level Objectives (SLOs)
-A Service Level Objective (SLO) is a measureable objective that a system can enfoce. In this case we choose our SLOs in a way so that the producer can elastically adapt, by changing the 3 quality parameters (Quality, Resolution, FPS)
-
+A Service Level Objective (SLO) is a measureable objective that a system can enforce. In this case we choose our SLOs in a way so that the producer can elastically adapt, by changing the 3 quality parameters (Quality, Resolution, FPS)
 The Service Level Objectives (SLOs) are implemented by the Producer in order to ensure the highest possible Quality of Experience (QoE) given the current available resources.
-
 Possible SLOs include: processing time for x amount frames, energy consumption, buffer size, memory usage, etc.
 
-A SLO can have 3 types of states:
+SLOs guide the system to maintain QoE within operational limits. Each SLO can be in one of three states:
 - **OK:** The SLO is fulfilled
 - **WARNING:** The SLO is fulfilled, but close the the threshold of being unfulfilled
 - **CRITICAL:** The SLO is unfulfilled
@@ -136,7 +135,7 @@ These 3 concerns (requesting, processing, sending) are implemented in their own 
 
 ## Collector
 The collector continuously accepts results from  
-The Collector implements a ``zeromq.PULL`` socket that constantly accepts results from workers and reconstructs them to produce the final output video-stream.
+The Collector implements a ``zeromq.PULL`` socket that constantly accepts results from workers and aggregates them to produce the final output video-stream.
 
 
 ## Work-API
