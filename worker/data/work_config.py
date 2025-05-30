@@ -1,10 +1,10 @@
 from dataclasses import dataclass
 
-from packages.enums import WorkLoad, WorkType, LoadingMode
+from packages.enums import InferenceQuality, WorkType, LoadingMode
 
 
 @dataclass
 class WorkConfig:
     work_type: WorkType
-    work_load: WorkLoad
+    inference_quality: InferenceQuality
     loading_mode: LoadingMode

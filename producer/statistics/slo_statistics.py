@@ -6,15 +6,15 @@ class SloStatistics:
         # Quality config (percentage of max capacity (0-1), e.g. fps = 1.0 if streams runs at source fps)
         self.fps_capacity = []
         self.resolution_capacity = []
-        self.work_load_capacity = []
+        self.inference_quality = []
 
         # Raw metrics
         self.queue_size = []
         self.memory_usage = []
 
-        # SLO ratios
-        self.queue_size_slo_ratio = []
-        self.memory_usage_slo_ratio = []
+        # SLO values
+        self.queue_size_slo_value = []
+        self.memory_usage_slo_value = []
 
     def to_dataframe(self) -> pd.DataFrame:
         """
@@ -26,11 +26,11 @@ class SloStatistics:
         data = {
             'fps_capacity': self.fps_capacity,
             'resolution_capacity': self.resolution_capacity,
-            'work_load_capacity': self.work_load_capacity,
+            'work_load_capacity': self.inference_quality,
             'queue_size': self.queue_size,
             'memory_usage': self.memory_usage,
-            'queue_size_slo_ratio': self.queue_size_slo_ratio,
-            'memory_usage_slo_ratio': self.memory_usage_slo_ratio
+            'queue_size_slo_value': self.queue_size_slo_value,
+            'memory_usage_slo_value': self.memory_usage_slo_value
         }
 
         return pd.DataFrame(data)

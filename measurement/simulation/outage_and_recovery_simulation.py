@@ -6,7 +6,7 @@ from collector.collector_config import CollectorConfig
 from measurement.simulation.simulation import Simulation
 from packages.data import Video
 
-from packages.enums import WorkType, LoadingMode, WorkLoad
+from packages.enums import WorkType, LoadingMode, InferenceQuality
 from producer.enums.agent_type import AgentType
 from producer.producer import Producer
 from producer.producer_config import ProducerConfig
@@ -29,7 +29,7 @@ class OutageAndRecoverySimulation(Simulation):
                  collector_port: int,
                  work_type: WorkType,
                  loading_mode: LoadingMode,
-                 max_work_load: WorkLoad,
+                 max_work_load: InferenceQuality,
                  agent_type: AgentType,
                  vid_path: str,
                  regular_worker_capacities: list[float],

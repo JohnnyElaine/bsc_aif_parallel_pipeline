@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from packages.enums import WorkLoad, WorkType, LoadingMode
+from packages.enums import InferenceQuality, WorkType, LoadingMode
 from producer.enums.agent_type import AgentType
 
 
@@ -9,6 +9,6 @@ class ProducerConfig:
     port: int
     work_type: WorkType
     loading_mode: LoadingMode
-    max_work_load: WorkLoad
+    max_inference_quality: InferenceQuality
     agent_type: AgentType
     video_path: str

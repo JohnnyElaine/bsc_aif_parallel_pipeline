@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from packages.enums import WorkType, LoadingMode, WorkLoad
+from packages.enums import WorkType, LoadingMode, InferenceQuality
 from producer.enums.agent_type import AgentType
 from worker.worker import Worker
 from worker.worker_config import WorkerConfig
@@ -13,7 +13,7 @@ class Simulation(ABC):
                  collector_port: int,
                  work_type: WorkType,
                  loading_mode: LoadingMode,
-                 max_work_load: WorkLoad,
+                 max_work_load: InferenceQuality,
                  agent_type: AgentType,
                  vid_path: str):
         self.producer_ip = producer_ip

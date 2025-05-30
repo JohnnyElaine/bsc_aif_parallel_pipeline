@@ -2,23 +2,23 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 def plot_all_slo_stats(slo_stats):
-    plot_slo_ratios_over_time(slo_stats)
+    plot_slo_values_over_time(slo_stats)
     plot_quality_metrics(slo_stats)
 
-def plot_slo_ratios_over_time(slo_stats):
+def plot_slo_values_over_time(slo_stats):
     """Plot both SLO ratios over time with critical threshold"""
     slo_stats = slo_stats.reset_index()
 
     plt.figure(figsize=(12, 6))
 
-    sns.lineplot(data=slo_stats, x='index', y='queue_size_slo_ratio',
-                 label='Queue Size Ratio', color='blue', linewidth=2)
-    sns.lineplot(data=slo_stats, x='index', y='memory_usage_slo_ratio',
-                 label='Memory Usage Ratio', color='red', linewidth=2)
+    sns.lineplot(data=slo_stats, x='index', y='queue_size_slo_value',
+                 label='Queue Size Value', color='blue', linewidth=2)
+    sns.lineplot(data=slo_stats, x='index', y='memory_usage_slo_value',
+                 label='Memory Usage Value', color='red', linewidth=2)
 
     plt.axhline(y=1, color='black', linestyle='--', linewidth=2,
                 label='SLO Fulfillment Threshold')
-    plt.title('SLO Ratios Over Time', fontsize=16)
+    plt.title('SLO Values Over Time', fontsize=16)
     plt.xlabel('Time Index', fontsize=12)
     plt.ylabel('Ratio Value', fontsize=12)
     plt.legend(fontsize=12)
@@ -36,7 +36,7 @@ def plot_quality_metrics(slo_stats):
                  label='FPS', color='red', linewidth=2)
     sns.lineplot(data=slo_stats, x='index', y='resolution_capacity',
                  label='Resolution', color='green', linewidth=2)
-    sns.lineplot(data=slo_stats, x='index', y='work_load_capacity',
+    sns.lineplot(data=slo_stats, x='index', y='inference_quality_capacity',
                  label='Work Load (Pixels)', color='blue', linewidth=2)
 
     plt.title('Quality Metrics Over Time', fontsize=16)

@@ -33,8 +33,8 @@ class HeuristicAgent(ElasticityAgent):
         GeneralActionType.DECREASE_FPS: GeneralActionType.INCREASE_FPS,
         GeneralActionType.INCREASE_RESOLUTION: GeneralActionType.DECREASE_RESOLUTION,
         GeneralActionType.DECREASE_RESOLUTION: GeneralActionType.INCREASE_RESOLUTION,
-        GeneralActionType.INCREASE_WORK_LOAD: GeneralActionType.DECREASE_WORK_LOAD,
-        GeneralActionType.DECREASE_WORK_LOAD: GeneralActionType.INCREASE_WORK_LOAD
+        GeneralActionType.INCREASE_INFERENCE_QUALITY: GeneralActionType.DECREASE_INFERENCE_QUALITY,
+        GeneralActionType.DECREASE_INFERENCE_QUALITY: GeneralActionType.INCREASE_INFERENCE_QUALITY
     }
 
     def __init__(self, elasticity_handler: ElasticityHandler):
@@ -46,8 +46,8 @@ class HeuristicAgent(ElasticityAgent):
         self.consecutive_action_count = 0
 
         # Track SLO history to detect trends
-        self.queue_slo_ratio_history = []
-        self.memory_slo_ratio_history = []
+        self.queue_slo_value_history = []
+        self.memory_slo_value_history = []
 
         # Decision thresholds for proactive adjustments
         self.upscale_threshold = SloManager.WARNING_THRESHOLD
@@ -61,51 +61,35 @@ class HeuristicAgent(ElasticityAgent):
         Returns:
             tuple[GeneralActionType, bool]: The action taken and whether it was successful
         """
-        # Get current SLO ratios
-        queue_ratio, memory_ratio = self.slo_manager.get_all_slo_ratios(track_stats=True)
-        queue_status = SloManager.get_slo_status(queue_ratio)
-        memory_status = SloManager.get_slo_status(memory_ratio)
+        # Get current SLO values
+        queue_slo_value, memory_slo_ratio = self.slo_manager.get_all_slo_values(track_stats=True)
+        queue_status = SloManager.get_slo_status(queue_slo_value)
+        memory_status = SloManager.get_slo_status(memory_slo_ratio)
 
         # Update SLO history
-        self.queue_slo_ratio_history.append(queue_ratio)
-        self.memory_slo_ratio_history.append(memory_ratio)
-        if len(self.queue_slo_ratio_history) > self.SLO_HISTORY_SIZE:
-            self.queue_slo_ratio_history.pop(0)
-            self.memory_slo_ratio_history.pop(0)
+        self.queue_slo_value_history.append(queue_slo_value)
+        self.memory_slo_value_history.append(memory_slo_ratio)
+        if len(self.queue_slo_value_history) > self.SLO_HISTORY_SIZE:
+            self.queue_slo_value_history.pop(0)
+            self.memory_slo_value_history.pop(0)
 
         # Check if we're in cooldown period
         if self.cooldown_counter > 0:
             self.cooldown_counter -= 1
             return GeneralActionType.NONE, True
 
-        # Log current state
-
-        #log.debug(f"Capacities - FPS: {self.elasticity_handler.state_fps.get_capacity():.2f}, "
-        #          f"Resolution: {self.elasticity_handler.state_resolution.get_capacity():.2f}, "
-        #          f"WorkLoad: {self.elasticity_handler.state_work_load.get_capacity():.2f}")
-
         # Handle CRITICAL SLO states first (immediate action required)
         if queue_status == SloStatus.CRITICAL or memory_status == SloStatus.CRITICAL:
-            log.warning(f"Current state - Queue SLO: {queue_status.name} ({queue_ratio:.3f}), "
-                      f"Memory SLO: {memory_status.name} ({memory_ratio:.3f})")
+            log.warning(f"Current state - Queue SLO: {queue_status.name} ({queue_slo_value:.3f}), "
+                      f"Memory SLO: {memory_status.name} ({memory_slo_ratio:.3f})")
             log.warning(f"Current quality - FPS: {self.elasticity_handler.fps}, "
                       f"Resolution: {self.elasticity_handler.resolution}, "
-                      f"WorkLoad: {self.elasticity_handler.work_load}")
+                      f"WorkLoad: {self.elasticity_handler.inference_quality}")
 
             action, success = self._handle_critical_slo()
             if success:
                 self._update_action_tracking(action)
                 return action, success
-
-        # Handle WARNING SLO states (Do nothing)
-        return GeneralActionType.NONE, True
-
-        # Handle WARNING SLO states (proactive adjustments)
-        #if queue_status == SloStatus.WARNING or memory_status == SloStatus.WARNING:
-        #    action, success = self._handle_warning_slo()
-        #    if success:
-        #        self._update_action_tracking(action)
-        #        return action, success
 
         # If SLOs are OK, check if we can improve quality
         if queue_status == SloStatus.OK and memory_status == SloStatus.OK:
@@ -114,7 +98,10 @@ class HeuristicAgent(ElasticityAgent):
                 self._update_action_tracking(action)
                 return action, success
 
+        # Handle WARNING SLO states (Do nothing)
+
         return GeneralActionType.NONE, True
+
 
     def _handle_critical_slo(self) -> tuple[GeneralActionType, bool]:
         """
@@ -124,15 +111,15 @@ class HeuristicAgent(ElasticityAgent):
             tuple[GeneralActionType, bool]: Action taken and whether it was successful
         """
         # Get current capacities
-        res_capacity = self.elasticity_handler.state_resolution.get_capacity()
-        fps_capacity = self.elasticity_handler.state_fps.get_capacity()
-        workload_capacity = self.elasticity_handler.state_work_load.get_capacity()
+        res_capacity = self.elasticity_handler.state_resolution.capacity()
+        fps_capacity = self.elasticity_handler.state_fps.capacity()
+        workload_capacity = self.elasticity_handler.state_inference_quality.capacity()
 
         # Find which parameter has the highest capacity (most room to decrease)
         capacities = [
             (res_capacity, GeneralActionType.DECREASE_RESOLUTION, self.elasticity_handler.state_resolution.can_decrease()),
             (fps_capacity, GeneralActionType.DECREASE_FPS, self.elasticity_handler.state_fps.can_decrease()),
-            (workload_capacity, GeneralActionType.DECREASE_WORK_LOAD, self.elasticity_handler.state_work_load.can_decrease())
+            (workload_capacity, GeneralActionType.DECREASE_INFERENCE_QUALITY, self.elasticity_handler.state_inference_quality.can_decrease())
         ]
 
         # Filter to only those that can be decreased
@@ -149,7 +136,7 @@ class HeuristicAgent(ElasticityAgent):
         if self._are_capacities_even([cap for cap, _ in decreasable]):
             # If capacities are even, follow the specified order
             priority_order = [
-                GeneralActionType.DECREASE_WORK_LOAD,
+                GeneralActionType.DECREASE_INFERENCE_QUALITY,
                 GeneralActionType.DECREASE_FPS,
                 GeneralActionType.DECREASE_RESOLUTION
             ]
@@ -173,8 +160,8 @@ class HeuristicAgent(ElasticityAgent):
             tuple[GeneralActionType, bool]: Action taken and whether it was successful
         """
         # Check if SLO trends are getting worse
-        queue_trend = self._calculate_trend(self.queue_slo_ratio_history)
-        memory_trend = self._calculate_trend(self.memory_slo_ratio_history)
+        queue_trend = self._calculate_trend(self.queue_slo_value_history)
+        memory_trend = self._calculate_trend(self.memory_slo_value_history)
 
         # If trends show worsening conditions, take proactive action
         if queue_trend > self.WARNING_TREND_THRESHOLD or memory_trend > self.WARNING_TREND_THRESHOLD:
@@ -194,19 +181,19 @@ class HeuristicAgent(ElasticityAgent):
             tuple[GeneralActionType, bool]: Action taken and whether it was successful
         """
         # Get current SLO ratios
-        queue_ratio, memory_ratio = self.slo_manager.get_all_slo_ratios()
+        queue_ratio, memory_ratio = self.slo_manager.get_all_slo_values()
 
         # Only try to improve if both SLOs are comfortably below threshold
         if max(queue_ratio, memory_ratio) > self.upscale_threshold:
             return GeneralActionType.NONE, True
 
         # Make sure we've been stable for a while before trying to improve
-        if len(self.queue_slo_ratio_history) < self.SLO_HISTORY_SIZE:
+        if len(self.queue_slo_value_history) < self.SLO_HISTORY_SIZE:
             return GeneralActionType.NONE, True
 
         # Check if trends are stable or improving
-        queue_trend = self._calculate_trend(self.queue_slo_ratio_history)
-        memory_trend = self._calculate_trend(self.memory_slo_ratio_history)
+        queue_trend = self._calculate_trend(self.queue_slo_value_history)
+        memory_trend = self._calculate_trend(self.memory_slo_value_history)
 
         if queue_trend > self.IMPROVEMENT_TREND_THRESHOLD or memory_trend > self.IMPROVEMENT_TREND_THRESHOLD:
             # SLOs are trending worse, don't try to improve quality yet
@@ -215,15 +202,15 @@ class HeuristicAgent(ElasticityAgent):
         log.debug("SLOs stable or improving - attempting quality improvement")
 
         # Get current capacities
-        res_capacity = self.elasticity_handler.state_resolution.get_capacity()
-        fps_capacity = self.elasticity_handler.state_fps.get_capacity()
-        workload_capacity = self.elasticity_handler.state_work_load.get_capacity()
+        res_capacity = self.elasticity_handler.state_resolution.capacity()
+        fps_capacity = self.elasticity_handler.state_fps.capacity()
+        workload_capacity = self.elasticity_handler.state_inference_quality.capacity()
 
         # Find which parameter has the lowest capacity (most room to increase)
         capacities = [
             (res_capacity, GeneralActionType.INCREASE_RESOLUTION, self.elasticity_handler.state_resolution.can_increase()),
             (fps_capacity, GeneralActionType.INCREASE_FPS, self.elasticity_handler.state_fps.can_increase()),
-            (workload_capacity, GeneralActionType.INCREASE_WORK_LOAD, self.elasticity_handler.state_work_load.can_increase())
+            (workload_capacity, GeneralActionType.INCREASE_INFERENCE_QUALITY, self.elasticity_handler.state_inference_quality.can_increase())
         ]
 
         # Filter to only those that can be increased
@@ -242,7 +229,7 @@ class HeuristicAgent(ElasticityAgent):
             priority_order = [
                 GeneralActionType.INCREASE_RESOLUTION,
                 GeneralActionType.INCREASE_FPS,
-                GeneralActionType.INCREASE_WORK_LOAD
+                GeneralActionType.INCREASE_INFERENCE_QUALITY
             ]
 
             for action in priority_order:
@@ -280,14 +267,14 @@ class HeuristicAgent(ElasticityAgent):
             success = self.elasticity_handler.decrease_resolution()
         elif action == GeneralActionType.DECREASE_FPS:
             success = self.elasticity_handler.decrease_fps()
-        elif action == GeneralActionType.DECREASE_WORK_LOAD:
-            success = self.elasticity_handler.decrease_work_load()
+        elif action == GeneralActionType.DECREASE_INFERENCE_QUALITY:
+            success = self.elasticity_handler.decrease_inference_quality()
         elif action == GeneralActionType.INCREASE_RESOLUTION:
             success = self.elasticity_handler.increase_resolution()
         elif action == GeneralActionType.INCREASE_FPS:
             success = self.elasticity_handler.increase_fps()
-        elif action == GeneralActionType.INCREASE_WORK_LOAD:
-            success = self.elasticity_handler.increase_work_load()
+        elif action == GeneralActionType.INCREASE_INFERENCE_QUALITY:
+            success = self.elasticity_handler.increase_inference_quality()
 
         if success:
             log.debug(f"Action taken: {action.name}")

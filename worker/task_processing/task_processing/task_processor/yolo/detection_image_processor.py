@@ -1,12 +1,12 @@
 import cv2 as cv
 import numpy as np
 
-from packages.enums import WorkLoad, LoadingMode
+from packages.enums import InferenceQuality, LoadingMode
 from worker.task_processing.task_processing.task_processor.yolo.yolo_image_processor import YOLOTaskProcessor
 
 
 class DetectionYOLOImageProcessor(YOLOTaskProcessor):
-    def __init__(self, compute_load: WorkLoad, model_loading_mode: LoadingMode, model_paths: dict):
+    def __init__(self, compute_load: InferenceQuality, model_loading_mode: LoadingMode, model_paths: dict):
         super().__init__(compute_load, model_loading_mode, model_paths)
 
     def _draw_bounding_boxes_with_label(self, image, boxes, class_ids, confidences):

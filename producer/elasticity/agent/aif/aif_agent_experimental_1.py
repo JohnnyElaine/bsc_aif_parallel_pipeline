@@ -15,14 +15,14 @@ class ActiveInferenceAgentExperimental1(ElasticityAgent):
     # Observation indices
     OBS_RESOLUTION_INDEX = 0
     OBS_FPS_INDEX = 1
-    OBS_WORK_LOAD_INDEX = 2
+    OBS_INFERENCE_QUALITY_INDEX = 2
     OBS_QUEUE_SIZE_INDEX = 3
     OBS_MEMORY_USAGE_INDEX = 4
 
     # Action indices
     ACTION_RESOLUTION_INDEX = 0
     ACTION_FPS_INDEX = 1
-    ACTION_WORK_LOAD_INDEX = 2
+    ACTION_INFERENCE_QUALITY_INDEX = 2
 
     # Preference parameters
     STRONG_PREFERENCE = 4.0
@@ -34,12 +34,11 @@ class ActiveInferenceAgentExperimental1(ElasticityAgent):
     def __init__(self, elasticity_handler: ElasticityHandler, policy_length: int = 2):
         super().__init__(elasticity_handler)
 
-        # Initialize state dimensions from handler
         self.num_resolution_states = len(elasticity_handler.state_resolution.possible_states)
         self.num_fps_states = len(elasticity_handler.state_fps.possible_states)
-        self.num_work_load_states = len(elasticity_handler.state_work_load.possible_states)
+        self.num_inference_quality_states = len(elasticity_handler.state_inference_quality.possible_states)
 
-        # Action spaces
+        # Define actions (for each state dimension)
         self.resolution_actions = list(ActionType)
         self.fps_actions = list(ActionType)
         self.work_load_actions = list(ActionType)
@@ -67,7 +66,7 @@ class ActiveInferenceAgentExperimental1(ElasticityAgent):
         actions = [
             self.resolution_actions[action_indices[self.ACTION_RESOLUTION_INDEX]],
             self.fps_actions[action_indices[self.ACTION_FPS_INDEX]],
-            self.work_load_actions[action_indices[self.ACTION_WORK_LOAD_INDEX]],
+            self.work_load_actions[action_indices[self.ACTION_INFERENCE_QUALITY_INDEX]],
         ]
 
         # Execute actions
@@ -80,7 +79,7 @@ class ActiveInferenceAgentExperimental1(ElasticityAgent):
         return [
             self.elasticity_handler.state_resolution.current_index,
             self.elasticity_handler.state_fps.current_index,
-            self.elasticity_handler.state_work_load.current_index,
+            self.elasticity_handler.state_inference_quality.current_index,
             queue_status.value,
             memory_status.value
         ]
@@ -89,7 +88,7 @@ class ActiveInferenceAgentExperimental1(ElasticityAgent):
         self.obs_dims = [
             self.num_resolution_states,
             self.num_fps_states,
-            self.num_work_load_states,
+            self.num_inference_quality_states,
             len(SloStatus),
             len(SloStatus)
         ]
@@ -97,7 +96,7 @@ class ActiveInferenceAgentExperimental1(ElasticityAgent):
         self.state_dims = [
             self.num_resolution_states,
             self.num_fps_states,
-            self.num_work_load_states,
+            self.num_inference_quality_states,
         ]
 
         A = self._construct_A_matrix()
@@ -109,7 +108,7 @@ class ActiveInferenceAgentExperimental1(ElasticityAgent):
             A=A, B=B, C=C, D=D,
             num_controls=self.control_dims,
             policy_len=self.policy_length,
-            control_fac_idx=[0, 1, 2], # Indices that indicate which hidden state factors are directly controllable
+            control_fac_idx=[self.OBS_RESOLUTION_INDEX, self.OBS_FPS_INDEX, self.OBS_INFERENCE_QUALITY_INDEX], # Indices that indicate which hidden state factors are directly controllable
             inference_algo="VANILLA",
             action_selection="deterministic"
         )
@@ -128,13 +127,13 @@ class ActiveInferenceAgentExperimental1(ElasticityAgent):
         for i in range(self.num_fps_states):
             A[self.OBS_FPS_INDEX][i, :, i, :] = 1.0
 
-        for i in range(self.num_work_load_states):
-            A[self.OBS_WORK_LOAD_INDEX][i, :, :, i] = 1.0
+        for i in range(self.num_inference_quality_states):
+            A[self.OBS_INFERENCE_QUALITY_INDEX][i, :, :, i] = 1.0
 
         # SLO probability mappings
         for res in range(self.num_resolution_states):
             for fps in range(self.num_fps_states):
-                for wl in range(self.num_work_load_states):
+                for wl in range(self.num_inference_quality_states):
                     queue_probs = self.slo_manager.get_qsize_slo_state_probabilities()
                     A[self.OBS_QUEUE_SIZE_INDEX][:, res, fps, wl] = queue_probs
 
@@ -147,9 +146,9 @@ class ActiveInferenceAgentExperimental1(ElasticityAgent):
         B = utils.obj_array(len(self.state_dims))
 
         # Create deterministic transition matrices
-        B[0] = self._create_deterministic_transitions(self.num_resolution_states, len(self.resolution_actions))
-        B[1] = self._create_deterministic_transitions(self.num_fps_states, len(self.fps_actions))
-        B[2] = self._create_deterministic_transitions(self.num_work_load_states, len(self.work_load_actions))
+        B[self.OBS_RESOLUTION_INDEX] = self._create_deterministic_transitions(self.num_resolution_states, len(self.resolution_actions))
+        B[self.OBS_FPS_INDEX] = self._create_deterministic_transitions(self.num_fps_states, len(self.fps_actions))
+        B[self.OBS_INFERENCE_QUALITY_INDEX] = self._create_deterministic_transitions(self.num_inference_quality_states, len(self.work_load_actions))
 
         return B
 
@@ -184,8 +183,8 @@ class ActiveInferenceAgentExperimental1(ElasticityAgent):
         max_fps = self.num_fps_states - 1
         C[self.OBS_FPS_INDEX][:] = [self.MEDIUM_PREFERENCE * (i / max_fps) for i in range(self.num_fps_states)]
 
-        max_wl = self.num_work_load_states - 1
-        C[self.OBS_WORK_LOAD_INDEX][:] = [self.LOW_PREFERENCE * (i / max_wl) for i in range(self.num_work_load_states)]
+        max_inference_quality = self.num_inference_quality_states - 1
+        C[self.OBS_INFERENCE_QUALITY_INDEX][:] = [self.LOW_PREFERENCE * (i / max_inference_quality) for i in range(self.num_inference_quality_states)]
 
         # SLO preferences (strong aversion for critical states)
         C[self.OBS_QUEUE_SIZE_INDEX][SloStatus.CRITICAL.value] = self.SLO_CRITICAL_AVERSION
@@ -202,7 +201,7 @@ class ActiveInferenceAgentExperimental1(ElasticityAgent):
         current_states = [
             self.elasticity_handler.state_resolution.current_index,
             self.elasticity_handler.state_fps.current_index,
-            self.elasticity_handler.state_work_load.current_index
+            self.elasticity_handler.state_inference_quality.current_index
         ]
 
         for i, state in enumerate(current_states):
@@ -223,7 +222,7 @@ class ActiveInferenceAgentExperimental1(ElasticityAgent):
         actions = [
             self.resolution_actions[action_indices[self.ACTION_RESOLUTION_INDEX]],
             self.fps_actions[action_indices[self.ACTION_FPS_INDEX]],
-            self.work_load_actions[action_indices[self.ACTION_WORK_LOAD_INDEX]],
+            self.work_load_actions[action_indices[self.ACTION_INFERENCE_QUALITY_INDEX]],
         ]
 
         # Force decrease actions if any SLO is critical
@@ -259,10 +258,10 @@ class ActiveInferenceAgentExperimental1(ElasticityAgent):
             success &= self.elasticity_handler.decrease_fps()
 
         # Workload action
-        if actions[self.ACTION_WORK_LOAD_INDEX] == ActionType.INCREASE:
-            success &= self.elasticity_handler.increase_work_load()
-        elif actions[self.ACTION_WORK_LOAD_INDEX] == ActionType.DECREASE:
-            success &= self.elasticity_handler.decrease_work_load()
+        if actions[self.ACTION_INFERENCE_QUALITY_INDEX] == ActionType.INCREASE:
+            success &= self.elasticity_handler.increase_inference_quality()
+        elif actions[self.ACTION_INFERENCE_QUALITY_INDEX] == ActionType.DECREASE:
+            success &= self.elasticity_handler.decrease_inference_quality()
 
         return success
 

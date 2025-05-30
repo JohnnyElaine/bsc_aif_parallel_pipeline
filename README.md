@@ -1,13 +1,21 @@
 # Description
-This project implements a distributed parallel pipeline for processing streaming data in edge computing environments. 
+This python project implements a distributed parallel pipeline for processing streaming data in edge computing environments.
 The main idea is to split a data stream into smaller chunks that are distributed across multiple workers (edge nodes) running in parallel. 
-Each worker processes its chunk, and the results are aggregated to form a modified output stream.
+Each worker node processes its chunk, and the results are aggregated by a collector node to form a modified output stream.
 
-The architecture draws inspiration from a [Apache Storm Topology](https://storm.apache.org/releases/2.7.1/Tutorial.html), consisting of:
+The architecture draws inspiration from a [Apache Storm Topology](https://storm.apache.org/releases/2.7.1/Tutorial.html) and [Apache Flink](https://flink.apache.org/), consisting of:
 A single Sprout (The collector), an internal layer of Bolts (Workers) and an aggregate Bolt (Collector).
 
 
-For evaluation, a video stream is used as input, with YOLOv11 running inference on live video frames. However, the framework is generic and applicable to any parallelizable data stream, such as audio, LIDAR, RADAR, network traffic, or sensor data.
+For evaluation, a video stream of a highway is used as input, with YOLOv11 running inference in order to detect vehicles on live video frames. 
+However, the framework is generic and applicable to any parallelizable data stream, such as audio, LIDAR, RADAR, network traffic, or sensor data.
+
+**Central Research Question:**
+"How can i efficiently process data streams in resource limited edge computing cases"
+This is done by:
+1. implementing a distributed pipeline for parallel processing of data.
+2. employing Service Level Objectives (SLOs) in order uphold quality standards and abide by resource constraints
+3. implementing an active inference (AIF) based agent in order to control elasticity demands
 
 ## Motivation
 Edge computing offers scalable, low-latency processing closer to data sources, but is constrained by limited resources. 
@@ -23,6 +31,7 @@ This delicate balance is implemented using certain preference regarding the qual
 
 ## Architecture
 The pipeline consists of three main components:
+
 - Producer: Generates and controls task flow.
 - Worker: Processes tasks (e.g., YOLO inference).
 - Collector: Aggregates processed results.
@@ -67,8 +76,7 @@ It aims to:
 Under the constraints of the SLOs the producer aims to maximise the following 3 parameters (goals):
 1. keep resolution as close as possible to the source-resolution of the video-stream
 2. keep fps as close as possible to the source-fps of the underlying video-stream
-3. maximize the result of the YOLOv11 inference (Maximize WorkLoad)
-4. 
+3. maximize the result of the YOLOv11 inference (Maximize Inference Quality)
 Keep in mind that higher stream parameters lead to a higher computational demand from the workers.
 
 #### Video Stream Parameters
@@ -78,9 +86,11 @@ Keep in mind that higher stream parameters lead to a higher computational demand
 - **FPS:** Change source stream FPS
 - **Resolution:** Change source stream resolution
 
-While the producer tries to fulfill the SLOs and maximize parameters (Workload, fps, resolution) at the same time, it is crucial that the SLO are of a much higher priority compared to the parameters.
+While the producer tries to fulfill the SLOs and maximize parameters (inference quality, fps, resolution) at the same time, it is crucial that the SLO are of a much higher priority compared to the parameters.
 Especially since the parameters directly influence the probability of fulfilling the SLOs. Maximizing the video stream parameters is more a preference, rather than a priority
 
+#### Changing of streaming parameters
+The producer is able to directly control the streaming parameters. In this example these are Resolution, FPS, Quality
 
 ### Service Level Objectives (SLOs)
 A Service Level Objective (SLO) is a measureable objective that a system can enforce. In this case we choose our SLOs in a way so that the producer can elastically adapt, by changing the 3 quality parameters (Quality, Resolution, FPS)
@@ -96,7 +106,13 @@ Currently only 2 SLOs are implemented:
 - Memory Usage
 - Queue Size
 
-#### Memory Usage
+#### Representation in the code
+The SLOs are calculated as float values with bound 0.0-infinity. The higher the value of the SLO, the worse its status. 
+- ``0.0 <= slo-value < 0.9`` indicates a fulfilled SLO in a good state.
+- ``0.9 <= slo-value < 1.0`` indicates a fulfilled SLO in a warning state.
+- ``1.0 <= slo-value < MAX_FLOAT`` indicates an unfulfilled SLO in a critical state
+
+#### Memory Usage SLO
 ```
 memory_usage <= X%
 ```
@@ -104,7 +120,7 @@ memory_usage <= X%
 
 GOAL: Ensure memory usage does not exceed capacity. Consuming the entire memory of the producer will cause a massive slowdown, as the new tasks will either be stored on a slower type of storage or discarded entirely.
 
-#### Task queue (buffer) size
+#### Task queue (buffer) size SLO
 ```
 task_queue <= X
 ```
@@ -259,7 +275,7 @@ req = {
 ```python
 info = {
     type='CHANGE'
-    (optional)  CHANGE_WORK_LOAD:int ∈ [0 (LOW), 1(MEDIUM), 2 (HIGH)]
+    (optional)  CHANGE_INFERENCE_QUALITY:int ∈ [0 (LOW), 1(MEDIUM), 2 (HIGH)]
     (optional) change-2=value2
     (optional) change-3=value2
     ...
@@ -273,7 +289,7 @@ For example if the work load for the YOLOv11 inference needs to be changed to 1 
 ```python
 info = {
     type='CHANGE'
-    CHANGE_WORK_LOAD=1
+    CHANGE_INFERENCE_QUALITY=1
 }
 ```
 
@@ -292,7 +308,96 @@ info = {
     type='END'
 }
 ```
-TODO REST
+
+## Implementation of Active Inference
+The agent that controls the elasticity of the system runs on the producer. It is implemented using the active inference library [pymdp](https://github.com/infer-actively/pymdp). More information is available in the offical [paper](https://arxiv.org/abs/2201.03904).
+In order to make intelligent decisions using active inference, we need to model the problem as a Partially observable Markov decision process (POMDP). For this the environment was modeled as follows:
+
+Observations:
+- FPS of stream
+- Resolution of stream
+- YOLOv11 Inference Quality (Model) used by the worker nodes
+- State of the Memory SLO (as a float value)
+- State of the Queue Size SLO (as a float value)
+
+Actions:
+- Changing of the FPS of the stream
+- Changing the Resolution of the stream
+- Changing the YOLOv1 Inference Quality (The model used by the worker nodes)
+
+### AIF Loop
+The agent defines an interval for the AIF loop. Per default this is 1 second.
+Meaning every 1s:
+- The agent retrieves the observations (SLO values and stream quality parameters)
+- The agent updates its believes
+- The agent chooses actions according to its believes
+
+## Evaluation
+In order to evaluate the effectiveness of the implementation we implement the following:
+
+### Additional Agents
+We implement other types of agents that control the elasticity of the system. We implement two different agent types:
+- Active Inference Agent (AIF), The one described above, i.e. the main one of this paper
+- Heuristic Agent
+- Reinforcement Learning (RL) Agent
+
+All agents share the same goal of upholding the SLOs while trying to keep high QoE, through elasticity (Changing of quality parameters).
+
+#### Reinforcement Learning Agent
+This agent serves as a direct comparison to the active inference agent. This is because Reinforcement Learning (RL) is also framework for modeling intelligent behavior, but with a different fundamental underlying principle.
+The agent is implemented using [stable-baselines](https://github.com/Stable-Baselines-Team/stable-baselines) and [Gymnasium (gym)](https://github.com/Farama-Foundation/Gymnasium).
+
+#### Heuristic Agent
+In order to evaluate the effectiveness of statistical models, such as AIF or RL, we implemented a simple agent based on heuristic measurements.
+
+The agent defines an interval for the loop. Per default this is 1 second.
+Meaning every 1s:
+- The agent retrieves the values of the SLO
+- The agent evaluates the values.
+- If a SLO is in CRITICAL state (i.e. value > 1.0) the agent reduces the stream quality parameters
+- If a SLO is in WARNING state, the agent does nothing.
+- If all SLOs are in OK state, the agent tries to improve the stream quality parameters.
+
+### Simulation
+In order to properly evaluate the agent types we have set a simulation. The simulation consists of a simple streaming scenario.
+
+#### Environment
+The entire simulation is running a single computer with the specs:
+- **Operating System:** Windows 11, Version 23H2 (Build 22631.5335)
+- **Python:** Python 3.12.2
+- **CPU:** AMD Ryzen 7 7800X3D
+- **GPU:** Nvidia GeForce GTX 1660Ti (MSI GTX Ti Ventus XS OC)
+- **Memory:** 32GB DDR5 RAM, Clock: 4800MHz, Dual Channel, Timing: 40-40-40-77, tRC: 117, tRFC: 708
+- **Drive:** WD Black SN770 2TB
+
+#### Setup
+- 1 Producer
+- n Workers (3 Workers typically)
+- 1 Collector
+
+The video stream generated by the producer is a video of highway traffic. The goal is to detect the vehicles passing by using YOLOv11 and drawing bounding boxes around them.
+All workers have the same amount of processing power.  
+
+In order to measure the elastic capabilities of the agents, m number (1 typically) of the agents will go offline temporarily causing the total amount of computational resources of the distributed system to decrease.
+This will cause the values of the SLOs to change into a critical state. This will prompt to agent to take an action in order to achieve equilibrium.
+This will be done by decreasing the quality parameters in some way, decreasing the computational requirements in such a way that the remaining workers are able to uphold the SLO.
+After a certain period the agents will recover and come back online. This will cause the total total amount of computational resources of the distributed system to increase.
+The agent should then notice this increasing in available resources and try to increase the stream quality parameters to facilitate a better QoE.
+The outage and recovery of the workers are set at 25% and 75% of the total stream duration respectively.
+
+During the entire runtime of the simulation the producer tracks certain metrics:
+- Registration time of workers
+- Number of requested tasks per worker
+- Stream Quality Parameters Capacity (FPS, Resolution, Inference Quality) over time. The capacity is represented as a float value (0.0-1.0) Where 0 is the worst possible configuration and 1.0 is the best possible configuration.
+- Queue Size over time (Number of Tasks in queue)
+- Memory Usage % over time
+- Queue Size SLO value over time
+- Memory Usage SLO value over time
+and return as a python dataframes.
+
+These values are then plotted using [matplotlib](https://matplotlib.org/) and [seaborn](https://seaborn.pydata.org/). 
+
+
 # ---------------------------------------------------------------
 
 # Dependencies

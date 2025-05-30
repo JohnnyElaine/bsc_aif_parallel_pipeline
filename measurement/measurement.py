@@ -5,7 +5,7 @@ from measurement.plotting.worker_stats_plot import plot_all_worker_stats
 from measurement.simulation.basic_simulation import BasicSimulation
 from measurement.simulation.outage_and_recovery_simulation import OutageAndRecoverySimulation
 from measurement.simulation.simulation_type import SimulationType
-from packages.enums import WorkType, WorkLoad
+from packages.enums import WorkType, InferenceQuality
 from packages.enums.loading_mode import LoadingMode
 from producer.enums.agent_type import AgentType
 from worker.global_variables import WorkerGlobalVariables
@@ -16,7 +16,7 @@ class Measurement:
     COLLECTOR_PORT = 10001
     LOCALHOST = 'localhost'
     LOADING_MODE = LoadingMode.EAGER
-    WORK_LOAD = WorkLoad.MEDIUM
+    INITIAL_INFERENCE_QUALITY = InferenceQuality.MEDIUM
     VID_PATH = WorkerGlobalVariables.PROJECT_ROOT / 'media' / 'vid' / 'general_detection' / '1080p Video of Highway Traffic! [KBsqQez-O4w]_20seconds.mp4'
 
     @staticmethod
@@ -47,7 +47,7 @@ class Measurement:
 
         sim = BasicSimulation(Measurement.LOCALHOST, Measurement.PRODUCER_PORT, Measurement.LOCALHOST,
                               Measurement.COLLECTOR_PORT, WorkType.YOLO_DETECTION, Measurement.LOADING_MODE,
-                              Measurement.WORK_LOAD, agent_type, Measurement.VID_PATH, worker_capacities)
+                              Measurement.INITIAL_INFERENCE_QUALITY, agent_type, Measurement.VID_PATH, worker_capacities)
 
         stats = sim.run()
 
@@ -70,7 +70,7 @@ class Measurement:
 
         sim = OutageAndRecoverySimulation(Measurement.LOCALHOST, Measurement.PRODUCER_PORT, Measurement.LOCALHOST,
                                           Measurement.COLLECTOR_PORT, WorkType.YOLO_DETECTION, Measurement.LOADING_MODE,
-                                          Measurement.WORK_LOAD, agent_type, Measurement.VID_PATH,
-                                          regular_worker_capacities, outage_worker_capacities,outage_at, recovery_at)
+                                          Measurement.INITIAL_INFERENCE_QUALITY, agent_type, Measurement.VID_PATH,
+                                          regular_worker_capacities, outage_worker_capacities, outage_at, recovery_at)
 
         return sim.run()

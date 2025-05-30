@@ -2,7 +2,7 @@ import msgpack
 import zmq
 
 from packages.data import Task, TaskUtil
-from packages.enums import WorkType, WorkLoad, LoadingMode
+from packages.enums import WorkType, InferenceQuality, LoadingMode
 from packages.network_messages import ReqType, RepType
 from worker.data.work_config import WorkConfig
 
@@ -46,7 +46,7 @@ class RequestChannel:
         if info['type'] != RepType.REGISTRATION_CONFIRMATION:
             return None
 
-        return WorkConfig(WorkType.str_to_enum(info['work_type']), WorkLoad.int_to_enum(info['work_load']), LoadingMode.int_to_enum(info['loading_mode']))
+        return WorkConfig(WorkType.str_to_enum(info['work_type']), InferenceQuality.int_to_enum(info['work_load']), LoadingMode.int_to_enum(info['loading_mode']))
 
     def get_work(self) -> tuple[dict, list[Task]]:
         req = dict(type=ReqType.GET_WORK)

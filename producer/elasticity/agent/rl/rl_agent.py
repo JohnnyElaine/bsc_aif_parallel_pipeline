@@ -49,7 +49,7 @@ class VideoProcessorEnv(gym.Env):
             high=np.array([
                 len(elasticity_handler.state_resolution.possible_states) - 1,
                 len(elasticity_handler.state_fps.possible_states) - 1,
-                len(elasticity_handler.state_work_load.possible_states) - 1,
+                len(elasticity_handler.state_inference_quality.possible_states) - 1,
                 len(SloStatus) - 1,
                 len(SloStatus) - 1
             ]),
@@ -59,7 +59,7 @@ class VideoProcessorEnv(gym.Env):
         # Track previous state for reward calculation
         self.prev_resolution_idx = elasticity_handler.state_resolution.current_index
         self.prev_fps_idx = elasticity_handler.state_fps.current_index
-        self.prev_workload_idx = elasticity_handler.state_work_load.current_index
+        self.prev_workload_idx = elasticity_handler.state_inference_quality.current_index
 
     def reset(self):
         """Reset the environment to the current system state"""
@@ -69,7 +69,7 @@ class VideoProcessorEnv(gym.Env):
         # Update previous state tracking
         self.prev_resolution_idx = self.elasticity_handler.state_resolution.current_index
         self.prev_fps_idx = self.elasticity_handler.state_fps.current_index
-        self.prev_workload_idx = self.elasticity_handler.state_work_load.current_index
+        self.prev_workload_idx = self.elasticity_handler.state_inference_quality.current_index
 
         return observation
 
@@ -95,7 +95,7 @@ class VideoProcessorEnv(gym.Env):
         # Update previous state tracking
         self.prev_resolution_idx = self.elasticity_handler.state_resolution.current_index
         self.prev_fps_idx = self.elasticity_handler.state_fps.current_index
-        self.prev_workload_idx = self.elasticity_handler.state_work_load.current_index
+        self.prev_workload_idx = self.elasticity_handler.state_inference_quality.current_index
 
         # We don't have an episode termination condition in this continuous task
         done = False
@@ -106,7 +106,7 @@ class VideoProcessorEnv(gym.Env):
             'action': action_type.name,
             'resolution': str(self.elasticity_handler.resolution),
             'fps': self.elasticity_handler.fps,
-            'workload': self.elasticity_handler.work_load.name,
+            'workload': self.elasticity_handler.inference_quality.name,
             'queue_status': self.slo_manager.get_qsize_slo_status().name,
             'memory_status': self.slo_manager.get_mem_slo_status().name
         }
@@ -122,7 +122,7 @@ class VideoProcessorEnv(gym.Env):
             status_str = (
                 f"Resolution: {self.elasticity_handler.resolution}, "
                 f"FPS: {self.elasticity_handler.fps}, "
-                f"WorkLoad: {self.elasticity_handler.work_load.name}, "
+                f"WorkLoad: {self.elasticity_handler.inference_quality.name}, "
                 f"Queue Status: {queue_status.name}, "
                 f"Memory Status: {memory_status.name}"
             )
@@ -136,7 +136,7 @@ class VideoProcessorEnv(gym.Env):
         return np.array([
             self.elasticity_handler.state_resolution.current_index,
             self.elasticity_handler.state_fps.current_index,
-            self.elasticity_handler.state_work_load.current_index,
+            self.elasticity_handler.state_inference_quality.current_index,
             queue_slo_status.value,
             memory_slo_status.value
         ], dtype=np.int32)
@@ -162,10 +162,10 @@ class VideoProcessorEnv(gym.Env):
                 return self.elasticity_handler.increase_fps()
             case GeneralActionType.DECREASE_FPS:
                 return self.elasticity_handler.decrease_fps()
-            case GeneralActionType.INCREASE_WORK_LOAD:
-                return self.elasticity_handler.increase_work_load()
-            case GeneralActionType.DECREASE_WORK_LOAD:
-                return self.elasticity_handler.decrease_work_load()
+            case GeneralActionType.INCREASE_INFERENCE_QUALITY:
+                return self.elasticity_handler.increase_inference_quality()
+            case GeneralActionType.DECREASE_INFERENCE_QUALITY:
+                return self.elasticity_handler.decrease_inference_quality()
             case _:
                 log.warning(f"Unknown action: {action}")
                 return False
@@ -211,7 +211,7 @@ class VideoProcessorEnv(gym.Env):
             reward += fps_diff * self.QUALITY_REWARD_FACTOR
 
             # Workload improvement
-            workload_diff = self.elasticity_handler.state_work_load.current_index - self.prev_workload_idx
+            workload_diff = self.elasticity_handler.state_inference_quality.current_index - self.prev_workload_idx
             reward += workload_diff * self.QUALITY_REWARD_FACTOR
 
         return reward
@@ -327,7 +327,7 @@ class ReinforcementLearningAgent(ElasticityAgent):
         return {
             'resolution': str(self.elasticity_handler.resolution),
             'fps': self.elasticity_handler.fps,
-            'workload': self.elasticity_handler.work_load.name,
+            'workload': self.elasticity_handler.inference_quality.name,
             'queue_status': self.slo_manager.get_qsize_slo_status().name,
             'memory_status': self.slo_manager.get_mem_slo_status().name
         }

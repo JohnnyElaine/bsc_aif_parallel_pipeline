@@ -5,7 +5,7 @@ from collector.collector import Collector
 from collector.collector_config import CollectorConfig
 from measurement.simulation.simulation import Simulation
 
-from packages.enums import WorkType, LoadingMode, WorkLoad
+from packages.enums import WorkType, LoadingMode, InferenceQuality
 from producer.enums.agent_type import AgentType
 from producer.producer import Producer
 from producer.producer_config import ProducerConfig
@@ -23,12 +23,12 @@ class DelayedStartSimulation(Simulation):
                  collector_port: int,
                  work_type: WorkType,
                  loading_mode: LoadingMode,
-                 max_work_load: WorkLoad,
+                 max_inference_quality: InferenceQuality,
                  agent_type: AgentType,
                  worker_capacities: list[float],
                  vid_path: str):
         super().__init__(producer_ip, producer_port, collector_ip, collector_port, work_type, loading_mode,
-                         max_work_load, agent_type, worker_capacities, vid_path)
+                         max_inference_quality, agent_type, worker_capacities, vid_path)
 
     def run(self) -> dict[str, pd.DataFrame]:
         producer_config = ProducerConfig(self.producer_port, self.work_type,

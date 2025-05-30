@@ -4,7 +4,7 @@ from abc import abstractmethod, ABC
 import cv2 as cv
 import numpy as np
 
-from packages.enums import WorkLoad, LoadingMode
+from packages.enums import InferenceQuality, LoadingMode
 from worker.task_processing.task_processing.image_detector.yolo_detector import YoloDetector
 from worker.task_processing.task_processing.task_processor.task_processor import TaskProcessor
 
@@ -16,7 +16,7 @@ class YOLOTaskProcessor(TaskProcessor, ABC):
     font_scale = 0.8
     font_thickness = 2
 
-    def __init__(self, work_load: WorkLoad, model_loading_mode: LoadingMode, model_paths: dict):
+    def __init__(self, work_load: InferenceQuality, model_loading_mode: LoadingMode, model_paths: dict):
         self._model_loading_mode = model_loading_mode
 
         self._detector_low = YoloDetector(model_paths['low'])
@@ -46,19 +46,19 @@ class YOLOTaskProcessor(TaskProcessor, ABC):
             self._detector_medium.initialize()
             self._detector_high.initialize()
 
-    def change_work_load(self, work_load: WorkLoad):
+    def change_work_load(self, work_load: InferenceQuality):
         self._detector = self._get_detector_by_work_load(work_load)
 
         if not self._detector.is_loaded():
             self._detector.initialize()
 
-    def _get_detector_by_work_load(self, work_load: WorkLoad):
+    def _get_detector_by_work_load(self, work_load: InferenceQuality):
         match work_load:
-            case WorkLoad.LOW:
+            case InferenceQuality.LOW:
                 return self._detector_low
-            case WorkLoad.MEDIUM:
+            case InferenceQuality.MEDIUM:
                 return self._detector_medium
-            case WorkLoad.HIGH:
+            case InferenceQuality.HIGH:
                 return self._detector_high
             case _:
                 return self._detector_low

@@ -1,7 +1,7 @@
 from enum import Enum
 
 
-class WorkLoad(Enum):
+class InferenceQuality(Enum):
     LOW = 0
     MEDIUM = 1
     HIGH = 2
@@ -9,11 +9,11 @@ class WorkLoad(Enum):
     @staticmethod
     def int_to_enum(value: int):
         match value:
-            case WorkLoad.LOW.value:
-                return WorkLoad.LOW
-            case WorkLoad.MEDIUM.value:
-                return WorkLoad.MEDIUM
-            case WorkLoad.HIGH.value:
-                return WorkLoad.HIGH
+            case InferenceQuality.LOW.value:
+                return InferenceQuality.LOW
+            case InferenceQuality.MEDIUM.value:
+                return InferenceQuality.MEDIUM
+            case InferenceQuality.HIGH.value:
+                return InferenceQuality.HIGH
             case _:
-                return WorkLoad.MEDIUM
+                return InferenceQuality.MEDIUM

@@ -22,8 +22,8 @@ class TestAgent(ElasticityAgent):
 
         self.count += 1
         if self.count == 5:
-            success = self.elasticity_handler.decrease_work_load()
-            return GeneralActionType.DECREASE_WORK_LOAD, success
+            success = self.elasticity_handler.decrease_inference_quality()
+            return GeneralActionType.DECREASE_INFERENCE_QUALITY, success
 
         #if self.count % 2 == 0:
         #    return GeneralActionType.DECREASE_FPS, self.elasticity_handler.decrease_fps()

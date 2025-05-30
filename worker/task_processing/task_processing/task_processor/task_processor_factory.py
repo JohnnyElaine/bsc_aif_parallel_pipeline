@@ -21,7 +21,7 @@ class TaskProcessorFactory:
                     'high': models_path / 'obb' / 'yolo11m-obb.pt',
                 }
 
-                return OBBYOLOImageProcessor(work_config.work_load, work_config.loading_mode, model_paths)
+                return OBBYOLOImageProcessor(work_config.inference_quality, work_config.loading_mode, model_paths)
 
             case WorkType.YOLO_DETECTION:
                 model_paths = {
@@ -30,7 +30,7 @@ class TaskProcessorFactory:
                     'high': models_path / 'detection' / 'yolo11m.pt',
                 }
 
-                return DetectionYOLOImageProcessor(work_config.work_load, work_config.loading_mode, model_paths)
+                return DetectionYOLOImageProcessor(work_config.inference_quality, work_config.loading_mode, model_paths)
             
             case WorkType.NONE:
                 return DefaultTaskProcessor()

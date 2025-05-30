@@ -1,12 +1,12 @@
 import logging
 
-import producer.elasticity.handler.possible_values.aspect_ratios as AllAspectRatios
-from packages.enums import WorkLoad
+from packages.enums import InferenceQuality
+from producer.elasticity.handler.possible_values.generation import (generate_possible_resolutions, generate_possible_fps,
+                                                                    generate_possible_work_loads)
 from producer.request_handling.request_handler import RequestHandler
 from producer.data.resolution import Resolution
 from producer.data.task_config import TaskConfig
 from producer.elasticity.handler.data.state import State
-from producer.elasticity.handler.possible_values.resolutions import AllResolutions
 from producer.task_generation.task_generator import TaskGenerator
 
 log = logging.getLogger('producer')
@@ -25,7 +25,7 @@ class ElasticityHandler:
         _request_handler (RequestHandler): The handler responsible for managing requests.
         state_resolution (State): The current state of the resolution.
         state_fps (State): The current state of the frames per second (FPS).
-        state_work_load (State): The current state of the workload.
+        state_inference_quality (State): The current state of the workload.
     """
 
     def __init__(self, target_config: TaskConfig, task_generator: TaskGenerator, request_handler: RequestHandler):
@@ -34,122 +34,67 @@ class ElasticityHandler:
 
         self.state_resolution = ElasticityHandler._create_state(
             target_config.max_resolution,
-            ElasticityHandler._generate_possible_resolutions(target_config.max_resolution))
+            generate_possible_resolutions(target_config.max_resolution),
+            self.change_resolution
+        )
         self.state_fps = ElasticityHandler._create_state(
             target_config.max_fps,
-            ElasticityHandler._generate_possible_fps(target_config.max_fps))
-        self.state_work_load = ElasticityHandler._create_state(
+            generate_possible_fps(target_config.max_fps),
+            self.change_fps
+        )
+        self.state_inference_quality = ElasticityHandler._create_state(
             target_config.max_work_load,
-            ElasticityHandler._generate_possible_work_loads(target_config.max_work_load))
+            generate_possible_work_loads(target_config.max_work_load),
+            self.change_inference_quality
+        )
 
     @property
-    def resolution(self):
+    def max_fps(self) -> int:
         """
-        Returns the current resolution.
+        Returns:
+            int: The current FPS value.
+        """
+        return self.state_fps.max()
 
+    @property
+    def resolution(self) -> Resolution:
+        """
         Returns:
             Resolution: The current resolution value.
         """
         return self.state_resolution.value
 
-    @property
-    def max_fps(self):
-        """
-        Returns the current frames per second (FPS).
-
-        Returns:
-            int: The current FPS value.
-        """
-        return self.state_fps.max
 
     @property
-    def fps(self):
+    def fps(self) -> int:
         """
-        Returns the current frames per second (FPS).
-
         Returns:
             int: The current FPS value.
         """
         return self.state_fps.value
 
     @property
-    def work_load(self):
+    def inference_quality(self) -> InferenceQuality:
         """
-        Returns the current workload.
-
         Returns:
-            WorkLoad: The current workload value.
+            InferenceQuality: The current workload value.
         """
-        return self.state_work_load.value
+        return self.state_inference_quality.value
 
-    def queue_size(self):
+    def queue_size(self) -> int:
         """Return the approximate size of the queue (not reliable!)."""
         return self._task_generator.queue_size()
 
-    def increase_resolution(self):
-        """
-        Increases the resolution to the next possible value.
-
-        Returns:
-            bool: True if the resolution was increased, False if it was already at the maximum.
-        """
-        return self._increase_state(self.state_resolution, self._change_resolution)
-
-    def decrease_resolution(self):
-        """
-        Decreases the resolution to the previous possible value.
-
-        Returns:
-            bool: True if the resolution was decreased, False if it was already at the minimum.
-        """
-        return self._decrease_state(self.state_resolution, self._change_resolution)
-
-    def increase_fps(self):
-        """
-        Increases the frames per second (FPS) to the next possible value.
-
-        Returns:
-            bool: True if the FPS was increased, False if it was already at the maximum.
-        """
-        return self._increase_state(self.state_fps, self._change_fps)
-
-    def decrease_fps(self):
-        """
-        Decreases the frames per second (FPS) to the previous possible value.
-
-        Returns:
-            bool: True if the FPS was decreased, False if it was already at the minimum.
-        """
-        return self._decrease_state(self.state_fps, self._change_fps)
-
-    def increase_work_load(self):
-        """
-        Increases the workload to the next possible value.
-
-        Returns:
-            bool: True if the workload was increased, False if it was already at the maximum.
-        """
-        return self._increase_state(self.state_work_load, self._change_work_load)
-
-    def decrease_work_load(self):
-        """
-        Decreases the workload to the previous possible value.
-
-        Returns:
-            bool: True if the workload was decreased, False if it was already at the minimum.
-        """
-        return self._decrease_state(self.state_work_load, self._change_work_load)
-
-    def _change_work_load(self, work_load: WorkLoad):
+    def change_inference_quality(self, work_load: InferenceQuality):
         """
         Propagates the change to the request handler.
 
         Args:
-            work_load (WorkLoad): The new workload value to be applied.
+            work_load (InferenceQuality): The new workload value to be applied.
         """
-        self._request_handler.change_work_load(work_load)
+        self._request_handler.change_inference_quality(work_load)
 
-    def _change_fps(self, fps: int):
+    def change_fps(self, fps: int):
         """
         Updates Propagates the fps change to the task generator.
 
@@ -158,7 +103,7 @@ class ElasticityHandler:
         """
         self._task_generator.set_fps(fps)
 
-    def _change_resolution(self, resolution: Resolution):
+    def change_resolution(self, resolution: Resolution):
         """
         Updates Propagates the change to the task generator.
 
@@ -167,92 +112,62 @@ class ElasticityHandler:
         """
         self._task_generator.set_resolution(resolution)
 
-    @staticmethod
-    def _generate_possible_work_loads(max_work_load: WorkLoad) -> list[WorkLoad]:
+    def increase_resolution(self) -> bool:
         """
-        Generates a list of possible workload values.
+        Increases the resolution to the next possible value.
 
         Returns:
-            list[WorkLoad]: A list of possible workload values.
+            bool: True if the resolution was increased, False if it was already at the maximum.
         """
-        return [w for w in list(WorkLoad) if w.value <= max_work_load.value]
+        return self.state_resolution.increase()
 
-    @staticmethod
-    def _generate_possible_resolutions(max_res: Resolution) -> list[Resolution]:
+    def decrease_resolution(self) -> bool:
         """
-        Generates a list of possible resolution values based on the initial configuration's aspect ratio.
+        Decreases the resolution to the previous possible value.
 
         Returns:
-            list[Resolution]: A list of possible resolution values.
+            bool: True if the resolution was decreased, False if it was already at the minimum.
         """
-        match max_res.get_aspect_ratio():
-            case AllAspectRatios.ASPECT_RATIO_16_9:
-                all_resolutions = AllResolutions.RATIO_16_9
-            case AllAspectRatios.ASPECT_RATIO_4_3:
-                all_resolutions = AllResolutions.RATIO_4_3
-            case _:
-                all_resolutions = AllResolutions.RATIO_16_9
+        return self.state_resolution.decrease()
 
-        return [res for res in all_resolutions if res.pixels <= max_res.pixels]
-
-    @staticmethod
-    def _generate_possible_fps(max_fps: int):
+    def increase_fps(self) -> bool:
         """
-        Returns possible FPS values from max_fps down to 10, stepping by -2.
+        Increases the frames per second (FPS) to the next possible value.
 
         Returns:
-            list[int]: A list of possible FPS values.
+            bool: True if the FPS was increased, False if it was already at the maximum.
         """
-        a = list(range(max_fps, 9, -2))
-        a.reverse()
-        return a
+        return self.state_fps.increase()
 
-    @staticmethod
-    def _increase_state(state: State, change_function: callable):
+    def decrease_fps(self) -> bool:
         """
-        Increases the state to the next possible value and applies the change using the provided function.
-
-        Args:
-            state (State): The current state to be increased.
-            change_function (callable): The function to apply the change.
+        Decreases the frames per second (FPS) to the previous possible value.
 
         Returns:
-            bool: True if the state was increased, False if it was already at the maximum.
+            bool: True if the FPS was decreased, False if it was already at the minimum.
         """
-        if state.current_index >= len(state.possible_states) - 1:
-            return False
+        return self.state_fps.decrease()
 
-        state.current_index += 1
-        change_function(state.value)
-
-        log.debug(f'INCREASE - {change_function.__name__}: {state.possible_states[state.current_index- 1]} -> {state.possible_states[state.current_index]}')
-
-        return True
-
-    @staticmethod
-    def _decrease_state(state: State, change_function: callable):
+    def increase_inference_quality(self) -> bool:
         """
-        Decreases the state to the previous possible value and applies the change using the provided function.
-
-        Args:
-            state (State): The current state to be decreased.
-            change_function (callable): The function to apply the change.
+        Increases the workload to the next possible value.
 
         Returns:
-            bool: True if the state was decreased, False if it was already at the minimum.
+            bool: True if the workload was increased, False if it was already at the maximum.
         """
-        if state.current_index <= 0:
-            return False
+        return self.state_inference_quality.increase()
 
-        state.current_index -= 1
-        change_function(state.value)
+    def decrease_inference_quality(self) -> bool:
+        """
+        Decreases the workload to the previous possible value.
 
-        log.debug(f'DECREASE - {change_function.__name__}: {state.possible_states[state.current_index + 1]} -> {state.possible_states[state.current_index]}')
-
-        return True
+        Returns:
+            bool: True if the workload was decreased, False if it was already at the minimum.
+        """
+        return self.state_inference_quality.decrease()
 
     @staticmethod
-    def _create_state(init_value, possible_states: list) -> State:
+    def _create_state(init_value, possible_states: list, change_function: callable) -> State:
         """
         Creates a new state object based on the initial value and the possible states generated by the provided function.
 
@@ -264,4 +179,4 @@ class ElasticityHandler:
             State: A new state object.
         """
         index = possible_states.index(init_value)
-        return State(index, possible_states)
+        return State(index, possible_states, change_function)

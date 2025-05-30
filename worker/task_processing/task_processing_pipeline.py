@@ -6,7 +6,7 @@ from numpy import ndarray
 
 import packages.logging as logging
 from packages.data import TaskType, Task
-from packages.enums import WorkLoad
+from packages.enums import InferenceQuality
 from worker.data.work_config import WorkConfig
 from worker.task_processing.task_processing.task_processor.task_processor_factory import TaskProcessorFactory
 
@@ -72,9 +72,9 @@ class TaskProcessingPipeline(Process):
 
                 self._result_pipe.send(result)
 
-            case TaskType.CHANGE_WORK_LOAD:
-                w = WorkLoad.int_to_enum(task.data.item())
-                self._task_processor.change_work_load(w)
+            case TaskType.CHANGE_INFERENCE_QUALITY:
+                w = InferenceQuality.int_to_enum(task.data.item())
+                self._task_processor.change_inference_quality(w)
                 self.log.info(f'successfully changed work-load to {w}')
 
             case TaskType.END:

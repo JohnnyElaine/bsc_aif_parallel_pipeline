@@ -10,7 +10,7 @@ import pandas as pd
 from packages.data.local_messages.task import Task
 from packages.data.local_messages.task_type import TaskType
 from packages.enums import LoadingMode
-from packages.enums import WorkType, WorkLoad
+from packages.enums import WorkType, InferenceQuality
 from packages.network_messages import ReqType, RepType
 from producer.request_handling.channel.router_channel import RouterChannel
 from producer.data.worker_info import WorkerInfo
@@ -20,7 +20,7 @@ log = logging.getLogger('producer')
 
 
 class RequestHandler(Thread):
-    def __init__(self, port: int, shared_queue: Queue, work_type: WorkType, work_load: WorkLoad,
+    def __init__(self, port: int, shared_queue: Queue, work_type: WorkType, work_load: InferenceQuality,
                  loading_mode: LoadingMode, start_task_generation_event: Event):
         super().__init__()
         self._channel = RouterChannel(port)
@@ -51,9 +51,9 @@ class RequestHandler(Thread):
         self._is_running = False
         self._channel.close()
 
-    def change_work_load(self, work_load: WorkLoad):
+    def change_inference_quality(self, work_load: InferenceQuality):
         self._work_load = work_load
-        self._broadcast_change(Task(TaskType.CHANGE_WORK_LOAD, -1, np.array(work_load.value)))
+        self._broadcast_change(Task(TaskType.CHANGE_INFERENCE_QUALITY, -1, np.array(work_load.value)))
 
     def get_worker_statistics(self) -> pd.DataFrame:
         # Create a nested dictionary with worker addresses as keys

@@ -90,7 +90,7 @@ class HeuristicAgentOld(ElasticityAgent):
         Returns:
             tuple[GeneralActionType, bool]: Selected action and whether it was successful
         """
-        qsize_slo_ratio, mem_slo_ratio = self.slo_manager.get_all_slo_ratios(track_stats=True)
+        qsize_slo_ratio, mem_slo_ratio = self.slo_manager.get_all_slo_values(track_stats=True)
 
         qsize_slo_status = SloManager.get_slo_status(qsize_slo_ratio)
         mem_slo_status = SloManager.get_slo_status(mem_slo_ratio)
@@ -104,8 +104,8 @@ class HeuristicAgentOld(ElasticityAgent):
             print('Critical Violation')
             # If queue is the bigger issue, prioritize reducing in order: workload, fps, resolution
             if qsize_slo_ratio > mem_slo_ratio:
-                if self.elasticity_handler.state_work_load.can_decrease():
-                    return GeneralActionType.DECREASE_WORK_LOAD, self.elasticity_handler.decrease_work_load()
+                if self.elasticity_handler.state_inference_quality.can_decrease():
+                    return GeneralActionType.DECREASE_INFERENCE_QUALITY, self.elasticity_handler.decrease_inference_quality()
                 elif self.elasticity_handler.state_fps.can_decrease():
                     return GeneralActionType.DECREASE_FPS, self.elasticity_handler.decrease_fps()
                 elif self.elasticity_handler.state_resolution.can_decrease():
@@ -113,8 +113,8 @@ class HeuristicAgentOld(ElasticityAgent):
 
             # If memory is the bigger issue, prioritize reducing in order: workload, resolution, fps
             else:
-                if self.elasticity_handler.state_work_load.can_decrease():
-                    return GeneralActionType.DECREASE_WORK_LOAD, self.elasticity_handler.decrease_work_load()
+                if self.elasticity_handler.state_inference_quality.can_decrease():
+                    return GeneralActionType.DECREASE_INFERENCE_QUALITY, self.elasticity_handler.decrease_inference_quality()
                 elif self.elasticity_handler.state_resolution.can_decrease():
                     return GeneralActionType.DECREASE_RESOLUTION, self.elasticity_handler.decrease_resolution()
                 elif self.elasticity_handler.state_fps.can_decrease():
@@ -130,15 +130,15 @@ class HeuristicAgentOld(ElasticityAgent):
             # Determine most effective action based on current state
             if qsize_slo_ratio > mem_slo_ratio:
                 # Queue issues - reduce workload or FPS
-                if self.elasticity_handler.state_work_load.can_decrease():
-                    return GeneralActionType.DECREASE_WORK_LOAD, self.elasticity_handler.decrease_work_load()
+                if self.elasticity_handler.state_inference_quality.can_decrease():
+                    return GeneralActionType.DECREASE_INFERENCE_QUALITY, self.elasticity_handler.decrease_inference_quality()
                 elif self.elasticity_handler.state_fps.can_decrease():
                     return GeneralActionType.DECREASE_FPS, self.elasticity_handler.decrease_fps()
 
             else:
                 # Memory issues - reduce resolution or workload
-                if self.elasticity_handler.state_work_load.can_decrease():
-                    return GeneralActionType.DECREASE_WORK_LOAD, self.elasticity_handler.decrease_work_load()
+                if self.elasticity_handler.state_inference_quality.can_decrease():
+                    return GeneralActionType.DECREASE_INFERENCE_QUALITY, self.elasticity_handler.decrease_inference_quality()
                 elif self.elasticity_handler.state_resolution.can_decrease():
                     return GeneralActionType.DECREASE_RESOLUTION, self.elasticity_handler.decrease_resolution()
 
@@ -148,8 +148,8 @@ class HeuristicAgentOld(ElasticityAgent):
                 return GeneralActionType.INCREASE_RESOLUTION, self.elasticity_handler.increase_resolution()
             elif self.elasticity_handler.state_fps.can_increase():
                 return GeneralActionType.INCREASE_FPS, self.elasticity_handler.increase_fps()
-            elif self.elasticity_handler.state_work_load.can_increase():
-                return GeneralActionType.INCREASE_WORK_LOAD, self.elasticity_handler.increase_work_load()
+            elif self.elasticity_handler.state_inference_quality.can_increase():
+                return GeneralActionType.INCREASE_INFERENCE_QUALITY, self.elasticity_handler.increase_inference_quality()
 
         return GeneralActionType.NONE, True # We're at maximum quality already or unable to decrease further
 
