@@ -292,7 +292,7 @@ class ActiveInferenceAgent(ElasticityAgent):
         return C
 
     def _construct_D_matrix(self):
-        """Construct the D matrix (prior preferences over states) - Initial state beliefs"""
+        """Construct the D matrix (prior believes over states) - Initial beliefs, i.e. what states are expected before making an observation"""
         D = utils.obj_array(len(self.state_dims))
 
         current_states = [
