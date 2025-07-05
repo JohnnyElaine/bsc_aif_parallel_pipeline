@@ -79,7 +79,7 @@ This will run through every node in the system and initiate a graceful shutdown 
 ### Elasticity
 The producer also monitors and adjusts stream parameters to maintain user-defined QoE under constrained resources
 It tracks information about the current state of the video stream and propagating changes when they occur.
-The three QoE parameters are:
+The three video stream QoE parameters are:
 
 1. **FPS:** FPS of the video stream
 2. **Resolution:** Resolution of the video stream.
@@ -123,7 +123,9 @@ When the Inference Quality parameter changes at the producer level it is very im
 This is realised by a backlog that the producer stores for each worker in the system. So when a change occurs this change is stored in the backlog of all workers as a pending change.
 
 When a worker node requests a task from the producer, the backlog for this node is checked.
-If there is a pending change. For example a reduction in inference quality (HIGH -> MEDIUM) then worker receives a task with type='CHANGE_INFERENCE_QUALITY' indicating that a change of YOLOv11 model is necessary before continuing with stream processing.
+If there is a pending change. For example a reduction in inference quality (HIGH -> MEDIUM) then worker receives a reply with type='CHANGE' detailing the following changes:
+- CHANGE_INFERENCE_QUALITY: MEDIUM
+indicating that a change of YOLOv11 model is necessary before continuing with stream processing.
 The worker then makes this change locally and continues with regular requests for new work.
 
 ### Service Level Objectives (SLOs)
@@ -164,7 +166,61 @@ task_queue <= X
 ```
 - ``X`` maximum acceptable number of tasks. e.g. ``X = source_fps * 2``
 
-GOAL: Make sure there is enough compute power to handle tasks in real time. This SLO makes sure that the internal task buffer of the producer does not grow indefinitely. If the buffer remains below the chosen threshold, then this indicates that there is enough computational resources available on the worker side to handle the demand of the current video stream parameters.
+GOAL: Make sure there is enough compute power to handle tasks in real time. 
+This SLO makes sure that the internal task buffer of the producer does not grow indefinitely. 
+If the buffer remains below the chosen threshold, then this indicates that there is enough computational resources available on the worker side to handle the demand of the current video stream parameters.
+
+#### Average Global Task Processing Time
+Workers send their stats during their requests (e.g., the processing time of the last frame)
+Producer tracks the average processing time of the last n frames, regardless of who processed them, using moving average. n defines the window size, e.g. 30
+
+```
+avg_processing_time <= 1/current_fps
+```
+with ``current_fps=30`` for a 30fps video.
+
+GOAL: Make sure worker are processing tasks fast enough to keep up with the input.
+
+#### Average Task Processing Time per Worker
+For each worker: Producer tracks the average processing time of the last n frames, using moving average.
+
+For each Worker:
+```
+avg_processing_time <= 1/current_fps * k
+```
+where ``k`` defines a value > 1, representing additional tolerance of the frame budget `1/current_fps`
+
+GOAL: Avoid a configuration where slower workers cause the system to drop tasks (frames).  
+When a worker is below a certain threshold for processing a single \textbf{task}, then this tasks may not be used in the resulting output. 
+This is because by the time the slow worker is done processing its tasks, the output-stream has already moved past this point
+
+### Producer as Controlling entity: 
+It is a core methodology that only the producer decides and makes changes in the system.
+Observations are gathered either directly at the producer level (Queue Size, Memory), or received from workers in ``GET_WORK`` requests.
+These observations are then used to evaluated SLOs and in turn stream quality parameters
+
+### Implementation of Active Inference
+The agent that controls the elasticity of the system runs on the producer. It is implemented using the active inference library [pymdp](https://github.com/infer-actively/pymdp). More information is available in the offical [paper](https://arxiv.org/abs/2201.03904).
+In order to make intelligent decisions using active inference, we need to model the problem as a Partially observable Markov decision process (POMDP). For this the environment was modeled as follows:
+
+Observations:
+- FPS of stream
+- Resolution of stream
+- YOLOv11 Inference Quality (Model) used by the worker nodes
+- State of the Memory SLO (as a float value)
+- State of the Queue Size SLO (as a float value)
+
+Actions:
+- Changing of the FPS of the stream
+- Changing the Resolution of the stream
+- Changing the YOLOv1 Inference Quality (The model used by the worker nodes)
+
+#### AIF Loop
+The agent defines an interval for the AIF loop. Per default this is 1 second.
+Meaning every 1s:
+- The agent retrieves the observations (SLO values and stream quality parameters)
+- The agent updates its believes
+- The agent chooses actions according to its believes
 
 ## Worker
 The workers purpose is to process the tasks provided by the producer. It continuously
@@ -347,46 +403,17 @@ info = {
 }
 ```
 
-## Implementation of Active Inference
-The agent that controls the elasticity of the system runs on the producer. It is implemented using the active inference library [pymdp](https://github.com/infer-actively/pymdp). More information is available in the offical [paper](https://arxiv.org/abs/2201.03904).
-In order to make intelligent decisions using active inference, we need to model the problem as a Partially observable Markov decision process (POMDP). For this the environment was modeled as follows:
 
-Observations:
-- FPS of stream
-- Resolution of stream
-- YOLOv11 Inference Quality (Model) used by the worker nodes
-- State of the Memory SLO (as a float value)
-- State of the Queue Size SLO (as a float value)
-
-Actions:
-- Changing of the FPS of the stream
-- Changing the Resolution of the stream
-- Changing the YOLOv1 Inference Quality (The model used by the worker nodes)
-
-### AIF Loop
-The agent defines an interval for the AIF loop. Per default this is 1 second.
-Meaning every 1s:
-- The agent retrieves the observations (SLO values and stream quality parameters)
-- The agent updates its believes
-- The agent chooses actions according to its believes
-
-## Evaluation
+# Evaluation
 In order to evaluate the effectiveness of the implementation we implement the following:
 
-### Additional Agents
+## Agent Types
 We implement other types of agents that control the elasticity of the system. We implement two different agent types:
-- Active Inference Agent (AIF), The one described above, i.e. the main one of this paper
-- Heuristic Agent
-- Reinforcement Learning (RL) Agent
+The Active Inference Agent (AIF). This is the main and most important agent of this project. 
+In order to evaluate its effectiveness this prototype also implements one other more standards agent's for comparison:
 
-All agents share the same goal of upholding the SLOs while trying to keep high QoE, through elasticity (Changing of quality parameters).
-
-#### Reinforcement Learning Agent
-This agent serves as a direct comparison to the active inference agent. This is because Reinforcement Learning (RL) is also framework for modeling intelligent behavior, but with a different fundamental underlying principle.
-The agent is implemented using [stable-baselines](https://github.com/Stable-Baselines-Team/stable-baselines) and [Gymnasium (gym)](https://github.com/Farama-Foundation/Gymnasium).
-
-#### Heuristic Agent
-In order to evaluate the effectiveness of statistical models, such as AIF or RL, we implemented a simple agent based on heuristic measurements.
+### Heuristic Agent
+In order to evaluate the effectiveness of statistical models, such as AIF, we implemented a simple agent based on heuristic measurements.
 
 The agent defines an interval for the loop. Per default this is 1 second.
 Meaning every 1s:
@@ -396,10 +423,12 @@ Meaning every 1s:
 - If a SLO is in WARNING state, the agent does nothing.
 - If all SLOs are in OK state, the agent tries to improve the stream quality parameters.
 
-### Simulation
+Both agents share the same goal of upholding the SLOs while trying to keep high QoE, through elasticity (Changing of quality parameters).
+
+## Simulation
 In order to properly evaluate the agent types we have set a simulation. The simulation consists of a simple streaming scenario.
 
-#### Environment
+### Environment
 The entire simulation is running a single computer with the specs:
 - **Operating System:** Windows 11, Version 23H2 (Build 22631.5335)
 - **Python:** Python 3.12.2
@@ -408,13 +437,15 @@ The entire simulation is running a single computer with the specs:
 - **Memory:** 32GB DDR5 RAM, Clock: 4800MHz, Dual Channel, Timing: 40-40-40-77, tRC: 117, tRFC: 708
 - **Drive:** WD Black SN770 2TB
 
-#### Setup
+### Setup
 - 1 Producer
 - n Workers (3 Workers typically)
 - 1 Collector
 
 The video stream generated by the producer is a video of highway traffic. The goal is to detect the vehicles passing by using YOLOv11 and drawing bounding boxes around them.
-All workers have the same amount of processing power.  
+All workers have the same amount of processing power. 
+n Workers start at the same time and register themselves at the producer. During the registration processes the receive the necessary configuration from the producer and load the necessary YOLO model.
+When the workers configuration is fully set up they start requesting work at the Producer. This continues until the original video streams stops and the producer only answers request with ``END``.
 
 In order to measure the elastic capabilities of the agents, m number (1 typically) of the agents will go offline temporarily causing the total amount of computational resources of the distributed system to decrease.
 This will cause the values of the SLOs to change into a critical state. This will prompt to agent to take an action in order to achieve equilibrium.
@@ -434,6 +465,25 @@ During the entire runtime of the simulation the producer tracks certain metrics:
 and return as a python dataframes.
 
 These values are then plotted using [matplotlib](https://matplotlib.org/) and [seaborn](https://seaborn.pydata.org/). 
+
+### Evaluation Cases
+3 Simulations Cases are implemented:
+1. Base 
+2. Variable Computational Budget
+3. Variable Computational Load
+
+#### Base Case
+A regular 30fps video stream.
+#### Variable Computational Budget Case
+During 25% of the streams runtime a worker will go offline and re-join at 75% of the streams runtime. 
+When the worker goes offline the computational Budget of the system decreases, below the required threshold to processes the stream in a timely fashion.
+The Producer should react accordingly by reducing the stream quality parameters, when the worker goes offline and increasing them back to baseline when the worker re-joins.
+#### Variable Computational Load Case
+During 25% of the streams runtime, two "additional" video streams will be produced by the producer. At 75% runtime it returns to a single stream.
+In order to simulate multiple streams, the frames of the underlying video stream are just multiplied. i.e., 
+- for 1 stream: 1 task is generated
+- for 2 streams: 2 tasks with equivalent frame data are generated
+- for 3 streams: 3 tasks with equivalent frame data are generated
 
 # Implementation
 ## Compute Platform
