@@ -19,7 +19,7 @@ class ZmqWorkRequester(WorkRequester):
         self._is_running = False
         self._channel = request_channel
         self._outage_config = outage_config
-        self._get_work_function = self._get_work if outage_config is None else self._get_work_with_outage_config
+        self._req_work_function = self._req_work if outage_config is None else self._req_work_with_outage_config
         self._num_requested_tasks = 0
 
     def run(self):
@@ -42,7 +42,7 @@ class ZmqWorkRequester(WorkRequester):
         """
         self._queue.join() # Block until queue is empty
 
-        info, tasks = self._get_work_function()
+        info, tasks = self._req_work_function()
 
         self._num_requested_tasks += 1
 
@@ -77,10 +77,10 @@ class ZmqWorkRequester(WorkRequester):
         for task in tasks:
             self._queue.put(task)
 
-    def _get_work(self) -> tuple[dict, list[Task]]:
+    def _req_work(self) -> tuple[dict, list[Task]]:
         return self._channel.get_work()
 
-    def _get_work_with_outage_config(self) -> tuple[dict, list[Task]]:
+    def _req_work_with_outage_config(self) -> tuple[dict, list[Task]]:
         if self._num_requested_tasks == self._outage_config.frames_until_outage:
             #log.debug(f'worker sleeping for {self._outage_config.duration}')
             time.sleep(self._outage_config.duration)
