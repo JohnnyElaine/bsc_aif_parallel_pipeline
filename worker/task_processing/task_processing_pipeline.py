@@ -1,5 +1,5 @@
 import time
-from multiprocessing import Process, Pipe, Event
+from multiprocessing import Process, Pipe, Event, Value
 
 import cv2 as cv
 from numpy import ndarray
@@ -17,7 +17,8 @@ class TaskProcessingPipeline(Process):
                  task_processor_initialized: Event,
                  task_pipe_recv_end: Pipe,
                  result_pipe_send_end: Pipe,
-                 artificial_processing_capacity: float):
+                 artificial_processing_capacity: float,
+                 latest_processing_time: Value):
         super().__init__()
         self.identifier = identifier
         self._task_pipe = task_pipe_recv_end
@@ -25,6 +26,7 @@ class TaskProcessingPipeline(Process):
         self._work_config = work_config
         self._task_processor_initialized = task_processor_initialized
         self._processing_capacity = artificial_processing_capacity # artificially limit capacity (1 = 100%, 0.5 = 50%, etc)
+        self._latest_processing_time = latest_processing_time  # Shared value for processing time
         self._task_processor = None
         self._is_running = False
         self.log = None
@@ -83,6 +85,11 @@ class TaskProcessingPipeline(Process):
         processed_data = self._process_task_function(task.data)
         result = Task(TaskType.COLLECT, task.id, processed_data)
         processing_t = time.perf_counter() - processing_start_t
+        
+        # Update shared processing time
+        with self._latest_processing_time.get_lock():
+            self._latest_processing_time.value = processing_t
+        
         self._result_pipe.send(result)
 
     def _change_inference_quality(self, task):

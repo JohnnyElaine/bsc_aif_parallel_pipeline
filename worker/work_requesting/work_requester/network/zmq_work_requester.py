@@ -1,5 +1,6 @@
 import logging
 import time
+from multiprocessing import Value
 from queue import Queue
 
 import numpy as np
@@ -14,10 +15,11 @@ log = logging.getLogger('work_requesting')
 
 
 class ZmqWorkRequester(WorkRequester):
-    def __init__(self, shared_task_queue: Queue, request_channel: RequestChannel, outage_config=None):
+    def __init__(self, shared_task_queue: Queue, request_channel: RequestChannel, shared_processing_time: Value, outage_config=None):
         super().__init__(shared_task_queue)
         self._is_running = False
         self._channel = request_channel
+        self._latest_processing_time = shared_processing_time
         self._outage_config = outage_config
         self._req_work_function = self._req_work if outage_config is None else self._req_work_with_outage_config
         self._num_requested_tasks = 0
@@ -78,7 +80,11 @@ class ZmqWorkRequester(WorkRequester):
             self._queue.put(task)
 
     def _req_work(self) -> tuple[dict, list[Task]]:
-        return self._channel.get_work()
+        # Get the latest processing time from shared memory
+        with self._latest_processing_time.get_lock():
+            processing_time = self._latest_processing_time.value
+        
+        return self._channel.get_work(processing_time)
 
     def _req_work_with_outage_config(self) -> tuple[dict, list[Task]]:
         if self._num_requested_tasks == self._outage_config.frames_until_outage:
@@ -86,6 +92,5 @@ class ZmqWorkRequester(WorkRequester):
             time.sleep(self._outage_config.duration)
             #log.debug(f'worker resuming operations')
 
-        return self._channel.get_work()
-
+        return self._req_work()
 

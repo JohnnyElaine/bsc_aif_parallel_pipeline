@@ -1,4 +1,4 @@
-from multiprocessing import Process, Pipe
+from multiprocessing import Process, Pipe, Value
 from queue import Queue
 
 import packages.logging as logging
@@ -8,10 +8,11 @@ from worker.work_requesting.work_requester.network.zmq_work_requester import Zmq
 
 
 class WorkRequestingPipeline(Process):
-    def __init__(self, channel: RequestChannel, task_pipe_sending_end: Pipe, outage_config=None):
+    def __init__(self, channel: RequestChannel, task_pipe_sending_end: Pipe, shared_processing_time: Value, outage_config=None):
         super().__init__()
         self._channel = channel
         self._task_pipe = task_pipe_sending_end
+        self._latest_processing_time = shared_processing_time
         self._outage_config = outage_config
 
     def run(self):
@@ -20,7 +21,7 @@ class WorkRequestingPipeline(Process):
         log.debug('starting work-requesting-pipeline')
         # create shared (frame buffer) queue for work_requester & pipe sender
         task_todo_queue = Queue()
-        work_requester = ZmqWorkRequester(task_todo_queue, self._channel, outage_config=self._outage_config)
+        work_requester = ZmqWorkRequester(task_todo_queue, self._channel, self._latest_processing_time, outage_config=self._outage_config)
         pipe_sender = PipeTaskSender(task_todo_queue, self._task_pipe)
 
         work_requester.start()

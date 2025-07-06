@@ -1,4 +1,4 @@
-from multiprocessing import Process, Pipe, Event
+from multiprocessing import Process, Pipe, Event, Value
 
 import packages.logging as logging
 from worker.communication.channel.request_channel import RequestChannel
@@ -34,12 +34,16 @@ class Worker(Process):
         task_pipe_recv_end, task_pipe_send_end = Pipe(False) # task-requester -> task-processor
         result_pipe_recv_end, result_pipe_send_end = Pipe(False) # task processor -> result-sender
 
+        # Shared value for processing time communication between processes
+        latest_processing_time = Value('d', 0.0)  # 'd' for double precision float
+
         # TODO: Consider Converting WorkRequestingPipeline and ResultSendingPipeline from Processes to Threads
         task_processor_ready = Event()
         task_processing_pipeline = TaskProcessingPipeline(self.config.identity, work_config, task_processor_ready,
                                                           task_pipe_recv_end, result_pipe_send_end,
-                                                          self.config.processing_capacity)
-        work_requesting_pipeline = WorkRequestingPipeline(request_channel, task_pipe_send_end, outage_config=self.outage_config)
+                                                          self.config.processing_capacity, latest_processing_time)
+
+        work_requesting_pipeline = WorkRequestingPipeline(request_channel, task_pipe_send_end, latest_processing_time, outage_config=self.outage_config)
         result_sending_pipeline = ResultSendingPipeline(self.config.collector_ip, self.config.collector_port, result_pipe_recv_end)
 
         task_processing_pipeline.start()
