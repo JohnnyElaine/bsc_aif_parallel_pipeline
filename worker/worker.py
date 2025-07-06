@@ -34,6 +34,7 @@ class Worker(Process):
         task_pipe_recv_end, task_pipe_send_end = Pipe(False) # task-requester -> task-processor
         result_pipe_recv_end, result_pipe_send_end = Pipe(False) # task processor -> result-sender
 
+        # TODO: Convert WorkRequestingPipeline and ResultSendingPipeline from Processes to Threads
         task_processor_ready = Event()
         task_processing_pipeline = TaskProcessingPipeline(self.config.identity, work_config, task_processor_ready,
                                                           task_pipe_recv_end, result_pipe_send_end,
