@@ -63,19 +63,10 @@ class TaskProcessingPipeline(Process):
 
         match task.type:
             case TaskType.INFERENCE:
-                processed_data = self._process_task_function(task.data)
-
-                # Display the frame (optional)
-                # self._display_frame(processed_data)
-
-                result = Task(TaskType.COLLECT, task.id, processed_data)
-
-                self._result_pipe.send(result)
+                self._inference(task)
 
             case TaskType.CHANGE_INFERENCE_QUALITY:
-                w = InferenceQuality.int_to_enum(task.data.item())
-                self._task_processor.change_inference_quality(w)
-                self.log.info(f'successfully changed work-load to {w}')
+                self._change_inference_quality(task)
 
             case TaskType.END:
                 self._result_pipe.send(task) # notify collector that the transmission has ended
@@ -87,18 +78,25 @@ class TaskProcessingPipeline(Process):
 
         return True
 
+    def _inference(self, task):
+        processing_start_t = time.perf_counter()
+        processed_data = self._process_task_function(task.data)
+        result = Task(TaskType.COLLECT, task.id, processed_data)
+        processing_t = time.perf_counter() - processing_start_t
+        self._result_pipe.send(result)
+
+    def _change_inference_quality(self, task):
+        w = InferenceQuality.int_to_enum(task.data.item())
+        self._task_processor.change_inference_quality(w)
+        self.log.info(f'successfully changed work-load to {w}')
+
     def _process_task(self, task: ndarray) -> ndarray:
         return self._task_processor.process(task)
 
     def _process_task_with_delay(self, task: ndarray) -> ndarray:
         start_time = time.perf_counter()
-        processed_task = self._task_processor.process(task)
+        processed_task = self._process_task(task)
         processing_time = time.perf_counter() - start_time
         time.sleep(processing_time / self._processing_capacity - processing_time) # sleep to simulate less processing power
 
         return processed_task
-
-    def _display_frame(self, frame: ndarray):
-        cv.imshow(f'Worker-{self.identifier}', frame)
-        if cv.waitKey(1) & 0xFF == ord('q'):
-            return False

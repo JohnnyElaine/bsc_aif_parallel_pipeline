@@ -48,8 +48,8 @@ class RequestChannel:
 
         return WorkConfig(WorkType.str_to_enum(info['work_type']), InferenceQuality.int_to_enum(info['work_load']), LoadingMode.int_to_enum(info['loading_mode']))
 
-    def get_work(self) -> tuple[dict, list[Task]]:
-        req = dict(type=ReqType.GET_WORK)
+    def get_work(self, previous_processing_time=0.0) -> tuple[dict, list[Task]]:
+        req = dict(type=ReqType.GET_WORK, previous_processing_time=previous_processing_time)
 
         self.send(req)
         msg = self._socket.recv_multipart()

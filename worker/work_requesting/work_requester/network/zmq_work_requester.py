@@ -52,15 +52,15 @@ class ZmqWorkRequester(WorkRequester):
         rep_type = info['type']
 
         match rep_type:
-            case RepType.END:
-                log.debug('received END')
-                self._notify_task_processor_of_end()
-                return False # Stop the loop by returning False
             case RepType.WORK:
                 self._add_tasks_to_queue(tasks)
             case RepType.CHANGE:
-                del info['type'] # filter out 'type'. rest of info shows changes
+                del info['type'] # filter out 'type', rest of info shows changes
                 self._handle_changes(info)
+            case RepType.END:
+                log.debug('received END')
+                self._notify_task_processor_of_end()
+                return False  # Stop the loop by returning False
             case _:
                 log.debug('received reply of unknown type')
 
@@ -82,9 +82,9 @@ class ZmqWorkRequester(WorkRequester):
 
     def _get_work_with_outage_config(self) -> tuple[dict, list[Task]]:
         if self._num_requested_tasks == self._outage_config.frames_until_outage:
-            log.debug(f'worker sleeping for {self._outage_config.duration}')
+            #log.debug(f'worker sleeping for {self._outage_config.duration}')
             time.sleep(self._outage_config.duration)
-            log.debug(f'worker resuming operations')
+            #log.debug(f'worker resuming operations')
 
         return self._channel.get_work()
 
