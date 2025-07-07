@@ -1,6 +1,4 @@
 import logging
-import time
-from dataclasses import asdict
 from queue import Queue
 from threading import Thread, Event
 
@@ -13,9 +11,7 @@ from packages.enums import LoadingMode
 from packages.enums import WorkType, InferenceQuality
 from packages.network_messages import ReqType, RepType
 from producer.communication.channel.router_channel import RouterChannel
-from producer.data.worker_info import WorkerInfo
-from producer.statistics.moving_average import MovingAverage
-from producer.statistics.worker_statistics import WorkerStatistics
+from producer.data.worker_knowledge_base import WorkerKnowledgeBase
 
 log = logging.getLogger('producer')
 
@@ -29,9 +25,7 @@ class RequestHandler(Thread):
         self._work_type = work_type
         self._inference_quality = inference_quality
         self._loading_mode = loading_mode
-        self._worker_knowledge_base = dict() # key = worker-addr, value = WorkerInfo()
-        self._worker_statistics = dict() # key = worker-addr, value = WorkerStatistics()
-        self._global_processing_time_moving_average = MovingAverage()
+        self._worker_knowledge_base = WorkerKnowledgeBase()
         self._is_running = False
 
         self._handle_work_request_function = self._handle_first_work_request
@@ -58,17 +52,7 @@ class RequestHandler(Thread):
         self._broadcast_change(Task(TaskType.CHANGE_INFERENCE_QUALITY, -1, np.array(work_load.value)))
 
     def get_worker_statistics(self) -> pd.DataFrame:
-        # Create a nested dictionary with worker addresses as keys
-        # and WorkerStatistics asdict() values as inner dictionaries
-
-        # only use id of worker-addr so the index can be an integer
-        data_dict = {int(addr.decode('utf-8').split('-')[1]): asdict(stats) for addr, stats in self._worker_statistics.items()}
-
-        # Convert to DataFrame using from_dict with orient='index' to make worker worker_addr the index
-        df = pd.DataFrame.from_dict(data_dict, orient='index')
-        df.index.name = 'worker_id'
-
-        return df.sort_index()
+        return self._worker_knowledge_base.get_statistics()
 
     def _handle_request(self, address: bytes, request: dict) -> bool:
         req_type = request['type']
@@ -84,8 +68,7 @@ class RequestHandler(Thread):
         return True
 
     def _handle_register_request(self, address: bytes):
-        self._worker_knowledge_base[address] = WorkerInfo()
-        self._worker_statistics[address] = WorkerStatistics(0, time.time())
+        self._worker_knowledge_base.add_worker(address)
 
         info = {'type': RepType.REGISTRATION_CONFIRMATION,
                 'work_type': self._work_type.value,
@@ -96,15 +79,14 @@ class RequestHandler(Thread):
 
     def _handle_work_request(self, address: bytes, req: dict):
         processing_time = req['previous_processing_time']
-        self._global_processing_time_moving_average.add(processing_time)
-        self._worker_knowledge_base[address].add_processing_time(processing_time)
+        self._worker_knowledge_base.add_processing_time(processing_time, address)
 
-        if self._worker_knowledge_base[address].has_pending_changes():
-            changes = self._worker_knowledge_base[address].get_all_pending_changes()
+        if self._worker_knowledge_base.has_pending_changes(address):
+            changes = self._worker_knowledge_base.get_pending_changes(address)
             self._channel.send_information(address, changes)
             return
 
-        self._worker_statistics[address].num_requested_tasks += 1
+        self._worker_knowledge_base[address].increment_stats()
 
         task = self._queue.get() # Task dataclass
 
@@ -116,14 +98,13 @@ class RequestHandler(Thread):
 
         self._channel.send_work(address, tasks)
 
-    def _handle_first_work_request(self, address: bytes, req:dict):
+    def _handle_first_work_request(self, address: bytes, req: dict):
         self._handle_work_request_function = self._handle_work_request # use regular '_handle_work_request' after
         self.start_task_generation_event.set() # start the task generator when a worker is ready to receive work
         self._handle_work_request(address, req)
 
     def _broadcast_change(self, change: Task):
-        for worker_addr in self._worker_knowledge_base.keys():
-            self._worker_knowledge_base[worker_addr].add_change(change)
+        self._worker_knowledge_base.add_change(change)
 
     def _stop_workers(self, first_worker_addr: bytes):
         # TODO find alternate stopping condition, if not all workers are online
@@ -132,15 +113,13 @@ class RequestHandler(Thread):
         self._stop_worker(first_worker_addr)
 
         # stop all remaining workers (n-1)
-        for _ in range(len(self._worker_knowledge_base) - 1):
+        for _ in range(self._worker_knowledge_base.size() - 1):
             address, request = self._channel.get_request()
             self._stop_worker(address)
 
         self._is_running = False
 
     def _stop_worker(self, address: bytes):
-        self._worker_knowledge_base[address].has_received_end_message = True
-
         info = {'type': RepType.END}
 
         self._channel.send_information(address, info)
