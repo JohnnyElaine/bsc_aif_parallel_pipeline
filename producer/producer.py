@@ -46,7 +46,7 @@ class Producer(Process):
         task_generator = TaskGenerator(task_queue, src_video, start_task_generation_event)
 
         elasticity_handler = ElasticityHandler(task_config, task_generator, request_handler)
-        slo_agent_pipeline = AgentPipeline(elasticity_handler, self.config.agent_type, request_handler.start_task_generation_event)
+        slo_agent_pipeline = AgentPipeline(elasticity_handler, task_generator, self.config.agent_type, request_handler.start_task_generation_event)
 
         request_handler.start()
         task_generator.start()

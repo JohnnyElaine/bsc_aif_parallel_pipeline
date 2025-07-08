@@ -13,6 +13,7 @@ from producer.elasticity.action.general_action_type import GeneralActionType
 from producer.elasticity.agent.elasticity_agent import ElasticityAgent
 from producer.elasticity.handler.elasticity_handler import ElasticityHandler
 from producer.elasticity.slo.slo_status import SloStatus
+from producer.task_generation.task_generator import TaskGenerator
 
 # Set up logging
 log = logging.getLogger('producer')
@@ -226,7 +227,7 @@ class ReinforcementLearningAgent(ElasticityAgent):
     of experience while ensuring computational resources are properly utilized.
     """
 
-    def __init__(self, elasticity_handler: ElasticityHandler, model_path: str = None):
+    def __init__(self, elasticity_handler: ElasticityHandler, task_generator: TaskGenerator, model_path: str = None):
         """
         Initialize the Reinforcement Learning Agent
 
@@ -234,7 +235,7 @@ class ReinforcementLearningAgent(ElasticityAgent):
             elasticity_handler: The handler for changing system parameters
             model_path: Path to a pre-trained model to load (optional)
         """
-        super().__init__(elasticity_handler)
+        super().__init__(elasticity_handler, task_generator)
 
         # Create the environment
         self.env = VideoProcessorEnv(elasticity_handler, self.slo_manager)

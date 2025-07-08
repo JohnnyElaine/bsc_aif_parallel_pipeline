@@ -5,6 +5,7 @@ from threading import Thread, Event
 from producer.elasticity.agent.agent_factory import AgentFactory
 from producer.elasticity.handler.elasticity_handler import ElasticityHandler
 from producer.enums.agent_type import AgentType
+from producer.task_generation.task_generator import TaskGenerator
 
 log = logging.getLogger('producer')
 
@@ -12,10 +13,10 @@ log = logging.getLogger('producer')
 class AgentPipeline(Thread):
     ITERATION_INTERVAL_S = 1
 
-    def __init__(self, elasticity_handler: ElasticityHandler, agent_type: AgentType, start_task_generator_event: Event):
+    def __init__(self, elasticity_handler: ElasticityHandler, task_generator: TaskGenerator, agent_type: AgentType, start_task_generator_event: Event):
         super().__init__()
         self._elasticity_handler = elasticity_handler
-        self._agent = AgentFactory.create(agent_type, elasticity_handler)
+        self._agent = AgentFactory.create(agent_type, elasticity_handler, task_generator)
         self._start_task_generator_event = start_task_generator_event
         self._is_running = False
 

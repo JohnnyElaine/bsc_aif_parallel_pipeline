@@ -2,15 +2,15 @@
 from producer.elasticity.action.general_action_type import GeneralActionType
 from producer.elasticity.agent.elasticity_agent import ElasticityAgent
 from producer.elasticity.handler.elasticity_handler import ElasticityHandler
+from producer.task_generation.task_generator import TaskGenerator
 
 
 class TestAgent(ElasticityAgent):
 
 
-    def __init__(self, elasticity_handler: ElasticityHandler):
-        super().__init__(elasticity_handler)
+    def __init__(self, elasticity_handler: ElasticityHandler, task_generator: TaskGenerator):
+        super().__init__(elasticity_handler, task_generator)
         self.count = 0
-
 
     def step(self) -> tuple[GeneralActionType, bool]:
         """

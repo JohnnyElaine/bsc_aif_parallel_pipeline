@@ -6,6 +6,7 @@ from producer.elasticity.handler.elasticity_handler import ElasticityHandler
 from producer.elasticity.slo.slo_status import SloStatus
 from producer.elasticity.agent.elasticity_agent import ElasticityAgent
 from producer.elasticity.slo.slo_manager import SloManager
+from producer.task_generation.task_generator import TaskGenerator
 
 log = logging.getLogger('producer')
 
@@ -37,8 +38,8 @@ class HeuristicAgent(ElasticityAgent):
         GeneralActionType.DECREASE_INFERENCE_QUALITY: GeneralActionType.INCREASE_INFERENCE_QUALITY
     }
 
-    def __init__(self, elasticity_handler: ElasticityHandler):
-        super().__init__(elasticity_handler)
+    def __init__(self, elasticity_handler: ElasticityHandler, task_generator: TaskGenerator):
+        super().__init__(elasticity_handler, task_generator)
 
         # Cooldown management to prevent oscillations
         self.cooldown_counter = 0

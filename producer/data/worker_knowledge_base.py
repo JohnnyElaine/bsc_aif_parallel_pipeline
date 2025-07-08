@@ -9,7 +9,6 @@ from producer.statistics.moving_average import MovingAverage
 from producer.statistics.worker_statistics import WorkerStatistics
 
 
-# TODO: continue here
 class WorkerKnowledgeBase:
     def __init__(self):
         self._worker_info_dict = dict()  # key = worker-addr, value = WorkerInfo()

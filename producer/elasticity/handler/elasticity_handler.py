@@ -81,10 +81,6 @@ class ElasticityHandler:
         """
         return self.state_inference_quality.value
 
-    def queue_size(self) -> int:
-        """Return the approximate size of the queue (not reliable!)."""
-        return self._task_generator.queue_size()
-
     def change_inference_quality(self, work_load: InferenceQuality):
         """
         Propagates the change to the request handler.

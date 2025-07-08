@@ -4,8 +4,11 @@ import psutil
 from producer.elasticity.handler.elasticity_handler import ElasticityHandler
 from producer.elasticity.slo.slo_status import SloStatus
 from producer.statistics.slo_statistics import SloStatistics
+from producer.task_generation.task_generator import TaskGenerator
 
 
+# TODO: Split SLOs into their own file
+# TODO: Add 2 new SLOs, avg processing time, avg processing time per worker
 class SloManager:
 
     CRITICAL_THRESHOLD = 1 # below this threshold the SLO is satisfied
@@ -13,9 +16,11 @@ class SloManager:
 
     def __init__(self,
                  elasticity_handler: ElasticityHandler,
+                 task_generator: TaskGenerator,
                  max_queue_size=60,
                  max_memory_usage=0.8):
         self._elasticity_handler = elasticity_handler
+        self._task_generator = task_generator
         self._statistics = SloStatistics()
 
         # Critical thresholds (SLO unsatisfied)
@@ -40,7 +45,7 @@ class SloManager:
         return qsize_slo_value, mem_slo_value
     
     def get_qsize_value(self, track_stats=False):
-        queue_size = self._elasticity_handler.queue_size()
+        queue_size = self._task_generator.queue_size()
         value = queue_size / self._max_qsize
 
         if track_stats:

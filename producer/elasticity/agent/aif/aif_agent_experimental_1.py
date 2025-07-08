@@ -7,6 +7,7 @@ from producer.elasticity.action.action_type import ActionType
 from producer.elasticity.agent.elasticity_agent import ElasticityAgent
 from producer.elasticity.handler.elasticity_handler import ElasticityHandler
 from producer.elasticity.slo.slo_status import SloStatus
+from producer.task_generation.task_generator import TaskGenerator
 
 log = logging.getLogger('producer')
 
@@ -31,8 +32,8 @@ class ActiveInferenceAgentExperimental1(ElasticityAgent):
     SLO_CRITICAL_AVERSION = -4.0
     SLO_WARNING_AVERSION = -1.0
 
-    def __init__(self, elasticity_handler: ElasticityHandler, policy_length: int = 2):
-        super().__init__(elasticity_handler)
+    def __init__(self, elasticity_handler: ElasticityHandler, task_generator: TaskGenerator, policy_length: int = 2):
+        super().__init__(elasticity_handler, task_generator)
 
         self.num_resolution_states = len(elasticity_handler.state_resolution.possible_states)
         self.num_fps_states = len(elasticity_handler.state_fps.possible_states)
