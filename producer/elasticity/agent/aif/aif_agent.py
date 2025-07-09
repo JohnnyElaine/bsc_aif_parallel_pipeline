@@ -8,6 +8,7 @@ from producer.elasticity.action.action_type import ActionType
 from producer.elasticity.agent.elasticity_agent import ElasticityAgent
 from producer.elasticity.handler.elasticity_handler import ElasticityHandler
 from producer.elasticity.slo.slo_status import SloStatus
+from producer.request_handling.request_handler import RequestHandler
 from producer.task_generation.task_generator import TaskGenerator
 
 log = logging.getLogger('producer')
@@ -48,7 +49,7 @@ class ActiveInferenceAgent(ElasticityAgent):
     VERY_STRONG_AVERSION = -VERY_STRONG_PREFERENCE
 
 
-    def __init__(self, elasticity_handler: ElasticityHandler, task_generator: TaskGenerator, policy_length: int = 1):
+    def __init__(self, elasticity_handler: ElasticityHandler, request_handler: RequestHandler, task_generator: TaskGenerator, policy_length: int = 1, track_slo_stats=True):
         """
         Initialize the Active Inference Agent
 
@@ -56,7 +57,7 @@ class ActiveInferenceAgent(ElasticityAgent):
             elasticity_handler: The handler for changing system parameters
             policy_length: Number of time steps to plan ahead (default: 2)
         """
-        super().__init__(elasticity_handler, task_generator)
+        super().__init__(elasticity_handler, request_handler, task_generator, track_slo_stats=track_slo_stats)
 
         self.num_resolution_states = len(elasticity_handler.state_resolution.possible_states)
         self.num_fps_states = len(elasticity_handler.state_fps.possible_states)
@@ -188,10 +189,10 @@ class ActiveInferenceAgent(ElasticityAgent):
         for res in range(self.num_resolution_states):
             for fps in range(self.num_fps_states):
                 for wl in range(self.num_inference_quality_states):
-                    queue_probs = self.slo_manager.get_qsize_slo_state_probabilities()
+                    queue_probs = self.slo_manager.probabilities()
                     A[self.OBS_QUEUE_SIZE_INDEX][:, res, fps, wl] = queue_probs
 
-                    mem_probs = self.slo_manager.get_mem_slo_state_probabilities()
+                    mem_probs = self.slo_manager.probabilities()
                     A[self.OBS_MEMORY_USAGE_INDEX][:, res, fps, wl] = mem_probs
 
         return A
@@ -315,7 +316,7 @@ class ActiveInferenceAgent(ElasticityAgent):
         Returns:
             list: Current observations for all observation modalities
         """
-        queue_slo_status, memory_slo_status = self.slo_manager.get_all_slo_status(track_stats=True)
+        queue_slo_status, memory_slo_status = self.slo_manager.get_all_slo_status()
 
         return [
             self.elasticity_handler.state_resolution.current_index,

@@ -12,3 +12,4 @@ class ProducerConfig:
     max_inference_quality: InferenceQuality
     agent_type: AgentType
     video_path: str
+    track_slo_stats: bool

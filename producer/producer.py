@@ -46,7 +46,7 @@ class Producer(Process):
         task_generator = TaskGenerator(task_queue, src_video, start_task_generation_event)
 
         elasticity_handler = ElasticityHandler(task_config, task_generator, request_handler)
-        slo_agent_pipeline = AgentPipeline(elasticity_handler, task_generator, self.config.agent_type, request_handler.start_task_generation_event)
+        slo_agent_pipeline = AgentPipeline(elasticity_handler, task_generator, request_handler, self.config.agent_type, track_slo_stats=self.config.track_slo_stats)
 
         request_handler.start()
         task_generator.start()
@@ -61,7 +61,7 @@ class Producer(Process):
 
         # Collect statistics before shutting down
         self._stats['slo_stats'] = slo_agent_pipeline.get_slo_statistics()
-        self._stats['worker_stats'] = request_handler.get_worker_statistics()
+        self._stats['worker_stats'] = request_handler.worker_stats_to_df()
 
         log.info('stopped producer')
 

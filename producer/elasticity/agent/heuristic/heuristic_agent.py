@@ -2,10 +2,11 @@ import logging
 from typing import Optional
 
 from producer.elasticity.action.general_action_type import GeneralActionType
+from producer.elasticity.agent.elasticity_agent import ElasticityAgent
 from producer.elasticity.handler.elasticity_handler import ElasticityHandler
 from producer.elasticity.slo.slo_status import SloStatus
-from producer.elasticity.agent.elasticity_agent import ElasticityAgent
-from producer.elasticity.slo.slo_manager import SloManager
+from producer.elasticity.slo.slo_util import SloUtil
+from producer.request_handling.request_handler import RequestHandler
 from producer.task_generation.task_generator import TaskGenerator
 
 log = logging.getLogger('producer')
@@ -38,8 +39,8 @@ class HeuristicAgent(ElasticityAgent):
         GeneralActionType.DECREASE_INFERENCE_QUALITY: GeneralActionType.INCREASE_INFERENCE_QUALITY
     }
 
-    def __init__(self, elasticity_handler: ElasticityHandler, task_generator: TaskGenerator):
-        super().__init__(elasticity_handler, task_generator)
+    def __init__(self, elasticity_handler: ElasticityHandler, request_handler: RequestHandler, task_generator: TaskGenerator, track_slo_stats=True):
+        super().__init__(elasticity_handler, request_handler, task_generator, track_slo_stats=track_slo_stats)
 
         # Cooldown management to prevent oscillations
         self.cooldown_counter = 0
@@ -51,7 +52,7 @@ class HeuristicAgent(ElasticityAgent):
         self.memory_slo_value_history = []
 
         # Decision thresholds for proactive adjustments
-        self.upscale_threshold = SloManager.WARNING_THRESHOLD
+        self.upscale_threshold = SloUtil.WARNING_THRESHOLD
 
         log.info("Heuristic Elasticity Agent initialized")
 
@@ -64,8 +65,8 @@ class HeuristicAgent(ElasticityAgent):
         """
         # Get current SLO values
         queue_slo_value, memory_slo_ratio = self.slo_manager.get_all_slo_values(track_stats=True)
-        queue_status = SloManager.get_slo_status(queue_slo_value)
-        memory_status = SloManager.get_slo_status(memory_slo_ratio)
+        queue_status = SloUtil.get_slo_status(queue_slo_value)
+        memory_status = SloUtil.get_slo_status(memory_slo_ratio)
 
         # Update SLO history
         self.queue_slo_value_history.append(queue_slo_value)

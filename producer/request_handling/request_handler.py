@@ -47,12 +47,15 @@ class RequestHandler(Thread):
         self._is_running = False
         self._channel.close()
 
+    def avg_global_processing_time(self):
+        return self._worker_knowledge_base.avg_global_processing_time()
+
+    def worker_stats_to_df(self) -> pd.DataFrame:
+        return self._worker_knowledge_base.stats_to_df()
+
     def change_inference_quality(self, work_load: InferenceQuality):
         self._inference_quality = work_load
         self._broadcast_change(Task(TaskType.CHANGE_INFERENCE_QUALITY, -1, np.array(work_load.value)))
-
-    def get_worker_statistics(self) -> pd.DataFrame:
-        return self._worker_knowledge_base.get_statistics()
 
     def _handle_request(self, address: bytes, request: dict) -> bool:
         req_type = request['type']

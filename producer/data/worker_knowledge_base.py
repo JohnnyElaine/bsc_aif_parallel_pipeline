@@ -39,7 +39,10 @@ class WorkerKnowledgeBase:
         for worker_addr in self._worker_info_dict.keys():
             self._worker_info_dict[worker_addr].add_change(change)
 
-    def get_statistics(self) -> pd.DataFrame:
+    def avg_global_processing_time(self):
+        self._global_processing_time_moving_average.average()
+
+    def stats_to_df(self) -> pd.DataFrame:
         # Create a nested dictionary with worker addresses as keys
         # and WorkerStatistics asdict() values as inner dictionaries
 

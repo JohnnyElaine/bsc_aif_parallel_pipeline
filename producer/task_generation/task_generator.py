@@ -17,14 +17,15 @@ log = logging.getLogger("producer")
 
 class TaskGenerator(Thread):
 
-    MAX_QUEUE_SIZE = 150
+    MAX_QUEUE_SIZE = 120
 
     def __init__(self, shared_queue: Queue, video: Video, start_event):
         super().__init__()
         self._queue = shared_queue
         self._video = video
         self._target_resolution = self._video.resolution
-        self._target_frame_time = 1 / self._video.fps
+        self._target_fps = self._video.fps
+        self._target_frame_time = 1 / self._target_fps
         self._start_event = start_event
 
         self._task_id = 0
@@ -65,7 +66,8 @@ class TaskGenerator(Thread):
         return self._queue.qsize()
 
     def set_fps(self, fps: int):
-        self._target_frame_time = min(1 / fps, self._video.fps)
+        self._target_fps = min(fps, self._video.fps)
+        self._target_frame_time = 1 / self._target_fps
 
         self._numerator = fps
         self._denominator = self._video.fps
@@ -121,3 +123,11 @@ class TaskGenerator(Thread):
 
     def _stop_request_handler(self):
         self._queue.put(Task(TaskType.END, -1, np.empty(0)))
+
+
+    @property
+    def fps(self) -> int:
+        return self._target_fps
+
+    def frame_time(self) -> float:
+        return self._target_frame_time
