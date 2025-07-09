@@ -12,7 +12,7 @@ class SloStatistics:
         self.queue_size = []
         self.memory_usage = []
         self.avg_global_processing_time = []
-        self.avg_worker_processing_time = {} # TODO add to dataframe
+        self.avg_worker_processing_time = {} # TODO consider adding to dataframe
 
         # SLO values
         self.queue_size_slo_value = []

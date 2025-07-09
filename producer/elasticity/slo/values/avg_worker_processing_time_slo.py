@@ -3,7 +3,7 @@ from producer.request_handling.request_handler import RequestHandler
 from producer.task_generation.task_generator import TaskGenerator
 
 class AvgWorkerProcessingTimeSlo:
-
+    # TODO add documentation describing the purpose
     def __init__(self, request_handler: RequestHandler, task_generator: TaskGenerator, tolerance=1, stats=None):
         self._request_handler = request_handler
         self._task_generator = task_generator
@@ -11,12 +11,15 @@ class AvgWorkerProcessingTimeSlo:
         self._stats = stats
 
     def value(self, track_stats=True):
-        avg_processing_time = self._request_handler.avg_global_processing_time()
-        value = avg_processing_time / self._task_generator.frame_time() * self._tolerance
+        avg_worker_processing_times = self._request_handler.avg_worker_processing_times()
+        highest_avg_processing_t = max(avg_worker_processing_times.values())
+
+        value = highest_avg_processing_t / self._task_generator.frame_time() * self._tolerance
 
         if track_stats and (self._stats is not None):
-            self._stats.avg_global_processing_time.append(avg_processing_time)
-            self._stats.avg_global_processing_time_slo_value.append(value)
+            for addr, avg_processing_t in avg_worker_processing_times.items():
+                self._stats.avg_worker_processing_time[addr].append(avg_processing_t)
+            self._stats.avg_worker_processing_time_slo_value.append(value)
 
         return value
 

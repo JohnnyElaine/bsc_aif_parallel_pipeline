@@ -12,7 +12,7 @@ class WorkerInfo:
     def add_processing_time(self, t: float):
         self._processing_time_moving_average.add(t)
 
-    def get_avg_processing_time(self) -> float:
+    def avg_processing_time(self) -> float:
         return self._processing_time_moving_average.average()
 
     def add_change(self, change: Task):

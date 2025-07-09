@@ -47,8 +47,11 @@ class RequestHandler(Thread):
         self._is_running = False
         self._channel.close()
 
-    def avg_global_processing_time(self):
+    def avg_global_processing_time(self) -> float:
         return self._worker_knowledge_base.avg_global_processing_time()
+
+    def avg_worker_processing_times(self) -> dict[bytes, float]:
+        return self._worker_knowledge_base.avg_worker_processing_times()
 
     def worker_stats_to_df(self) -> pd.DataFrame:
         return self._worker_knowledge_base.stats_to_df()
