@@ -135,8 +135,6 @@ Possible SLOs include: processing time for x amount frames, energy consumption, 
 
 SLOs guide the system to maintain QoE within operational limits. A SLO is implemented through a normalized ratio between the current observation $x$ and the associated threshold $\theta$. 
 This ratio, hereafter referred to as the *SLO value*, is computed as
-
-SLO value = x/Theta
 $$
 \text{SLO Value} = \frac{x}{\theta}
 $$.
@@ -174,25 +172,36 @@ If the buffer remains below the chosen threshold, then this indicates that there
 Workers send their stats during their requests (e.g., the processing time of the last frame)
 Producer tracks the average processing time of the last n frames, regardless of who processed them, using moving average. n defines the window size, e.g. 30
 
-```
-avg_processing_time <= 1/current_fps
-```
-with ``current_fps=30`` for a 30fps video.
+$$
+\text{avg_processing_time} \leq \frac{1}{\text{current_fps}} \cdot \theta
+$$
+with ``current_fps=30`` for a 30fps video. 
+Usually we set $\theta = 1$, To make sure the average processing time per tasks is at least as fast as the source video stream.
 
 GOAL: Make sure worker are processing tasks fast enough to keep up with the input.
 
 #### Average Task Processing Time per Worker
-For each worker: Producer tracks the average processing time of the last n frames, using moving average.
+For each worker, the Producer tracks the average processing time of the last n frames, using moving average.
 
-For each Worker:
-```
-avg_processing_time <= 1/current_fps * k
-```
-where ``k`` defines a value > 1, representing additional tolerance of the frame budget `1/current_fps`
+For each Worker, the average processing time must satisfy:
+
+$$
+\text{avg_processing_time} \leq \frac{1}{\text{current_fps}} \cdot \theta
+$$
+
+where $\theta \geq 1$ represents additional tolerance within the frame budget $\frac{1}{\text{current\_fps}}$.
+Usually we set $\theta \geq 2$, to allow slow nodes to take up to e.g., twice as long for computing a single task.
 
 GOAL: Avoid a configuration where slower workers cause the system to drop tasks (frames).  
 When a worker is below a certain threshold for processing a single \textbf{task}, then this tasks may not be used in the resulting output. 
-This is because by the time the slow worker is done processing its tasks, the output-stream has already moved past this point
+This is because by the time the slow worker is done processing its tasks, the output-stream has already moved past this point.
+
+HOW IT IS CALCULATED:
+Take Worker with highest avg_processing_time. Calculate the value using:
+$$
+\text{SLO Value} = \frac{\text{max avg processing time}}{\frac{1}{\text{current_fps}} \cdot \theta}
+$$.
+
 
 ### Producer as Controlling entity: 
 It is a core methodology that only the producer decides and makes changes in the system.
