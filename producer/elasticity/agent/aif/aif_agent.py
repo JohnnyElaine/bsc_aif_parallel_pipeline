@@ -16,7 +16,6 @@ log = logging.getLogger('producer')
 
 
 class ActiveInferenceAgent(ElasticityAgent):
-    # TODO: figure out why agents actions are suddenly inverted
     """
     Active Inference Agent that uses the Free Energy Principle to maintain
     Service Level Objectives (SLOs) in a distributed video processing system.
@@ -30,6 +29,8 @@ class ActiveInferenceAgent(ElasticityAgent):
     OBS_INFERENCE_QUALITY_INDEX = 2
     OBS_QUEUE_SIZE_INDEX = 3
     OBS_MEMORY_USAGE_INDEX = 4
+    OBS_GLOBAL_PROCESSING_TIME_INDEX = 5
+    OBS_WORKER_PROCESSING_TIME_INDEX = 6
 
     # Action indices
     ACTION_RESOLUTION_INDEX = 0
@@ -56,7 +57,7 @@ class ActiveInferenceAgent(ElasticityAgent):
 
         Args:
             elasticity_handler: The handler for changing system parameters
-            policy_length: Number of time steps to plan ahead (default: 2)
+            policy_length: Number of time steps to plan ahead (default: 1)
         """
         super().__init__(elasticity_handler, request_handler, task_generator, track_slo_stats=track_slo_stats)
 
@@ -87,8 +88,10 @@ class ActiveInferenceAgent(ElasticityAgent):
         # 3 states for SLO status: SATISFIED, WARNING, UNSATISFIED
         self.num_queue_states = len(SloStatus)
         self.num_memory_states = len(SloStatus)
+        self.num_global_processing_time_states = len(SloStatus)
+        self.num_worker_processing_time_states = len(SloStatus)
 
-        self.num_slo = 2
+        self.num_slo = 4
 
         # policy settings
         self.policy_length = policy_length
@@ -131,8 +134,10 @@ class ActiveInferenceAgent(ElasticityAgent):
             self.num_resolution_states,  # Resolution state
             self.num_fps_states,  # FPS state
             self.num_inference_quality_states,  # Work load state
-            self.num_queue_states,  # Queue size status (OK or too large)
-            self.num_memory_states,  # Memory usage status (OK or too high)
+            self.num_queue_states,  # Queue size status (OK, WARNING, CRITICAL)
+            self.num_memory_states,  # Memory usage status (OK, WARNING, CRITICAL)
+            self.num_global_processing_time_states,  # Global processing time status (OK, WARNING, CRITICAL)
+            self.num_worker_processing_time_states,  # Worker processing time status (OK, WARNING, CRITICAL)
         ]
 
         # Define state dimensions (hidden states)
@@ -156,7 +161,7 @@ class ActiveInferenceAgent(ElasticityAgent):
             A=A, B=B, C=C, D=D,
             num_controls=self.control_dims,
             policy_len=self.policy_length,
-            control_fac_idx=[self.OBS_RESOLUTION_INDEX, self.OBS_FPS_INDEX, self.OBS_INFERENCE_QUALITY_INDEX],  # Indices that indicate which hidden state factors are directly controllable
+            control_fac_idx=[self.OBS_RESOLUTION_INDEX, self.OBS_FPS_INDEX, self.OBS_INFERENCE_QUALITY_INDEX],  # hidden state factors that are directly controllable
             inference_algo="VANILLA",
             action_selection="deterministic"
         )
@@ -191,7 +196,7 @@ class ActiveInferenceAgent(ElasticityAgent):
         for i in range(self.num_inference_quality_states):
             A[self.OBS_INFERENCE_QUALITY_INDEX][i, :, :, i] = 1.0
 
-        # SLO probability mappings: Queue size status and Memory usage status
+        # SLO probability mappings: All 4 SLO status observations
         queue_probs, mem_probs, global_processing_probs, worker_processing_probs = self.observations.get_all_slo_probabilities()
         
         for res in range(self.num_resolution_states):
@@ -199,6 +204,8 @@ class ActiveInferenceAgent(ElasticityAgent):
                 for wl in range(self.num_inference_quality_states):
                     A[self.OBS_QUEUE_SIZE_INDEX][:, res, fps, wl] = queue_probs
                     A[self.OBS_MEMORY_USAGE_INDEX][:, res, fps, wl] = mem_probs
+                    A[self.OBS_GLOBAL_PROCESSING_TIME_INDEX][:, res, fps, wl] = global_processing_probs
+                    A[self.OBS_WORKER_PROCESSING_TIME_INDEX][:, res, fps, wl] = worker_processing_probs
 
         return A
 
@@ -287,14 +294,24 @@ class ActiveInferenceAgent(ElasticityAgent):
                                                   range(self.num_inference_quality_states)]
 
         # Preferences for queue size
-        C[self.OBS_QUEUE_SIZE_INDEX][SloStatus.OK.value] = self.VERY_STRONG_PREFERENCE
+        C[self.OBS_QUEUE_SIZE_INDEX][SloStatus.OK.value] = self.STRONG_PREFERENCE
         C[self.OBS_QUEUE_SIZE_INDEX][SloStatus.WARNING.value] = self.NEUTRAL
-        C[self.OBS_QUEUE_SIZE_INDEX][SloStatus.CRITICAL.value] = self.VERY_STRONG_AVERSION
+        C[self.OBS_QUEUE_SIZE_INDEX][SloStatus.CRITICAL.value] = self.STRONG_AVERSION
 
         # Preferences for memory usage
-        C[self.OBS_MEMORY_USAGE_INDEX][SloStatus.OK.value] = self.VERY_STRONG_PREFERENCE
+        C[self.OBS_MEMORY_USAGE_INDEX][SloStatus.OK.value] = self.STRONG_PREFERENCE
         C[self.OBS_MEMORY_USAGE_INDEX][SloStatus.WARNING.value] = self.NEUTRAL
-        C[self.OBS_MEMORY_USAGE_INDEX][SloStatus.CRITICAL.value] = self.VERY_STRONG_AVERSION
+        C[self.OBS_MEMORY_USAGE_INDEX][SloStatus.CRITICAL.value] = self.STRONG_AVERSION
+
+        # Preferences for global processing time
+        C[self.OBS_GLOBAL_PROCESSING_TIME_INDEX][SloStatus.OK.value] = self.STRONG_PREFERENCE
+        C[self.OBS_GLOBAL_PROCESSING_TIME_INDEX][SloStatus.WARNING.value] = self.NEUTRAL
+        C[self.OBS_GLOBAL_PROCESSING_TIME_INDEX][SloStatus.CRITICAL.value] = self.STRONG_AVERSION
+
+        # Preferences for worker processing time
+        C[self.OBS_WORKER_PROCESSING_TIME_INDEX][SloStatus.OK.value] = self.STRONG_PREFERENCE
+        C[self.OBS_WORKER_PROCESSING_TIME_INDEX][SloStatus.WARNING.value] = self.NEUTRAL
+        C[self.OBS_WORKER_PROCESSING_TIME_INDEX][SloStatus.CRITICAL.value] = self.STRONG_AVERSION
 
         return C
 
