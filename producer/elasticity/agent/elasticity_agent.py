@@ -3,7 +3,6 @@ from abc import ABC, abstractmethod
 import pandas as pd
 
 from producer.elasticity.handler.elasticity_handler import ElasticityHandler
-from producer.elasticity.interface.observations import Observations
 from producer.elasticity.slo.slo_manager import SloManager
 from producer.request_handling.request_handler import RequestHandler
 from producer.task_generation.task_generator import TaskGenerator
@@ -24,11 +23,8 @@ class ElasticityAgent(ABC):
                                       avg_worker_processing_t_tolerance=4,
                                       max_memory_usage= 0.9,
                                       track_stats=track_slo_stats)
-        stream_parameters = elasticity_handler.stream_parameters
 
-        self.observations = Observations(self._slo_manager, stream_parameters)
-        self.actions = self.elasticity_handler.actions_absolute()
-
+        # possible observations and actions defined in Agent Implementation
     @abstractmethod
     def step(self):
         """

@@ -7,9 +7,9 @@ from producer.elasticity.handler.data.state import State
 from producer.elasticity.handler.possible_values.generation import (generate_possible_resolutions,
                                                                     generate_possible_fps,
                                                                     generate_possible_work_loads)
-from producer.elasticity.handler.stream_parameters import StreamParameters
-from producer.elasticity.interface.elasticity_absolute_actions_view import ElasticityAbsoluteActionsView
-from producer.elasticity.interface.elasticity_relative_actions_view import ElasticityRelativeActionsView
+from producer.elasticity.view.elasticity_absolute_actions_view import ElasticityAbsoluteActionsView
+from producer.elasticity.view.elasticity_relative_actions_view import ElasticityRelativeActionsView
+from producer.elasticity.view.elasticity_observations_view import ElasticityObservationsView
 from producer.elasticity.interface.elasticity_interface import ElasticityInterface
 from producer.elasticity.interface.elasticity_relative_interface import ElasticityRelativeInterface
 from producer.request_handling.request_handler import RequestHandler
@@ -54,9 +54,6 @@ class ElasticityHandler(ElasticityInterface, ElasticityRelativeInterface):
             self.change_inference_quality
         )
 
-        self.stream_parameters = StreamParameters(self.state_resolution, self.state_fps, self.state_inference_quality)
-        # TODO refactor class to use stream_parameters, check if code can be exported to StreamParameters
-
     def actions_absolute(self) -> ElasticityAbsoluteActionsView:
         """
         Returns a view that exposes only the elasticity parameter-changing actions.
@@ -82,6 +79,19 @@ class ElasticityHandler(ElasticityInterface, ElasticityRelativeInterface):
             ElasticityRelativeActionsView: A restricted view with only relative parameter-changing methods
         """
         return ElasticityRelativeActionsView(self)
+
+    def observations(self) -> ElasticityObservationsView:
+        """
+        Returns a view that exposes only the elasticity parameter observations.
+        
+        This method provides AI agents with a clean read-only interface to observe
+        current parameter values, capacities, limits, and capabilities without
+        allowing modifications.
+        
+        Returns:
+            ElasticityObservationsView: A read-only view with parameter observation methods
+        """
+        return ElasticityObservationsView(self)
 
     def change_inference_quality(self, work_load: InferenceQuality):
         """
@@ -163,6 +173,19 @@ class ElasticityHandler(ElasticityInterface, ElasticityRelativeInterface):
             bool: True if the workload was decreased, False if it was already at the minimum.
         """
         return self.state_inference_quality.decrease()
+
+    # Basic observations for current values
+    def get_current_fps(self) -> int:
+        """Gets the current frames per second value."""
+        return self.state_fps.value
+
+    def get_current_resolution(self) -> Resolution:
+        """Gets the current resolution value."""
+        return self.state_resolution.value
+
+    def get_current_inference_quality(self) -> InferenceQuality:
+        """Gets the current inference quality value."""
+        return self.state_inference_quality.value
 
     @staticmethod
     def _create_state(init_value, possible_states: list, change_function: callable) -> State:
