@@ -1,5 +1,6 @@
 from packages.enums import InferenceQuality
 from producer.data.resolution import Resolution
+from producer.elasticity.handler.data.state import State
 
 
 class ElasticityObservationsView:
@@ -20,29 +21,29 @@ class ElasticityObservationsView:
         """
         self._elasticity_handler = elasticity_handler
 
-    def get_current_fps(self) -> int:
+    def get_current_fps_state(self) -> State:
         """
-        Gets the current frames per second value.
+        Gets the current frames per second state.
 
         Returns:
-            int: The current FPS value
+            int: The current FPS state
         """
-        return self._elasticity_handler.state_fps.value
+        return self._elasticity_handler.state_fps
 
-    def get_current_resolution(self) -> Resolution:
+    def get_current_resolution_state(self) -> State:
         """
-        Gets the current resolution value.
-
-        Returns:
-            Resolution: The current resolution value
-        """
-        return self._elasticity_handler.state_resolution.value
-
-    def get_current_inference_quality(self) -> InferenceQuality:
-        """
-        Gets the current inference quality value.
+        Gets the current resolution state.
 
         Returns:
-            InferenceQuality: The current inference quality value
+            Resolution: The current resolution state
         """
-        return self._elasticity_handler.state_inference_quality.value
+        return self._elasticity_handler.state_resolution
+
+    def get_current_inference_quality_state(self) -> State:
+        """
+        Gets the current inference quality state.
+
+        Returns:
+            InferenceQuality: The current inference quality state
+        """
+        return self._elasticity_handler.state_inference_quality
