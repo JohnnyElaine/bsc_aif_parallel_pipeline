@@ -30,12 +30,26 @@ class AIFAgentObservations:
         This method provides the exact format expected by the AIF agent for its observation vector.
 
         Returns:
-            list[int]: [resolution_index, fps_index, inference_quality_index, queue_slo_value, memory_slo_value]
+            list[int]: [resolution_index, fps_index, inference_quality_index, queue_slo_value, memory_slo_value, global_processing_slo_value, worker_processing_slo_value]
         """
+        queue_slo_status, memory_slo_status, global_processing_slo_status, worker_processing_slo_status = self._slo_manager.get_all_slo_status()
+        
         return [
             self._elasticity_observations.get_current_resolution_state().current_index,
             self._elasticity_observations.get_current_fps_state().current_index,
             self._elasticity_observations.get_current_inference_quality_state().current_index,
-            self._slo_manager.get_queue_size_slo_status().value,
-            self._slo_manager.get_memory_slo_status().value
+            queue_slo_status.value,
+            memory_slo_status.value,
+            global_processing_slo_status.value,
+            worker_processing_slo_status.value
         ]
+
+    def get_all_slo_probabilities(self) -> tuple[list[float], list[float], list[float], list[float]]:
+        """
+        Gets all SLO probability distributions for use in the active inference agent's A matrix.
+        
+        Returns:
+            tuple: (queue_probs, memory_probs, global_processing_probs, worker_processing_probs)
+                   Each element is a list [P(OK), P(WARNING), P(CRITICAL)]
+        """
+        return self._slo_manager.get_all_slo_probabilities()

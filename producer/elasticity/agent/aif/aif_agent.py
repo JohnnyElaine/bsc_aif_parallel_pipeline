@@ -8,6 +8,7 @@ from producer.elasticity.action.action_type import ActionType
 from producer.elasticity.agent.elasticity_agent import ElasticityAgent
 from producer.elasticity.handler.elasticity_handler import ElasticityHandler
 from producer.elasticity.slo.slo_status import SloStatus
+from producer.elasticity.view.aif_agent_observations import AIFAgentObservations
 from producer.request_handling.request_handler import RequestHandler
 from producer.task_generation.task_generator import TaskGenerator
 
@@ -58,6 +59,8 @@ class ActiveInferenceAgent(ElasticityAgent):
             policy_length: Number of time steps to plan ahead (default: 2)
         """
         super().__init__(elasticity_handler, request_handler, task_generator, track_slo_stats=track_slo_stats)
+
+        self.observations = AIFAgentObservations(elasticity_handler.observations(),self._slo_manager)
 
         # Get the relative actions view for clean interface to increase/decrease actions
         self.relative_actions = elasticity_handler.actions_relative()
@@ -189,13 +192,12 @@ class ActiveInferenceAgent(ElasticityAgent):
             A[self.OBS_INFERENCE_QUALITY_INDEX][i, :, :, i] = 1.0
 
         # SLO probability mappings: Queue size status and Memory usage status
+        queue_probs, mem_probs, global_processing_probs, worker_processing_probs = self.observations.get_all_slo_probabilities()
+        
         for res in range(self.num_resolution_states):
             for fps in range(self.num_fps_states):
                 for wl in range(self.num_inference_quality_states):
-                    queue_probs = self.slo_manager.probabilities()
                     A[self.OBS_QUEUE_SIZE_INDEX][:, res, fps, wl] = queue_probs
-
-                    mem_probs = self.slo_manager.probabilities()
                     A[self.OBS_MEMORY_USAGE_INDEX][:, res, fps, wl] = mem_probs
 
         return A
@@ -301,9 +303,9 @@ class ActiveInferenceAgent(ElasticityAgent):
         D = utils.obj_array(len(self.state_dims))
 
         current_states = [
-            self.elasticity_handler.state_resolution.current_index,
-            self.elasticity_handler.state_fps.current_index,
-            self.elasticity_handler.state_inference_quality.current_index
+            self.observations._elasticity_observations.get_current_resolution_state().current_index,
+            self.observations._elasticity_observations.get_current_fps_state().current_index,
+            self.observations._elasticity_observations.get_current_inference_quality_state().current_index
         ]
 
         for i, state in enumerate(current_states):
@@ -319,15 +321,7 @@ class ActiveInferenceAgent(ElasticityAgent):
         Returns:
             list: Current observations for all observation modalities
         """
-        queue_slo_status, memory_slo_status = self.slo_manager.get_all_slo_status()
-
-        return [
-            self.elasticity_handler.state_resolution.current_index,
-            self.elasticity_handler.state_fps.current_index,
-            self.elasticity_handler.state_inference_quality.current_index,
-            queue_slo_status.value,
-            memory_slo_status.value
-        ]
+        return self.observations.get_observations()
 
     def _perform_action(self, action: GeneralActionType) -> bool:
         """
