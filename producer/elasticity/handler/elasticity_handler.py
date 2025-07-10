@@ -61,39 +61,6 @@ class ElasticityHandler:
         """
         return Actions()
 
-    @property
-    def max_fps(self) -> int:
-        """
-        Returns:
-            int: The current FPS value.
-        """
-        return self.state_fps.max()
-
-    @property
-    def resolution(self) -> Resolution:
-        """
-        Returns:
-            Resolution: The current resolution value.
-        """
-        return self.state_resolution.value
-
-
-    @property
-    def fps(self) -> int:
-        """
-        Returns:
-            int: The current FPS value.
-        """
-        return self.state_fps.value
-
-    @property
-    def inference_quality(self) -> InferenceQuality:
-        """
-        Returns:
-            InferenceQuality: The current workload value.
-        """
-        return self.state_inference_quality.value
-
     def change_inference_quality(self, work_load: InferenceQuality):
         """
         Propagates the change to the request handler.

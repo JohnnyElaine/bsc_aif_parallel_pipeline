@@ -84,9 +84,6 @@ class HeuristicAgent(ElasticityAgent):
         if queue_status == SloStatus.CRITICAL or memory_status == SloStatus.CRITICAL:
             log.warning(f"Current state - Queue SLO: {queue_status.name} ({queue_slo_value:.3f}), "
                       f"Memory SLO: {memory_status.name} ({memory_slo_ratio:.3f})")
-            log.warning(f"Current quality - FPS: {self.elasticity_handler.fps}, "
-                      f"Resolution: {self.elasticity_handler.resolution}, "
-                      f"WorkLoad: {self.elasticity_handler.inference_quality}")
 
             action, success = self._handle_critical_slo()
             if success:
