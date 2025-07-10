@@ -6,18 +6,19 @@ from producer.elasticity.agent.elasticity_agent import ElasticityAgent
 from producer.elasticity.handler.elasticity_handler import ElasticityHandler
 from producer.elasticity.slo.slo_status import SloStatus
 from producer.elasticity.slo.slo_util import SloUtil
+from producer.elasticity.view.heuristic_agent_observations import HeuristicAgentObservations
 from producer.request_handling.request_handler import RequestHandler
 from producer.task_generation.task_generator import TaskGenerator
 
 log = logging.getLogger('producer')
 
-# TODO add 2 new SLO
+
 class HeuristicAgent(ElasticityAgent):
     """
     A heuristic-based agent that manages system elasticity to maintain SLOs while maximizing
     stream quality parameters (FPS, resolution, workload) in a balanced way.
 
-    The agent decides actions based on the current state of SLOs and avoids oscillations
+    The agent decides actions based on the current state of all 4 SLOs and avoids oscillations
     by implementing cooldown periods and tracking historical actions.
     """
 
@@ -42,19 +43,28 @@ class HeuristicAgent(ElasticityAgent):
     def __init__(self, elasticity_handler: ElasticityHandler, request_handler: RequestHandler, task_generator: TaskGenerator, track_slo_stats=True):
         super().__init__(elasticity_handler, request_handler, task_generator, track_slo_stats=track_slo_stats)
 
+        # Create observations and actions views for clean interface
+        self.observations = HeuristicAgentObservations(
+            elasticity_handler.observations(),
+            self._slo_manager
+        )
+        self.actions = elasticity_handler.actions_relative()
+
         # Cooldown management to prevent oscillations
         self.cooldown_counter = 0
         self.last_action_type = None
         self.consecutive_action_count = 0
 
-        # Track SLO history to detect trends
+        # Track SLO history to detect trends - now for all 4 SLOs
         self.queue_slo_value_history = []
         self.memory_slo_value_history = []
+        self.global_processing_slo_value_history = []
+        self.worker_processing_slo_value_history = []
 
         # Decision thresholds for proactive adjustments
         self.upscale_threshold = SloUtil.WARNING_THRESHOLD
 
-        log.info("Heuristic Elasticity Agent initialized")
+        log.info("Heuristic Elasticity Agent initialized with all 4 SLOs")
 
     def step(self) -> tuple[GeneralActionType, bool]:
         """
@@ -63,17 +73,21 @@ class HeuristicAgent(ElasticityAgent):
         Returns:
             tuple[GeneralActionType, bool]: The action taken and whether it was successful
         """
-        # Get current SLO values
-        queue_slo_value, memory_slo_ratio = self.slo_manager.get_all_slo_values(track_stats=True)
-        queue_status = SloUtil.get_slo_status(queue_slo_value)
-        memory_status = SloUtil.get_slo_status(memory_slo_ratio)
+        # Get current SLO values for all 4 SLOs
+        queue_slo_value, memory_slo_value, global_processing_slo_value, worker_processing_slo_value = self.observations.get_all_slo_values(track_stats=True)
+        queue_status, memory_status, global_processing_status, worker_processing_status = self.observations.get_all_slo_status()
 
-        # Update SLO history
+        # Update SLO history for all 4 SLOs
         self.queue_slo_value_history.append(queue_slo_value)
-        self.memory_slo_value_history.append(memory_slo_ratio)
-        if len(self.queue_slo_value_history) > self.SLO_HISTORY_SIZE:
-            self.queue_slo_value_history.pop(0)
-            self.memory_slo_value_history.pop(0)
+        self.memory_slo_value_history.append(memory_slo_value)
+        self.global_processing_slo_value_history.append(global_processing_slo_value)
+        self.worker_processing_slo_value_history.append(worker_processing_slo_value)
+        
+        # Keep history size manageable
+        for history in [self.queue_slo_value_history, self.memory_slo_value_history, 
+                       self.global_processing_slo_value_history, self.worker_processing_slo_value_history]:
+            if len(history) > self.SLO_HISTORY_SIZE:
+                history.pop(0)
 
         # Check if we're in cooldown period
         if self.cooldown_counter > 0:
@@ -81,23 +95,27 @@ class HeuristicAgent(ElasticityAgent):
             return GeneralActionType.NONE, True
 
         # Handle CRITICAL SLO states first (immediate action required)
-        if queue_status == SloStatus.CRITICAL or memory_status == SloStatus.CRITICAL:
+        if (queue_status == SloStatus.CRITICAL or memory_status == SloStatus.CRITICAL or 
+            global_processing_status == SloStatus.CRITICAL or worker_processing_status == SloStatus.CRITICAL):
             log.warning(f"Current state - Queue SLO: {queue_status.name} ({queue_slo_value:.3f}), "
-                      f"Memory SLO: {memory_status.name} ({memory_slo_ratio:.3f})")
+                      f"Memory SLO: {memory_status.name} ({memory_slo_value:.3f}), "
+                      f"Global Processing SLO: {global_processing_status.name} ({global_processing_slo_value:.3f}), "
+                      f"Worker Processing SLO: {worker_processing_status.name} ({worker_processing_slo_value:.3f})")
 
             action, success = self._handle_critical_slo()
             if success:
                 self._update_action_tracking(action)
                 return action, success
 
-        # If SLOs are OK, check if we can improve quality
-        if queue_status == SloStatus.OK and memory_status == SloStatus.OK:
+        # If all SLOs are OK, check if we can improve quality
+        if (queue_status == SloStatus.OK and memory_status == SloStatus.OK and 
+            global_processing_status == SloStatus.OK and worker_processing_status == SloStatus.OK):
             action, success = self._try_quality_improvement()
             if success:
                 self._update_action_tracking(action)
                 return action, success
 
-        # Handle WARNING SLO states (Do nothing)
+        # Handle WARNING SLO states (Do nothing for now, but could be extended)
 
         return GeneralActionType.NONE, True
 
@@ -109,16 +127,16 @@ class HeuristicAgent(ElasticityAgent):
         Returns:
             tuple[GeneralActionType, bool]: Action taken and whether it was successful
         """
-        # Get current capacities
-        res_capacity = self.elasticity_handler.state_resolution.capacity()
-        fps_capacity = self.elasticity_handler.state_fps.capacity()
-        workload_capacity = self.elasticity_handler.state_inference_quality.capacity()
+        # Get current capacities using the observations view
+        res_capacity = self.observations.get_resolution_capacity()
+        fps_capacity = self.observations.get_fps_capacity()
+        workload_capacity = self.observations.get_inference_quality_capacity()
 
         # Find which parameter has the highest capacity (most room to decrease)
         capacities = [
-            (res_capacity, GeneralActionType.DECREASE_RESOLUTION, self.elasticity_handler.state_resolution.can_decrease()),
-            (fps_capacity, GeneralActionType.DECREASE_FPS, self.elasticity_handler.state_fps.can_decrease()),
-            (workload_capacity, GeneralActionType.DECREASE_INFERENCE_QUALITY, self.elasticity_handler.state_inference_quality.can_decrease())
+            (res_capacity, GeneralActionType.DECREASE_RESOLUTION, self.observations.can_decrease_resolution()),
+            (fps_capacity, GeneralActionType.DECREASE_FPS, self.observations.can_decrease_fps()),
+            (workload_capacity, GeneralActionType.DECREASE_INFERENCE_QUALITY, self.observations.can_decrease_inference_quality())
         ]
 
         # Filter to only those that can be decreased
@@ -158,13 +176,17 @@ class HeuristicAgent(ElasticityAgent):
         Returns:
             tuple[GeneralActionType, bool]: Action taken and whether it was successful
         """
-        # Check if SLO trends are getting worse
+        # Check if SLO trends are getting worse for all 4 SLOs
         queue_trend = self._calculate_trend(self.queue_slo_value_history)
         memory_trend = self._calculate_trend(self.memory_slo_value_history)
+        global_processing_trend = self._calculate_trend(self.global_processing_slo_value_history)
+        worker_processing_trend = self._calculate_trend(self.worker_processing_slo_value_history)
 
         # If trends show worsening conditions, take proactive action
-        if queue_trend > self.WARNING_TREND_THRESHOLD or memory_trend > self.WARNING_TREND_THRESHOLD:
-            log.debug(f"Worsening SLO trends detected - Queue: {queue_trend:.3f}, Memory: {memory_trend:.3f}")
+        if (queue_trend > self.WARNING_TREND_THRESHOLD or memory_trend > self.WARNING_TREND_THRESHOLD or 
+            global_processing_trend > self.WARNING_TREND_THRESHOLD or worker_processing_trend > self.WARNING_TREND_THRESHOLD):
+            log.debug(f"Worsening SLO trends detected - Queue: {queue_trend:.3f}, Memory: {memory_trend:.3f}, "
+                     f"Global Processing: {global_processing_trend:.3f}, Worker Processing: {worker_processing_trend:.3f}")
 
             # Similar to critical handling but with lower urgency
             return self._handle_critical_slo()
@@ -174,42 +196,45 @@ class HeuristicAgent(ElasticityAgent):
 
     def _try_quality_improvement(self) -> tuple[GeneralActionType, bool]:
         """
-        Try to improve quality parameters in a balanced way when SLOs are well below thresholds.
+        Try to improve quality parameters in a balanced way when all SLOs are well below thresholds.
 
         Returns:
             tuple[GeneralActionType, bool]: Action taken and whether it was successful
         """
-        # Get current SLO ratios
-        queue_ratio, memory_ratio = self.slo_manager.get_all_slo_values()
+        # Get current SLO values for all 4 SLOs
+        queue_value, memory_value, global_processing_value, worker_processing_value = self.observations.get_all_slo_values()
 
-        # Only try to improve if both SLOs are comfortably below threshold
-        if max(queue_ratio, memory_ratio) > self.upscale_threshold:
+        # Only try to improve if all SLOs are comfortably below threshold
+        if max(queue_value, memory_value, global_processing_value, worker_processing_value) > self.upscale_threshold:
             return GeneralActionType.NONE, True
 
         # Make sure we've been stable for a while before trying to improve
         if len(self.queue_slo_value_history) < self.SLO_HISTORY_SIZE:
             return GeneralActionType.NONE, True
 
-        # Check if trends are stable or improving
+        # Check if trends are stable or improving for all 4 SLOs
         queue_trend = self._calculate_trend(self.queue_slo_value_history)
         memory_trend = self._calculate_trend(self.memory_slo_value_history)
+        global_processing_trend = self._calculate_trend(self.global_processing_slo_value_history)
+        worker_processing_trend = self._calculate_trend(self.worker_processing_slo_value_history)
 
-        if queue_trend > self.IMPROVEMENT_TREND_THRESHOLD or memory_trend > self.IMPROVEMENT_TREND_THRESHOLD:
+        if (queue_trend > self.IMPROVEMENT_TREND_THRESHOLD or memory_trend > self.IMPROVEMENT_TREND_THRESHOLD or 
+            global_processing_trend > self.IMPROVEMENT_TREND_THRESHOLD or worker_processing_trend > self.IMPROVEMENT_TREND_THRESHOLD):
             # SLOs are trending worse, don't try to improve quality yet
             return GeneralActionType.NONE, True
 
-        log.debug("SLOs stable or improving - attempting quality improvement")
+        log.debug("All SLOs stable or improving - attempting quality improvement")
 
-        # Get current capacities
-        res_capacity = self.elasticity_handler.state_resolution.capacity()
-        fps_capacity = self.elasticity_handler.state_fps.capacity()
-        workload_capacity = self.elasticity_handler.state_inference_quality.capacity()
+        # Get current capacities using the observations view
+        res_capacity = self.observations.get_resolution_capacity()
+        fps_capacity = self.observations.get_fps_capacity()
+        workload_capacity = self.observations.get_inference_quality_capacity()
 
         # Find which parameter has the lowest capacity (most room to increase)
         capacities = [
-            (res_capacity, GeneralActionType.INCREASE_RESOLUTION, self.elasticity_handler.state_resolution.can_increase()),
-            (fps_capacity, GeneralActionType.INCREASE_FPS, self.elasticity_handler.state_fps.can_increase()),
-            (workload_capacity, GeneralActionType.INCREASE_INFERENCE_QUALITY, self.elasticity_handler.state_inference_quality.can_increase())
+            (res_capacity, GeneralActionType.INCREASE_RESOLUTION, self.observations.can_increase_resolution()),
+            (fps_capacity, GeneralActionType.INCREASE_FPS, self.observations.can_increase_fps()),
+            (workload_capacity, GeneralActionType.INCREASE_INFERENCE_QUALITY, self.observations.can_increase_inference_quality())
         ]
 
         # Filter to only those that can be increased
@@ -260,20 +285,20 @@ class HeuristicAgent(ElasticityAgent):
             log.debug(f"Skipping {action.name} to avoid consecutive repetition")
             return GeneralActionType.NONE, True
 
-        # Execute the action
+        # Execute the action using the relative actions view
         success = False
         if action == GeneralActionType.DECREASE_RESOLUTION:
-            success = self.elasticity_handler.decrease_resolution()
+            success = self.actions.decrease_resolution()
         elif action == GeneralActionType.DECREASE_FPS:
-            success = self.elasticity_handler.decrease_fps()
+            success = self.actions.decrease_fps()
         elif action == GeneralActionType.DECREASE_INFERENCE_QUALITY:
-            success = self.elasticity_handler.decrease_inference_quality()
+            success = self.actions.decrease_inference_quality()
         elif action == GeneralActionType.INCREASE_RESOLUTION:
-            success = self.elasticity_handler.increase_resolution()
+            success = self.actions.increase_resolution()
         elif action == GeneralActionType.INCREASE_FPS:
-            success = self.elasticity_handler.increase_fps()
+            success = self.actions.increase_fps()
         elif action == GeneralActionType.INCREASE_INFERENCE_QUALITY:
-            success = self.elasticity_handler.increase_inference_quality()
+            success = self.actions.increase_inference_quality()
 
         if success:
             log.debug(f"Action taken: {action.name}")

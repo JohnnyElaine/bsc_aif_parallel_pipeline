@@ -64,7 +64,7 @@ class ActiveInferenceAgentRelativeControl(ElasticityAgent):
         self.observations = AIFAgentObservations(elasticity_handler.observations(),self._slo_manager)
 
         # Get the relative actions view for clean interface to increase/decrease actions
-        self.relative_actions = elasticity_handler.actions_relative()
+        self.actions = elasticity_handler.actions_relative()
 
         self.num_resolution_states = len(elasticity_handler.state_resolution.possible_states)
         self.num_fps_states = len(elasticity_handler.state_fps.possible_states)
@@ -336,20 +336,20 @@ class ActiveInferenceAgentRelativeControl(ElasticityAgent):
 
         # Resolution action
         if actions[self.ACTION_RESOLUTION_INDEX] == ActionType.INCREASE:
-            success &= self.relative_actions.increase_resolution()
+            success &= self.actions.increase_resolution()
         elif actions[self.ACTION_RESOLUTION_INDEX] == ActionType.DECREASE:
-            success &= self.relative_actions.decrease_resolution()
+            success &= self.actions.decrease_resolution()
 
         # FPS action
         if actions[self.ACTION_FPS_INDEX] == ActionType.INCREASE:
-            success &= self.relative_actions.increase_fps()
+            success &= self.actions.increase_fps()
         elif actions[self.ACTION_FPS_INDEX] == ActionType.DECREASE:
-            success &= self.relative_actions.decrease_fps()
+            success &= self.actions.decrease_fps()
 
         # Workload action
         if actions[self.ACTION_INFERENCE_QUALITY_INDEX] == ActionType.INCREASE:
-            success &= self.relative_actions.increase_inference_quality()
+            success &= self.actions.increase_inference_quality()
         elif actions[self.ACTION_INFERENCE_QUALITY_INDEX] == ActionType.DECREASE:
-            success &= self.relative_actions.decrease_inference_quality()
+            success &= self.actions.decrease_inference_quality()
 
         return success
