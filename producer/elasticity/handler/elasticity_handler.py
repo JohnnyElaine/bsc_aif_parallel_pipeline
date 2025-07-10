@@ -8,15 +8,17 @@ from producer.elasticity.handler.possible_values.generation import (generate_pos
                                                                     generate_possible_fps,
                                                                     generate_possible_work_loads)
 from producer.elasticity.handler.stream_parameters import StreamParameters
-from producer.elasticity.interface.elasticity_actions_view import ElasticityActionsView
+from producer.elasticity.interface.elasticity_absolute_actions_view import ElasticityAbsoluteActionsView
+from producer.elasticity.interface.elasticity_relative_actions_view import ElasticityRelativeActionsView
 from producer.elasticity.interface.elasticity_interface import ElasticityInterface
+from producer.elasticity.interface.elasticity_relative_interface import ElasticityRelativeInterface
 from producer.request_handling.request_handler import RequestHandler
 from producer.task_generation.task_generator import TaskGenerator
 
 log = logging.getLogger('producer')
 
 
-class ElasticityHandler(ElasticityInterface):
+class ElasticityHandler(ElasticityInterface, ElasticityRelativeInterface):
     """
     A class to handle elasticity-related operations for a task, such as adjusting workload,
     frames per second (FPS), and resolution.
@@ -55,7 +57,7 @@ class ElasticityHandler(ElasticityInterface):
         self.stream_parameters = StreamParameters(self.state_resolution, self.state_fps, self.state_inference_quality)
         # TODO refactor class to use stream_parameters, check if code can be exported to StreamParameters
 
-    def actions(self) -> ElasticityActionsView:
+    def actions_absolute(self) -> ElasticityAbsoluteActionsView:
         """
         Returns a view that exposes only the elasticity parameter-changing actions.
         
@@ -64,9 +66,22 @@ class ElasticityHandler(ElasticityInterface):
         and Inference Quality.
         
         Returns:
-            ElasticityActionsView: A restricted view with only parameter-changing methods
+            ElasticityAbsoluteActionsView: A restricted view with only parameter-changing methods
         """
-        return ElasticityActionsView(self)
+        return ElasticityAbsoluteActionsView(self)
+
+    def actions_relative(self) -> ElasticityRelativeActionsView:
+        """
+        Returns a view that exposes only the relative elasticity parameter-changing actions.
+        
+        This method provides AI agents with a clean interface containing only
+        the methods they need to relatively modify elasticity parameters: increase/decrease
+        FPS, Resolution, and Inference Quality.
+        
+        Returns:
+            ElasticityRelativeActionsView: A restricted view with only relative parameter-changing methods
+        """
+        return ElasticityRelativeActionsView(self)
 
     def change_inference_quality(self, work_load: InferenceQuality):
         """

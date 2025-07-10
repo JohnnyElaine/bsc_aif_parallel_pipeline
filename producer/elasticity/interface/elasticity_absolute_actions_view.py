@@ -3,7 +3,7 @@ from producer.data.resolution import Resolution
 from producer.elasticity.interface.elasticity_interface import ElasticityInterface
 
 
-class ElasticityActionsView(ElasticityInterface):
+class ElasticityAbsoluteActionsView(ElasticityInterface):
     """
     A view class that provides a restricted interface to ElasticityHandler,
     exposing only the parameter-changing actions available to AI agents.

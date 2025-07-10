@@ -27,7 +27,7 @@ class ElasticityAgent(ABC):
         stream_parameters = elasticity_handler.stream_parameters
 
         self.observations = Observations(self._slo_manager, stream_parameters)
-        self.actions = self.elasticity_handler.actions()
+        self.actions = self.elasticity_handler.actions_absolute()
 
     @abstractmethod
     def step(self):
