@@ -151,18 +151,20 @@ The SLOs are calculated as float values with bound 0.0-infinity. The higher the 
 - ``1.0 <= slo-value < MAX_FLOAT`` indicates an unfulfilled SLO in a critical state
 
 #### Memory Usage SLO
-```
-memory_usage <= X%
-```
-- `X%` maximum percentage of acceptable memory use
+$$
+\text{memory_usage} \leq X%
+$$
+
+- $X%$ maximum percentage of acceptable memory use
 
 GOAL: Ensure memory usage does not exceed capacity. Consuming the entire memory of the producer will cause a massive slowdown, as the new tasks will either be stored on a slower type of storage or discarded entirely.
 
 #### Task queue (buffer) size SLO
-```
-task_queue <= X
-```
-- ``X`` maximum acceptable number of tasks. e.g. ``X = source_fps * 2``
+$$
+\text{task_queue} \leq X
+$$
+
+- $X$ maximum acceptable number of tasks that may remain in the task_queue (frame buffer). e.g., $X = \text{source_fps} * 2$
 
 GOAL: Make sure there is enough compute power to handle tasks in real time. 
 This SLO makes sure that the internal task buffer of the producer does not grow indefinitely. 
@@ -175,7 +177,7 @@ Producer tracks the average processing time of the last n frames, regardless of 
 $$
 \text{avg_processing_time} \leq \frac{1}{\text{current_fps}} \cdot \theta
 $$
-with ``current_fps=30`` for a 30fps video. 
+with $\text{current_fps}=30$ for a 30fps video. 
 Usually we set $\theta = 1$, To make sure the average processing time per tasks is at least as fast as the source video stream.
 
 GOAL: Make sure worker are processing tasks fast enough to keep up with the input.

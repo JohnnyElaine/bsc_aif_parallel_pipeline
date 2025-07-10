@@ -3,6 +3,9 @@ import logging
 from packages.enums import InferenceQuality
 from producer.elasticity.handler.possible_values.generation import (generate_possible_resolutions, generate_possible_fps,
                                                                     generate_possible_work_loads)
+from producer.elasticity.handler.stream_parameters import StreamParameters
+from producer.elasticity.interface.actions import Actions
+from producer.elasticity.interface.observations import Observations
 from producer.request_handling.request_handler import RequestHandler
 from producer.data.resolution import Resolution
 from producer.data.task_config import TaskConfig
@@ -47,6 +50,16 @@ class ElasticityHandler:
             generate_possible_work_loads(target_config.max_work_load),
             self.change_inference_quality
         )
+
+        self.stream_parameters = StreamParameters(self.state_resolution, self.state_fps, self.state_inference_quality)
+        # TODO refactor class to use stream_parameters, check if code can be exported to StreamParameters
+
+
+    def actions(self) -> Actions:
+        """
+        Returns: Actions only view
+        """
+        return Actions()
 
     @property
     def max_fps(self) -> int:
