@@ -59,6 +59,9 @@ class ActiveInferenceAgent(ElasticityAgent):
         """
         super().__init__(elasticity_handler, request_handler, task_generator, track_slo_stats=track_slo_stats)
 
+        # Get the relative actions view for clean interface to increase/decrease actions
+        self.relative_actions = elasticity_handler.actions_relative()
+
         self.num_resolution_states = len(elasticity_handler.state_resolution.possible_states)
         self.num_fps_states = len(elasticity_handler.state_fps.possible_states)
         self.num_inference_quality_states = len(elasticity_handler.state_inference_quality.possible_states)
@@ -328,7 +331,7 @@ class ActiveInferenceAgent(ElasticityAgent):
 
     def _perform_action(self, action: GeneralActionType) -> bool:
         """
-        Perform the selected action using match-case structure.
+        Perform the selected action using the relative actions view for increase/decrease operations.
 
         Args:
             action: The action to perform
@@ -341,41 +344,41 @@ class ActiveInferenceAgent(ElasticityAgent):
             case GeneralActionType.NONE:
                 return True
             case GeneralActionType.INCREASE_RESOLUTION:
-                return self.elasticity_handler.increase_resolution()
+                return self.relative_actions.increase_resolution()
             case GeneralActionType.DECREASE_RESOLUTION:
-                return self.elasticity_handler.decrease_resolution()
+                return self.relative_actions.decrease_resolution()
             case GeneralActionType.INCREASE_FPS:
-                return self.elasticity_handler.increase_fps()
+                return self.relative_actions.increase_fps()
             case GeneralActionType.DECREASE_FPS:
-                return self.elasticity_handler.decrease_fps()
+                return self.relative_actions.decrease_fps()
             case GeneralActionType.INCREASE_INFERENCE_QUALITY:
-                return self.elasticity_handler.increase_inference_quality()
+                return self.relative_actions.increase_inference_quality()
             case GeneralActionType.DECREASE_INFERENCE_QUALITY:
-                return self.elasticity_handler.decrease_inference_quality()
+                return self.relative_actions.decrease_inference_quality()
             case _:
                 raise ValueError(f"Unknown action type: {action}")
 
     def _perform_actions(self, actions: list[int]):
-        """Tries to perform for all state dimensions"""
+        """Tries to perform for all state dimensions using the relative actions view"""
         # TODO: Return list of actions and if they were successful
         success = True
 
         # Resolution action
         if actions[self.ACTION_RESOLUTION_INDEX] == ActionType.INCREASE:
-            success &= self.elasticity_handler.increase_resolution()
+            success &= self.relative_actions.increase_resolution()
         elif actions[self.ACTION_RESOLUTION_INDEX] == ActionType.DECREASE:
-            success &= self.elasticity_handler.decrease_resolution()
+            success &= self.relative_actions.decrease_resolution()
 
         # FPS action
         if actions[self.ACTION_FPS_INDEX] == ActionType.INCREASE:
-            success &= self.elasticity_handler.increase_fps()
+            success &= self.relative_actions.increase_fps()
         elif actions[self.ACTION_FPS_INDEX] == ActionType.DECREASE:
-            success &= self.elasticity_handler.decrease_fps()
+            success &= self.relative_actions.decrease_fps()
 
         # Workload action
         if actions[self.ACTION_INFERENCE_QUALITY_INDEX] == ActionType.INCREASE:
-            success &= self.elasticity_handler.increase_inference_quality()
+            success &= self.relative_actions.increase_inference_quality()
         elif actions[self.ACTION_INFERENCE_QUALITY_INDEX] == ActionType.DECREASE:
-            success &= self.elasticity_handler.decrease_inference_quality()
+            success &= self.relative_actions.decrease_inference_quality()
 
         return success
