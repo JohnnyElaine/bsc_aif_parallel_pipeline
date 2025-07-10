@@ -35,6 +35,38 @@ class SloManager:
         self._avg_global_processing_time_slo = AvgGlobalProcessingTimeSlo(request_handler, task_generator, tolerance=avg_global_processing_t_tolerance, stats=self._stats)
         self._avg_worker_processing_time_slo = AvgWorkerProcessingTimeSlo(request_handler, task_generator, tolerance=avg_worker_processing_t_tolerance, stats=self._stats)
 
+    def get_queue_size_slo_value(self) -> float:
+        """Get the queue size SLO value."""
+        return self._queue_size_slo.value()
+    
+    def get_memory_slo_value(self) -> float:
+        """Get the memory SLO value."""
+        return self._memory_slo.value()
+    
+    def get_global_processing_time_slo_value(self) -> float:
+        """Get the global processing time SLO value."""
+        return self._avg_global_processing_time_slo.value()
+    
+    def get_worker_processing_time_slo_value(self) -> float:
+        """Get the worker processing time SLO value."""
+        return self._avg_worker_processing_time_slo.value()
+    
+    def get_queue_size_slo_status(self) -> SloStatus:
+        """Get the queue size SLO status."""
+        return SloUtil.get_slo_status(self.get_queue_size_slo_value())
+    
+    def get_memory_slo_status(self) -> SloStatus:
+        """Get the memory SLO status."""
+        return SloUtil.get_slo_status(self.get_memory_slo_value())
+    
+    def get_global_processing_time_slo_status(self) -> SloStatus:
+        """Get the global processing time SLO status."""
+        return SloUtil.get_slo_status(self.get_global_processing_time_slo_value())
+    
+    def get_worker_processing_time_slo_status(self) -> SloStatus:
+        """Get the worker processing time SLO status."""
+        return SloUtil.get_slo_status(self.get_worker_processing_time_slo_value())
+
     def get_all_slo_status(self) -> tuple[SloStatus, SloStatus, SloStatus, SloStatus]:
         qsize, mem, global_processing_t, worker_processing_t = self.get_all_slo_values()
 
