@@ -1,21 +1,22 @@
 import logging
 
 from packages.enums import InferenceQuality
-from producer.elasticity.handler.possible_values.generation import (generate_possible_resolutions, generate_possible_fps,
-                                                                    generate_possible_work_loads)
-from producer.elasticity.handler.stream_parameters import StreamParameters
-from producer.elasticity.interface.actions import Actions
-from producer.elasticity.interface.observations import Observations
-from producer.request_handling.request_handler import RequestHandler
 from producer.data.resolution import Resolution
 from producer.data.task_config import TaskConfig
 from producer.elasticity.handler.data.state import State
+from producer.elasticity.handler.possible_values.generation import (generate_possible_resolutions,
+                                                                    generate_possible_fps,
+                                                                    generate_possible_work_loads)
+from producer.elasticity.handler.stream_parameters import StreamParameters
+from producer.elasticity.interface.elasticity_actions_view import ElasticityActionsView
+from producer.elasticity.interface.elasticity_interface import ElasticityInterface
+from producer.request_handling.request_handler import RequestHandler
 from producer.task_generation.task_generator import TaskGenerator
 
 log = logging.getLogger('producer')
 
 
-class ElasticityHandler:
+class ElasticityHandler(ElasticityInterface):
     """
     A class to handle elasticity-related operations for a task, such as adjusting workload,
     frames per second (FPS), and resolution.
@@ -54,12 +55,18 @@ class ElasticityHandler:
         self.stream_parameters = StreamParameters(self.state_resolution, self.state_fps, self.state_inference_quality)
         # TODO refactor class to use stream_parameters, check if code can be exported to StreamParameters
 
-
-    def actions(self) -> Actions:
+    def actions(self) -> ElasticityActionsView:
         """
-        Returns: Actions only view
+        Returns a view that exposes only the elasticity parameter-changing actions.
+        
+        This method provides AI agents with a clean interface containing only
+        the methods they need to modify elasticity parameters: FPS, Resolution,
+        and Inference Quality.
+        
+        Returns:
+            ElasticityActionsView: A restricted view with only parameter-changing methods
         """
-        return Actions()
+        return ElasticityActionsView(self)
 
     def change_inference_quality(self, work_load: InferenceQuality):
         """
