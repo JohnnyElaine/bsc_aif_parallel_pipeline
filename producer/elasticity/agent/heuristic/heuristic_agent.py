@@ -11,7 +11,7 @@ from producer.task_generation.task_generator import TaskGenerator
 
 log = logging.getLogger('producer')
 
-
+# TODO add 2 new SLO
 class HeuristicAgent(ElasticityAgent):
     """
     A heuristic-based agent that manages system elasticity to maintain SLOs while maximizing

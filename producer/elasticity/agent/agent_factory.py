@@ -1,6 +1,6 @@
-from producer.elasticity.agent.aif.aif_agent import ActiveInferenceAgent
+from producer.elasticity.agent.aif.aif_agent_relative_control import ActiveInferenceAgentRelativeControl
 from producer.elasticity.agent.aif.aif_agent_experimental_1 import ActiveInferenceAgentExperimental1
-from producer.elasticity.agent.aif.aif_agent_experimental_2 import ActiveInferenceAgentExperimental2
+from producer.elasticity.agent.aif.aif_agent_absolute_control import ActiveInferenceAgentAbsoluteControl
 from producer.elasticity.agent.elasticity_agent import ElasticityAgent
 from producer.elasticity.agent.heuristic.heuristic_agent import HeuristicAgent
 from producer.elasticity.agent.rl.rl_agent import ReinforcementLearningAgent
@@ -21,7 +21,7 @@ class AgentFactory:
             case AgentType.TEST:
                 return TestAgent(elasticity_handler, request_handler, task_generator, track_slo_stats=track_slo_stats)
             case AgentType.ACTIVE_INFERENCE:
-                return ActiveInferenceAgent(elasticity_handler, request_handler, task_generator, track_slo_stats=track_slo_stats)
+                return ActiveInferenceAgentRelativeControl(elasticity_handler, request_handler, task_generator, track_slo_stats=track_slo_stats)
             case AgentType.HEURISTIC:
                 return HeuristicAgent(elasticity_handler, request_handler, task_generator, track_slo_stats=track_slo_stats)
             case AgentType.REINFORCEMENT_LEARNING:
@@ -29,6 +29,6 @@ class AgentFactory:
             case AgentType.ACTIVE_INFERENCE_EXPERIMENTAL_1:
                 return ActiveInferenceAgentExperimental1(elasticity_handler, request_handler, task_generator, track_slo_stats=track_slo_stats)
             case AgentType.ACTIVE_INFERENCE_EXPERIMENTAL_2:
-                return ActiveInferenceAgentExperimental2(elasticity_handler, request_handler, task_generator, track_slo_stats=track_slo_stats)
+                return ActiveInferenceAgentAbsoluteControl(elasticity_handler, request_handler, task_generator, track_slo_stats=track_slo_stats)
             case _:
-                return ActiveInferenceAgent(elasticity_handler, request_handler, task_generator, track_slo_stats=track_slo_stats)
+                return ActiveInferenceAgentRelativeControl(elasticity_handler, request_handler, task_generator, track_slo_stats=track_slo_stats)

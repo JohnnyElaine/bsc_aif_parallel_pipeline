@@ -15,7 +15,7 @@ from producer.task_generation.task_generator import TaskGenerator
 log = logging.getLogger('producer')
 
 
-class ActiveInferenceAgent(ElasticityAgent):
+class ActiveInferenceAgentRelativeControl(ElasticityAgent):
     """
     Active Inference Agent that uses the Free Energy Principle to maintain
     Service Level Objectives (SLOs) in a distributed video processing system.
@@ -105,7 +105,7 @@ class ActiveInferenceAgent(ElasticityAgent):
         Returns:
             tuple[GeneralActionType, bool]: The action taken and whether it was successful
         """
-        observations = self._get_observations()
+        observations = self.observations.get_observations()
 
         # Perform active inference, q_s = Q(s) = Posterior believes Q over hidden states  s
         q_s = self.agent.infer_states(observations)
@@ -162,8 +162,6 @@ class ActiveInferenceAgent(ElasticityAgent):
             num_controls=self.control_dims,
             policy_len=self.policy_length,
             control_fac_idx=[self.OBS_RESOLUTION_INDEX, self.OBS_FPS_INDEX, self.OBS_INFERENCE_QUALITY_INDEX],  # hidden state factors that are directly controllable
-            inference_algo="VANILLA",
-            action_selection="deterministic"
         )
 
     def _construct_A_matrix(self):
@@ -330,44 +328,6 @@ class ActiveInferenceAgent(ElasticityAgent):
             D[i][state] = 1.0
 
         return D
-
-    def _get_observations(self) -> list[int]:
-        """
-        Get current observations of the system
-
-        Returns:
-            list: Current observations for all observation modalities
-        """
-        return self.observations.get_observations()
-
-    def _perform_action(self, action: GeneralActionType) -> bool:
-        """
-        Perform the selected action using the relative actions view for increase/decrease operations.
-
-        Args:
-            action: The action to perform
-
-        Returns:
-            bool: True if the action was successful, False otherwise
-        """
-
-        match action:
-            case GeneralActionType.NONE:
-                return True
-            case GeneralActionType.INCREASE_RESOLUTION:
-                return self.relative_actions.increase_resolution()
-            case GeneralActionType.DECREASE_RESOLUTION:
-                return self.relative_actions.decrease_resolution()
-            case GeneralActionType.INCREASE_FPS:
-                return self.relative_actions.increase_fps()
-            case GeneralActionType.DECREASE_FPS:
-                return self.relative_actions.decrease_fps()
-            case GeneralActionType.INCREASE_INFERENCE_QUALITY:
-                return self.relative_actions.increase_inference_quality()
-            case GeneralActionType.DECREASE_INFERENCE_QUALITY:
-                return self.relative_actions.decrease_inference_quality()
-            case _:
-                raise ValueError(f"Unknown action type: {action}")
 
     def _perform_actions(self, actions: list[int]):
         """Tries to perform for all state dimensions using the relative actions view"""
