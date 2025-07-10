@@ -34,3 +34,4 @@ class TaskProcessorFactory:
             
             case WorkType.NONE:
                 return DefaultTaskProcessor()
+        return None

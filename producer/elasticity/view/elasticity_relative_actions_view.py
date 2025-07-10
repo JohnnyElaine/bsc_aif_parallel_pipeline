@@ -1,7 +1,7 @@
-from producer.elasticity.interface.elasticity_relative_interface import ElasticityRelativeInterface
+from producer.elasticity.interface.elasticity_relative_action_interface import ElasticityRelativeActionInterface
 
 
-class ElasticityRelativeActionsView(ElasticityRelativeInterface):
+class ElasticityRelativeActionsView(ElasticityRelativeActionInterface):
     """
     A view class that provides a restricted interface to ElasticityHandler,
     exposing only the relative parameter-changing actions available to AI agents.

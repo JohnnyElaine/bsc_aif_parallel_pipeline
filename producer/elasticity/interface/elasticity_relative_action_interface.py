@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
 
-class ElasticityRelativeInterface(ABC):
+class ElasticityRelativeActionInterface(ABC):
     """
     Abstract interface defining the available relative elasticity parameter actions for AI agents.
     

@@ -10,15 +10,15 @@ from producer.elasticity.handler.possible_values.generation import (generate_pos
 from producer.elasticity.view.elasticity_absolute_actions_view import ElasticityAbsoluteActionsView
 from producer.elasticity.view.elasticity_relative_actions_view import ElasticityRelativeActionsView
 from producer.elasticity.view.elasticity_observations_view import ElasticityObservationsView
-from producer.elasticity.interface.elasticity_interface import ElasticityInterface
-from producer.elasticity.interface.elasticity_relative_interface import ElasticityRelativeInterface
+from producer.elasticity.interface.elasticity_absolute_action_interface import ElasticityAbsoluteActionInterface
+from producer.elasticity.interface.elasticity_relative_action_interface import ElasticityRelativeActionInterface
 from producer.request_handling.request_handler import RequestHandler
 from producer.task_generation.task_generator import TaskGenerator
 
 log = logging.getLogger('producer')
 
 
-class ElasticityHandler(ElasticityInterface, ElasticityRelativeInterface):
+class ElasticityHandler(ElasticityAbsoluteActionInterface, ElasticityRelativeActionInterface):
     """
     A class to handle elasticity-related operations for a task, such as adjusting workload,
     frames per second (FPS), and resolution.
@@ -41,17 +41,17 @@ class ElasticityHandler(ElasticityInterface, ElasticityRelativeInterface):
         self.state_resolution = ElasticityHandler._create_state(
             target_config.max_resolution,
             generate_possible_resolutions(target_config.max_resolution),
-            self.change_resolution
+            self._change_resolution
         )
         self.state_fps = ElasticityHandler._create_state(
             target_config.max_fps,
             generate_possible_fps(target_config.max_fps),
-            self.change_fps
+            self._change_fps
         )
         self.state_inference_quality = ElasticityHandler._create_state(
             target_config.max_work_load,
             generate_possible_work_loads(target_config.max_work_load),
-            self.change_inference_quality
+            self._change_inference_quality
         )
 
     def actions_absolute(self) -> ElasticityAbsoluteActionsView:
@@ -93,32 +93,41 @@ class ElasticityHandler(ElasticityInterface, ElasticityRelativeInterface):
         """
         return ElasticityObservationsView(self)
 
-    def change_inference_quality(self, work_load: InferenceQuality):
+    def change_inference_quality_index(self, index: int) -> bool:
         """
-        Propagates the change to the request handler.
+        Changes the inference quality/workload parameter by index.
 
         Args:
-            work_load (InferenceQuality): The new workload value to be applied.
-        """
-        self._request_handler.change_inference_quality(work_load)
+            index (int): The index in the list of possible inference quality values.
 
-    def change_fps(self, fps: int):
+        Returns:
+            bool: True if the change was successful, False otherwise.
         """
-        Updates Propagates the fps change to the task generator.
+        return self.state_inference_quality.change(index)
 
-        Args:
-            fps (int): The new frames per second (FPS) value to be applied.
+    def change_fps_index(self, index: int) -> bool:
         """
-        self._task_generator.set_fps(fps)
-
-    def change_resolution(self, resolution: Resolution):
-        """
-        Updates Propagates the change to the task generator.
+        Changes the FPS parameter by index.
 
         Args:
-            resolution (Resolution): The new resolution value to be applied.
+            index (int): The index in the list of possible FPS values.
+
+        Returns:
+            bool: True if the change was successful, False otherwise.
         """
-        self._task_generator.set_resolution(resolution)
+        return self.state_fps.change(index)
+
+    def change_resolution_index(self, index: int) -> bool:
+        """
+        Changes the resolution parameter by index.
+
+        Args:
+            index (int): The index in the list of possible resolution values.
+
+        Returns:
+            bool: True if the change was successful, False otherwise.
+        """
+        return self.state_resolution.change(index)
 
     def increase_resolution(self) -> bool:
         """
@@ -186,6 +195,33 @@ class ElasticityHandler(ElasticityInterface, ElasticityRelativeInterface):
     def get_current_inference_quality(self) -> InferenceQuality:
         """Gets the current inference quality value."""
         return self.state_inference_quality.value
+
+    def _change_inference_quality(self, work_load: InferenceQuality):
+        """
+        Propagates the change to the request handler.
+
+        Args:
+            work_load (InferenceQuality): The new workload value to be applied.
+        """
+        self._request_handler.change_inference_quality(work_load)
+
+    def _change_fps(self, fps: int):
+        """
+        Updates Propagates the fps change to the task generator.
+
+        Args:
+            fps (int): The new frames per second (FPS) value to be applied.
+        """
+        self._task_generator.set_fps(fps)
+
+    def _change_resolution(self, resolution: Resolution):
+        """
+        Updates Propagates the change to the task generator.
+
+        Args:
+            resolution (Resolution): The new resolution value to be applied.
+        """
+        self._task_generator.set_resolution(resolution)
 
     @staticmethod
     def _create_state(init_value, possible_states: list, change_function: callable) -> State:

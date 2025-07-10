@@ -1,22 +1,17 @@
-class ElasticityAbsoluteActionsView:
+from abc import ABC, abstractmethod
+from packages.enums import InferenceQuality
+from producer.data.resolution import Resolution
+
+
+class ElasticityAbsoluteActionInterface(ABC):
     """
-    A view class that provides a restricted interface to ElasticityHandler,
-    exposing only the index-based parameter-changing actions available to AI agents.
+    Abstract interface defining the available elasticity parameter actions for AI agents.
     
-    This class serves as a facade that limits access to only the elasticity
-    parameter modification methods using index-based changes, ensuring a clean 
-    and controlled interface for AI agents.
+    This interface provides a clear contract for what elasticity parameters can be
+    modified by an AI agent, including FPS, Resolution, and Inference Quality.
     """
-
-    def __init__(self, elasticity_handler):
-        """
-        Initialize the actions view with an ElasticityHandler instance.
         
-        Args:
-            elasticity_handler: The underlying ElasticityHandler instance
-        """
-        self._elasticity_handler = elasticity_handler
-
+    @abstractmethod
     def change_inference_quality_index(self, index: int) -> bool:
         """
         Changes the inference quality/workload parameter by index.
@@ -27,8 +22,9 @@ class ElasticityAbsoluteActionsView:
         Returns:
             bool: True if the change was successful, False otherwise.
         """
-        return self._elasticity_handler.change_inference_quality_index(index)
+        pass
 
+    @abstractmethod
     def change_fps_index(self, index: int) -> bool:
         """
         Changes the FPS parameter by index.
@@ -39,8 +35,9 @@ class ElasticityAbsoluteActionsView:
         Returns:
             bool: True if the change was successful, False otherwise.
         """
-        return self._elasticity_handler.change_fps_index(index)
+        pass
 
+    @abstractmethod
     def change_resolution_index(self, index: int) -> bool:
         """
         Changes the resolution parameter by index.
@@ -51,4 +48,4 @@ class ElasticityAbsoluteActionsView:
         Returns:
             bool: True if the change was successful, False otherwise.
         """
-        return self._elasticity_handler.change_resolution_index(index)
+        pass
