@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import IntEnum
 
 
-class LoadingMode(Enum):
+class LoadingMode(IntEnum):
     LAZY = 0
     EAGER = 1
 

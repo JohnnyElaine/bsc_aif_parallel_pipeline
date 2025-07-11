@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import IntEnum
 
 
-class AgentType(Enum):
+class AgentType(IntEnum):
     NONE = 0
     TEST = 1
     ACTIVE_INFERENCE = 2

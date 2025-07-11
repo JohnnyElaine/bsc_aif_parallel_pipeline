@@ -1,6 +1,6 @@
-from enum import Enum
+from enum import IntEnum
 
-class GeneralActionType(Enum):
+class GeneralActionType(IntEnum):
     """Must be numerated from 0-n"""
     NONE = 0
     INCREASE_RESOLUTION = 1

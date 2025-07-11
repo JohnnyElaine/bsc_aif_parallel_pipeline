@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import IntEnum
 
 
-class InferenceQuality(Enum):
+class InferenceQuality(IntEnum):
     LOW = 0
     MEDIUM = 1
     HIGH = 2

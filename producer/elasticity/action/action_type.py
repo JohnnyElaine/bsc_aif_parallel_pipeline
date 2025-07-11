@@ -1,6 +1,6 @@
-from enum import Enum
+from enum import IntEnum
 
-class ActionType(Enum):
+class ActionType(IntEnum):
     """Must be numerated from 0-n"""
     NONE = 0
     INCREASE = 1
