@@ -2,8 +2,6 @@ from abc import ABC, abstractmethod
 
 from packages.enums import WorkType, LoadingMode, InferenceQuality
 from producer.enums.agent_type import AgentType
-from worker.worker import Worker
-from worker.worker_config import WorkerConfig
 
 
 class Simulation(ABC):

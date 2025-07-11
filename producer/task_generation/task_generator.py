@@ -5,12 +5,11 @@ from queue import Queue
 from threading import Thread
 
 import numpy as np
-from cv2 import error as cvError
 
 import packages.time_util as time_util
 from packages.data import Task, TaskType
-from producer.data.resolution import Resolution
 from packages.data.video.video import Video
+from producer.data.resolution import Resolution
 
 log = logging.getLogger("producer")
 
@@ -60,15 +59,14 @@ class TaskGenerator(Thread):
         try:
             log.debug('starting task generation')
             self._stream_video()
-        except cvError as e:
-            # Handle OpenCV-specific errors (e.g., video file issues, frame processing errors)
-            log.error(f"OpenCV error while streaming video file {self._video.path}: {e}")
         except MemoryError:
             # Handle memory-related errors
             log.error("Out of memory while processing video.")
         except OSError as e:
             # Handle file I/O or system-related errors
             log.error(f'System error while streaming video file {self._video.path}: {e}')
+        except Exception as e:
+            log.error(f"OpenCV error while streaming video file {self._video.path}: {e}")
         finally:
             self._stop_request_handler()
             self._video.close()

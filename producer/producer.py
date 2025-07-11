@@ -1,16 +1,14 @@
-import pickle
-import pandas as pd
-from threading import Event
 from multiprocessing import Process
 from queue import Queue
+from threading import Event
 
 import packages.logging as logging
-from producer.request_handling.request_handler import RequestHandler
-from producer.data.task_config import TaskConfig
 from packages.data import Video
+from producer.data.task_config import TaskConfig
 from producer.elasticity.agent_pipeline import AgentPipeline
 from producer.elasticity.handler.elasticity_handler import ElasticityHandler
 from producer.producer_config import ProducerConfig
+from producer.request_handling.request_handler import RequestHandler
 from producer.task_generation.task_generator import TaskGenerator
 
 

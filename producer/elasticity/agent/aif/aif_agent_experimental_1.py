@@ -1,4 +1,5 @@
 import logging
+
 import numpy as np
 import pymdp.utils as utils
 from pymdp.agent import Agent
@@ -267,7 +268,8 @@ class ActiveInferenceAgentExperimental1(ElasticityAgent):
 
         return success
 
-    def _get_slo_probabilities(self, res_idx, fps_idx, wl_idx, slo_type):
+    @staticmethod
+    def _get_slo_probabilities(res_idx, fps_idx, wl_idx, slo_type):
         """Calculate SLO state probabilities based on current configuration"""
         # Implementation should use your existing SLO management logic
         # This is a simplified example

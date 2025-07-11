@@ -167,7 +167,7 @@ class HeuristicAgent(ElasticityAgent):
             _, action = decreasable[0]
             return self._execute_action(action)
 
-        return GeneralActionType.NONE, True
+        # return GeneralActionType.NONE, True # unreachable
 
     def _handle_warning_slo(self) -> tuple[GeneralActionType, bool]:
         """
@@ -338,7 +338,23 @@ class HeuristicAgent(ElasticityAgent):
 
         self.last_action_type = action
 
-    def _calculate_trend(self, history: list) -> float:
+    def _get_opposite_action(self, action: Optional[GeneralActionType]) -> Optional[GeneralActionType]:
+        """
+        Get the opposite action for a given action type.
+
+        Args:
+            action: The action to find the opposite for
+
+        Returns:
+            GeneralActionType: The opposite action, or None if input is None or NONE
+        """
+        if action is None or action == GeneralActionType.NONE:
+            return None
+
+        return self.ACTION_OPPOSITES.get(action)
+
+    @staticmethod
+    def _calculate_trend(history: list) -> float:
         """
         Calculate the trend in a time series of SLO ratios.
 
@@ -354,18 +370,3 @@ class HeuristicAgent(ElasticityAgent):
         # Simple linear trend calculation (average of differences)
         differences = [history[i] - history[i - 1] for i in range(1, len(history))]
         return sum(differences) / len(differences)
-
-    def _get_opposite_action(self, action: Optional[GeneralActionType]) -> Optional[GeneralActionType]:
-        """
-        Get the opposite action for a given action type.
-
-        Args:
-            action: The action to find the opposite for
-
-        Returns:
-            GeneralActionType: The opposite action, or None if input is None or NONE
-        """
-        if action is None or action == GeneralActionType.NONE:
-            return None
-
-        return self.ACTION_OPPOSITES.get(action)

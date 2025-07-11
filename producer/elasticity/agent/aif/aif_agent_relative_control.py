@@ -1,10 +1,11 @@
 import logging
+
 import numpy as np
 import pymdp.utils as utils
 from pymdp.agent import Agent
 
-from producer.elasticity.action.general_action_type import GeneralActionType
 from producer.elasticity.action.action_type import ActionType
+from producer.elasticity.action.general_action_type import GeneralActionType
 from producer.elasticity.agent.elasticity_agent import ElasticityAgent
 from producer.elasticity.handler.elasticity_handler import ElasticityHandler
 from producer.elasticity.slo.slo_status import SloStatus
@@ -61,7 +62,7 @@ class ActiveInferenceAgentRelativeControl(ElasticityAgent):
         """
         super().__init__(elasticity_handler, request_handler, task_generator, track_slo_stats=track_slo_stats)
 
-        self.observations = AIFAgentObservations(elasticity_handler.observations(),self._slo_manager)
+        self.observations = AIFAgentObservations(elasticity_handler.observations(), self._slo_manager)
 
         # Get the relative actions view for clean interface to increase/decrease actions
         self.actions = elasticity_handler.actions_relative()
@@ -238,7 +239,8 @@ class ActiveInferenceAgentRelativeControl(ElasticityAgent):
 
         return B
 
-    def _construct_sub_transition_model(self, num_states: int, num_actions: int, probability_to_change_state: float):
+    @staticmethod
+    def _construct_sub_transition_model(num_states: int, num_actions: int, probability_to_change_state: float):
         """
         Construct a  sub-B matrix (transition model) - Mapping from current states and actions to next states
         Specifies the probability of moving from one hidden state to another, given a particular action.
@@ -317,11 +319,7 @@ class ActiveInferenceAgentRelativeControl(ElasticityAgent):
         """Construct the D matrix (prior believes over states) - Initial beliefs, i.e. what states are expected before making an observation"""
         D = utils.obj_array(len(self.state_dims))
 
-        current_states = [
-            self.observations._elasticity_observations.get_current_resolution_state().current_index,
-            self.observations._elasticity_observations.get_current_fps_state().current_index,
-            self.observations._elasticity_observations.get_current_inference_quality_state().current_index
-        ]
+        current_states = self.observations.get_states_indices()
 
         for i, state in enumerate(current_states):
             D[i] = np.zeros(self.state_dims[i])

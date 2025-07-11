@@ -2,6 +2,7 @@ import psutil
 
 from producer.elasticity.slo.slo_util import SloUtil
 
+
 class MemorySlo:
     def __init__(self, max_mem_usage_float_percent, stats=None):
         self._max_mem_usage_float_percent = max_mem_usage_float_percent

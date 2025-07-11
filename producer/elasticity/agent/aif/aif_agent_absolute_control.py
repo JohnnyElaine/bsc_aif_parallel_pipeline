@@ -6,4 +6,6 @@ log = logging.getLogger('producer')
 
 
 class ActiveInferenceAgentAbsoluteControl(ElasticityAgent):
-    pass
+    def step(self):
+        pass
+

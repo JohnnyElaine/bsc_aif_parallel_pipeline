@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 
 from packages.enums import InferenceQuality, WorkType, LoadingMode
-from producer.enums.agent_type import AgentType
 from producer.data.stream_multiplier_entry import StreamMultiplierEntry
+from producer.enums.agent_type import AgentType
 
 
 @dataclass(frozen=True)

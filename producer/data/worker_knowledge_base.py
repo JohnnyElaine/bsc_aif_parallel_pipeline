@@ -1,7 +1,7 @@
 import time
-import pandas as pd
-
 from dataclasses import asdict
+
+import pandas as pd
 
 from packages.data.local_messages.task import Task
 from producer.data.worker_info import WorkerInfo

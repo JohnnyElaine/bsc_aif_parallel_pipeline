@@ -32,6 +32,7 @@ class SloManager:
 
         self._queue_size_slo = QueueSizeSlo(task_generator, tolerance=queue_size_tolerance, stats=self._stats)
         self._memory_slo = MemorySlo(max_memory_usage, stats=self._stats)
+        # TODO: extract stats (MovingAverage) from request_handler so we dont have to pass entire reference to request_handler
         self._avg_global_processing_time_slo = AvgGlobalProcessingTimeSlo(request_handler, task_generator, tolerance=avg_global_processing_t_tolerance, stats=self._stats)
         self._avg_worker_processing_time_slo = AvgWorkerProcessingTimeSlo(request_handler, task_generator, tolerance=avg_worker_processing_t_tolerance, stats=self._stats)
 

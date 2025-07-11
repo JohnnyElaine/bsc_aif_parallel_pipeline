@@ -1,11 +1,10 @@
 import logging
 import time
-
-import numpy as np
 from queue import Queue
 from threading import Thread
 
 import cv2 as cv
+import numpy as np
 from numpy import ndarray
 
 import packages.time_util as time_util

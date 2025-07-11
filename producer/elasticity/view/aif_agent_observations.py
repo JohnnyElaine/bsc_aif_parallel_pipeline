@@ -1,5 +1,4 @@
 from producer.elasticity.slo.slo_manager import SloManager
-from producer.elasticity.slo.slo_status import SloStatus
 
 
 class AIFAgentObservations:
@@ -43,6 +42,9 @@ class AIFAgentObservations:
             global_processing_slo_status.value,
             worker_processing_slo_status.value
         ]
+
+    def get_states_indices(self):
+        return self._elasticity_observations.get_current_resolution_state().current_index, self._elasticity_observations.get_current_fps_state().current_index, self._elasticity_observations.get_current_inference_quality_state().current_index,
 
     def get_all_slo_probabilities(self) -> tuple[list[float], list[float], list[float], list[float]]:
         """

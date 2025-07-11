@@ -12,7 +12,6 @@ class ElasticityAgent(ABC):
 
     def __init__(self, elasticity_handler: ElasticityHandler, request_handler: RequestHandler, task_generator: TaskGenerator, track_slo_stats=True):
         self.elasticity_handler = elasticity_handler
-        self.request_handler = request_handler
         self.task_generator = task_generator
 
         self._slo_manager = SloManager(elasticity_handler,

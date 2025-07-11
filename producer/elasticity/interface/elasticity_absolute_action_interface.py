@@ -1,6 +1,4 @@
 from abc import ABC, abstractmethod
-from packages.enums import InferenceQuality
-from producer.data.resolution import Resolution
 
 
 class ElasticityAbsoluteActionInterface(ABC):

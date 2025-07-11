@@ -1,6 +1,6 @@
 import logging
 import time
-from threading import Thread, Event
+from threading import Thread
 
 from producer.elasticity.agent.agent_factory import AgentFactory
 from producer.elasticity.handler.elasticity_handler import ElasticityHandler
@@ -17,7 +17,7 @@ class AgentPipeline(Thread):
     def __init__(self, elasticity_handler: ElasticityHandler, task_generator: TaskGenerator, request_handler: RequestHandler, agent_type: AgentType, track_slo_stats=True):
         super().__init__()
         self._elasticity_handler = elasticity_handler
-        self._agent = AgentFactory.create(agent_type, elasticity_handler, task_generator, track_slo_stats=track_slo_stats)
+        self._agent = AgentFactory.create(agent_type, elasticity_handler, request_handler, task_generator, track_slo_stats=track_slo_stats)
         self._start_task_generator_event = request_handler.start_task_generation_event
         self._is_running = False
 

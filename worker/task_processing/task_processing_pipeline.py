@@ -1,7 +1,6 @@
 import time
 from multiprocessing import Process, Pipe, Event, Value
 
-import cv2 as cv
 from numpy import ndarray
 
 import packages.logging as logging

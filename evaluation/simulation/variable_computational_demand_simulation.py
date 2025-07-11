@@ -1,14 +1,15 @@
-import pandas as pd
 from multiprocessing import Manager
+
+import pandas as pd
 
 from collector.collector import Collector
 from collector.collector_config import CollectorConfig
 from evaluation.simulation.simulation import Simulation
 from packages.enums import WorkType, LoadingMode, InferenceQuality
+from producer.data.stream_multiplier_entry import StreamMultiplierEntry
 from producer.enums.agent_type import AgentType
 from producer.producer import Producer
 from producer.producer_config import ProducerConfig
-from producer.data.stream_multiplier_entry import StreamMultiplierEntry
 from worker.worker import Worker
 from worker.worker_config import WorkerConfig
 

@@ -7,11 +7,11 @@ from producer.elasticity.handler.data.state import State
 from producer.elasticity.handler.possible_values.generation import (generate_possible_resolutions,
                                                                     generate_possible_fps,
                                                                     generate_possible_work_loads)
-from producer.elasticity.view.elasticity_absolute_actions_view import ElasticityAbsoluteActionsView
-from producer.elasticity.view.elasticity_relative_actions_view import ElasticityRelativeActionsView
-from producer.elasticity.view.elasticity_observations_view import ElasticityObservationsView
 from producer.elasticity.interface.elasticity_absolute_action_interface import ElasticityAbsoluteActionInterface
 from producer.elasticity.interface.elasticity_relative_action_interface import ElasticityRelativeActionInterface
+from producer.elasticity.view.elasticity_absolute_actions_view import ElasticityAbsoluteActionsView
+from producer.elasticity.view.elasticity_observations_view import ElasticityObservationsView
+from producer.elasticity.view.elasticity_relative_actions_view import ElasticityRelativeActionsView
 from producer.request_handling.request_handler import RequestHandler
 from producer.task_generation.task_generator import TaskGenerator
 

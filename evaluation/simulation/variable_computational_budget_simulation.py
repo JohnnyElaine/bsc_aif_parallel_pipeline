@@ -1,11 +1,11 @@
-import pandas as pd
 from multiprocessing import Manager
+
+import pandas as pd
 
 from collector.collector import Collector
 from collector.collector_config import CollectorConfig
 from evaluation.simulation.simulation import Simulation
 from packages.data import Video
-
 from packages.enums import WorkType, LoadingMode, InferenceQuality
 from producer.enums.agent_type import AgentType
 from producer.producer import Producer

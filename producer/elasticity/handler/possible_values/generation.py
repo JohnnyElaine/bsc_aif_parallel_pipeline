@@ -1,6 +1,6 @@
+import producer.elasticity.handler.possible_values.aspect_ratios as ASPECT_RATIOS
 from packages.enums import InferenceQuality
 from producer.data.resolution import Resolution
-import producer.elasticity.handler.possible_values.aspect_ratios as ASPECT_RATIOS
 from producer.elasticity.handler.possible_values.resolutions import RESOLUTIONS_16_9, RESOLUTIONS_4_3
 
 
