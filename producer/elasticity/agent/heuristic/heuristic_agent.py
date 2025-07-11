@@ -75,7 +75,10 @@ class HeuristicAgent(ElasticityAgent):
         """
         # Get current SLO values for all 4 SLOs
         queue_slo_value, memory_slo_value, global_processing_slo_value, worker_processing_slo_value = self.observations.get_all_slo_values(track_stats=True)
-        queue_status, memory_status, global_processing_status, worker_processing_status = self.observations.get_all_slo_status()
+        queue_status = SloUtil.get_slo_status(queue_slo_value)
+        memory_status = SloUtil.get_slo_status(memory_slo_value)
+        global_processing_status = SloUtil.get_slo_status(global_processing_slo_value)
+        worker_processing_status = SloUtil.get_slo_status(worker_processing_slo_value)
 
         # Update SLO history for all 4 SLOs
         self.queue_slo_value_history.append(queue_slo_value)
