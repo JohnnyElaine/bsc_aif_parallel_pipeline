@@ -35,10 +35,11 @@ class TaskGenerator(Thread):
         self._numerator = 1
         self._denominator = 1
         self._count = -1
-        
+
+        # Only used for Evaluation:
         # Stream multiplier for simulating multiple streams
         self._stream_multiplier = 1
-        
+
         # Schedule for changing stream multiplier: list of StreamMultiplierEntry objects
         self._stream_multiplier_schedule = stream_multiplier_schedule or []
         self._total_frames = self._video.frame_count
@@ -91,7 +92,6 @@ class TaskGenerator(Thread):
         self._target_resolution = res
 
     def _update_stream_multiplier(self):
-        """Update stream multiplier based on current frame index and schedule"""
         current_frame = self._video.frame_index
         for frame_threshold, multiplier in self._schedule_thresholds:
             if current_frame >= frame_threshold:
@@ -99,10 +99,6 @@ class TaskGenerator(Thread):
                     self._stream_multiplier = multiplier
                     percentage = (current_frame / self._total_frames) * 100
                     log.info(f'Stream multiplier changed to {multiplier} at frame {current_frame}/{self._total_frames} ({percentage:.1f}%)')
-
-    @property
-    def stream_multiplier(self) -> int:
-        return self._stream_multiplier
 
     def _stream_video(self):
         ok = True
@@ -146,9 +142,15 @@ class TaskGenerator(Thread):
         return True
 
     def _add_to_queue(self, data: np.ndarray):
-        # Generate multiple tasks for the same frame data to simulate multiple streams
+        """
+        Add the data to the task_queue (frame buffer)
+        Add n=self._stream_multiplier copies to simulate multiple streams
+        n=1, 1 active stream
+        n=3, 1 real stream and 2 copies, simulating 3 active streams
+        Args:
+            data:
+        """
         for stream_id in range(self._stream_multiplier):
-            # Create a copy of the frame data for each simulated stream (except the first one)
             frame_copy = data.copy() if stream_id > 0 else data
             self._queue.put(Task(TaskType.INFERENCE, self._task_id, frame_copy))
             self._task_id += 1
@@ -161,5 +163,6 @@ class TaskGenerator(Thread):
     def fps(self) -> int:
         return self._target_fps
 
+    @property
     def frame_time(self) -> float:
         return self._target_frame_time

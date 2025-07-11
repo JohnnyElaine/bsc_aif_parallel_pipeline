@@ -14,7 +14,7 @@ class AvgWorkerProcessingTimeSlo:
         avg_worker_processing_times = self._request_handler.avg_worker_processing_times()
         highest_avg_processing_t = max(avg_worker_processing_times.values())
 
-        value = highest_avg_processing_t / self._task_generator.frame_time() * self._tolerance
+        value = highest_avg_processing_t / self._task_generator.frame_time * self._tolerance
 
         if track_stats and (self._stats is not None):
             for addr, avg_processing_t in avg_worker_processing_times.items():
