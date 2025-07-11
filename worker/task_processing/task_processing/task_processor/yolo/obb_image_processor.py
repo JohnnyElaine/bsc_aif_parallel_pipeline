@@ -23,7 +23,7 @@ class OBBYOLOImageProcessor(YOLOTaskProcessor):
             # Prepare for cv2.boxPoints
             rect = ((x, y), (w, h), np.degrees(r))  # Convert angle to degrees
             box = cv.boxPoints(rect)  # Get the 4 vertices of the rotated rectangle
-            box = np.int0(box)  # Convert vertex coordinates to integers
+            box = np.int64(box)  # Convert vertex coordinates to integers
 
             # Draw the bounding box
             self._draw_bounding_boxes(image, box)
@@ -35,9 +35,6 @@ class OBBYOLOImageProcessor(YOLOTaskProcessor):
             self._draw_labels(image, class_id, confidence, bottom_right[0], bottom_right[1])
 
         return image
-
-    def _draw_bounding_boxes(self, image, contours):
-        cv.drawContours(image, [contours], 0, (0, 0, 255), 2)  # Red color, thickness=2
 
     def _draw_labels(self, image, class_id, confidence, x, y):
         label = f"{self._detector.class_names[int(class_id)]} {confidence:.2f}"
@@ -60,5 +57,8 @@ class OBBYOLOImageProcessor(YOLOTaskProcessor):
         confidences = inference_result[0].obb.conf.cpu().numpy()
         return boxes, class_ids, confidences
 
+    @staticmethod
+    def _draw_bounding_boxes(image, contours):
+        cv.drawContours(image, [contours], 0, (0, 0, 255), 2)  # Red color, thickness=2
 
 

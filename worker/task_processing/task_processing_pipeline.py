@@ -79,7 +79,7 @@ class TaskProcessingPipeline(Process):
 
         return True
 
-    def _inference(self, task):
+    def _inference(self, task: Task):
         processing_start_t = time.perf_counter()
         processed_data = self._process_task_function(task.data)
         result = Task(TaskType.COLLECT, task.id, processed_data)

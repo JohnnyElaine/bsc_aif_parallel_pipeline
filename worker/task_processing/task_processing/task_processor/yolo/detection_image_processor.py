@@ -9,13 +9,15 @@ class DetectionYOLOImageProcessor(YOLOTaskProcessor):
     def __init__(self, compute_load: InferenceQuality, model_loading_mode: LoadingMode, model_paths: dict):
         super().__init__(compute_load, model_loading_mode, model_paths)
 
-    def _draw_bounding_boxes_with_label(self, image, boxes, class_ids, confidences):
+    def _draw_bounding_boxes_with_label(self, image: np.ndarray, boxes: np.ndarray, class_ids: np.ndarray, confidences: np.ndarray):
         """
         Draw  bounding boxes on an image.
 
         Parameters:
             image (np.ndarray): The image/frame on which to draw.
-            bounding_boxes (np.ndarray): Array of bounding boxes in the format [x, y, w, h, r].
+            boxes (np.ndarray): Array of bounding boxes in the format [x, y, w, h, r].
+            class_ids: Ids of objects detected in the image
+            confidences: How confident the YOLO Model is in correctly identifying the object (0.0-1.0)
         """
 
         for xyxy, class_id, confidence in zip(boxes, class_ids, confidences):
@@ -25,9 +27,6 @@ class DetectionYOLOImageProcessor(YOLOTaskProcessor):
             self._draw_labels(image, class_id, confidence, x1, y1)
 
         return image
-
-    def _draw_bounding_boxes(self, image, x1, y1, x2, y2):
-        cv.rectangle(image, (x1, y1), (x2, y2), (255, 0, 0), 3)
 
     def _draw_labels(self, image, class_id, confidence, x, y):
         label = f"{self._detector.class_names[int(class_id)]} {confidence:.2f}"
@@ -50,5 +49,8 @@ class DetectionYOLOImageProcessor(YOLOTaskProcessor):
         confidences = inference_result[0].boxes.conf.cpu().numpy()
         return boxes, class_ids, confidences
 
+    @staticmethod
+    def _draw_bounding_boxes(image, x1, y1, x2, y2):
+        cv.rectangle(image, (x1, y1), (x2, y2), (255, 0, 0), 3)
 
 
