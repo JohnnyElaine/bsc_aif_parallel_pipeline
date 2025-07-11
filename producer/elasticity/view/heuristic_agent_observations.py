@@ -23,13 +23,10 @@ class HeuristicAgentObservations:
         self._elasticity_observations = elasticity_observations_view
         self._slo_manager = slo_manager
 
-    def get_all_slo_values(self, track_stats: bool = True) -> tuple[float, float, float, float]:
+    def get_all_slo_values(self) -> tuple[float, float, float, float]:
         """
         Gets all SLO values.
-        
-        Args:
-            track_stats: Whether to track statistics
-            
+
         Returns:
             tuple[float, float, float, float]: (queue_slo_value, memory_slo_value, global_processing_slo_value, worker_processing_slo_value)
         """

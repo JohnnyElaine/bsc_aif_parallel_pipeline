@@ -62,7 +62,7 @@ class ActiveInferenceAgentRelativeControl(ElasticityAgent):
         """
         super().__init__(elasticity_handler, request_handler, task_generator, track_slo_stats=track_slo_stats)
 
-        self.observations = AIFAgentObservations(elasticity_handler.observations(), self._slo_manager)
+        self.observations = AIFAgentObservations(elasticity_handler.observations(), self.slo_manager)
 
         # Get the relative actions view for clean interface to increase/decrease actions
         self.actions = elasticity_handler.actions_relative()
@@ -126,9 +126,6 @@ class ActiveInferenceAgentRelativeControl(ElasticityAgent):
     def _setup_generative_model(self):
         """
         Set up the generative model for active inference
-
-        Args:
-            planning_horizon: Number of time steps to plan ahead
         """
         # Define observation dimensions
         self.obs_dims = [
@@ -276,44 +273,45 @@ class ActiveInferenceAgentRelativeControl(ElasticityAgent):
         for obs_idx, obs_dim in enumerate(self.obs_dims):
             C[obs_idx] = np.zeros(obs_dim)
 
-        # Preferences for resolution - higher is better (linear scaling)
-        # Each level has a mildly higher preference then the one before, Scale to max defined via PREFERENCE
-        max_res = self.num_resolution_states - 1
-        C[self.OBS_RESOLUTION_INDEX][:] = [self.MEDIUM_PREFERENCE * (i / max_res) for i in
-                                           range(self.num_resolution_states)]
-
-        # Preferences for FPS - higher is better (linear scaling)
-        # Each level has a mildly higher preference then the one before, Scale to max defined via PREFERENCE
-        max_fps = self.num_fps_states - 1
-        C[self.OBS_FPS_INDEX][:] = [self.MEDIUM_PREFERENCE * (i / max_fps) for i in range(self.num_fps_states)]
-
-        # Preferences for inference quality - higher is better (linear scaling)
-        # Each level has a mildly higher preference then the one before, Scale to max defined via PREFERENCE
-        max_inference_quality = self.num_inference_quality_states - 1
-        C[self.OBS_INFERENCE_QUALITY_INDEX][:] = [self.LOW_PREFERENCE * (i / max_inference_quality) for i in
-                                                  range(self.num_inference_quality_states)]
-
-        # Preferences for queue size
-        C[self.OBS_QUEUE_SIZE_INDEX][SloStatus.OK.value] = self.STRONG_PREFERENCE
-        C[self.OBS_QUEUE_SIZE_INDEX][SloStatus.WARNING.value] = self.NEUTRAL
-        C[self.OBS_QUEUE_SIZE_INDEX][SloStatus.CRITICAL.value] = self.STRONG_AVERSION
-
-        # Preferences for memory usage
-        C[self.OBS_MEMORY_USAGE_INDEX][SloStatus.OK.value] = self.STRONG_PREFERENCE
-        C[self.OBS_MEMORY_USAGE_INDEX][SloStatus.WARNING.value] = self.NEUTRAL
-        C[self.OBS_MEMORY_USAGE_INDEX][SloStatus.CRITICAL.value] = self.STRONG_AVERSION
-
-        # Preferences for global processing time
-        C[self.OBS_GLOBAL_PROCESSING_TIME_INDEX][SloStatus.OK.value] = self.STRONG_PREFERENCE
-        C[self.OBS_GLOBAL_PROCESSING_TIME_INDEX][SloStatus.WARNING.value] = self.NEUTRAL
-        C[self.OBS_GLOBAL_PROCESSING_TIME_INDEX][SloStatus.CRITICAL.value] = self.STRONG_AVERSION
-
-        # Preferences for worker processing time
-        C[self.OBS_WORKER_PROCESSING_TIME_INDEX][SloStatus.OK.value] = self.STRONG_PREFERENCE
-        C[self.OBS_WORKER_PROCESSING_TIME_INDEX][SloStatus.WARNING.value] = self.NEUTRAL
-        C[self.OBS_WORKER_PROCESSING_TIME_INDEX][SloStatus.CRITICAL.value] = self.STRONG_AVERSION
+        self._set_quality_preferences(C)
+        self._set_slo_preferences(C)
 
         return C
+
+    def _set_quality_preferences(self, C):
+        """Set preferences for quality parameters (resolution, FPS, inference quality)"""
+        # Preferences for resolution - higher is better (linear scaling)
+        max_res = self.num_resolution_states - 1
+        C[self.OBS_RESOLUTION_INDEX][:] = [
+            self.MEDIUM_PREFERENCE * (i / max_res) for i in range(self.num_resolution_states)
+        ]
+
+        # Preferences for FPS - higher is better (linear scaling)
+        max_fps = self.num_fps_states - 1
+        C[self.OBS_FPS_INDEX][:] = [
+            self.MEDIUM_PREFERENCE * (i / max_fps) for i in range(self.num_fps_states)
+        ]
+
+        # Preferences for inference quality - higher is better (linear scaling)
+        max_inference_quality = self.num_inference_quality_states - 1
+        C[self.OBS_INFERENCE_QUALITY_INDEX][:] = [
+            self.LOW_PREFERENCE * (i / max_inference_quality)
+            for i in range(self.num_inference_quality_states)
+        ]
+
+    def _set_slo_preferences(self, C):
+        """Set identical preferences for all SLO observations"""
+        slo_indices = [
+            self.OBS_QUEUE_SIZE_INDEX,
+            self.OBS_MEMORY_USAGE_INDEX,
+            self.OBS_GLOBAL_PROCESSING_TIME_INDEX,
+            self.OBS_WORKER_PROCESSING_TIME_INDEX
+        ]
+
+        for slo_idx in slo_indices:
+            C[slo_idx][SloStatus.OK.value] = self.STRONG_PREFERENCE
+            C[slo_idx][SloStatus.WARNING.value] = self.NEUTRAL
+            C[slo_idx][SloStatus.CRITICAL.value] = self.STRONG_AVERSION
 
     def _construct_D_matrix(self):
         """Construct the D matrix (prior believes over states) - Initial beliefs, i.e. what states are expected before making an observation"""
@@ -331,7 +329,6 @@ class ActiveInferenceAgentRelativeControl(ElasticityAgent):
         """Tries to perform for all state dimensions using the relative actions view"""
         # TODO: Return list of actions and if they were successful
         success = True
-
         # Resolution action
         if actions[self.ACTION_RESOLUTION_INDEX] == ActionType.INCREASE:
             success &= self.actions.increase_resolution()

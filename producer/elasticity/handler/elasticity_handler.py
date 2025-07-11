@@ -230,7 +230,7 @@ class ElasticityHandler(ElasticityAbsoluteActionInterface, ElasticityRelativeAct
 
         Args:
             init_value: The initial value for the state.
-            states_gen_function (callable): The function to generate possible states.
+            change_function (callable): The function to generate possible states.
 
         Returns:
             State: A new state object.

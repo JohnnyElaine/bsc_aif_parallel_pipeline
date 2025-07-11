@@ -46,7 +46,7 @@ class HeuristicAgent(ElasticityAgent):
         # Create observations and actions views for clean interface
         self.observations = HeuristicAgentObservations(
             elasticity_handler.observations(),
-            self._slo_manager
+            self.slo_manager
         )
         self.actions = elasticity_handler.actions_relative()
 

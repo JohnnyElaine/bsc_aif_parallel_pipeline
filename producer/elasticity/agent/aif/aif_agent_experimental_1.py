@@ -155,7 +155,8 @@ class ActiveInferenceAgentExperimental1(ElasticityAgent):
 
         return B
 
-    def _create_deterministic_transitions(self, num_states, num_actions):
+    @staticmethod
+    def _create_deterministic_transitions(num_states, num_actions):
         B = np.zeros((num_states, num_states, num_actions))
 
         for action in range(num_actions):

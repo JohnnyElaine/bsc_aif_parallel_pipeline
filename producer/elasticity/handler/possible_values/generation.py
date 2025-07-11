@@ -1,4 +1,4 @@
-import producer.elasticity.handler.possible_values.aspect_ratios as ASPECT_RATIOS
+import producer.elasticity.handler.possible_values.aspect_ratios as aspect_ratios
 from packages.enums import InferenceQuality
 from producer.data.resolution import Resolution
 from producer.elasticity.handler.possible_values.resolutions import RESOLUTIONS_16_9, RESOLUTIONS_4_3
@@ -12,9 +12,9 @@ def generate_possible_resolutions(max_res: Resolution) -> list[Resolution]:
         list[Resolution]: A list of possible resolution values.
     """
     match max_res.get_aspect_ratio():
-        case ASPECT_RATIOS.ASPECT_RATIO_16_9:
+        case aspect_ratios.ASPECT_RATIO_16_9:
             all_resolutions = RESOLUTIONS_16_9
-        case ASPECT_RATIOS.ASPECT_RATIO_4_3:
+        case aspect_ratios.ASPECT_RATIO_4_3:
             all_resolutions = RESOLUTIONS_4_3
         case _:
             all_resolutions = RESOLUTIONS_16_9

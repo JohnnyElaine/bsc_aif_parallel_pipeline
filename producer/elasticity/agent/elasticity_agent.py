@@ -12,9 +12,8 @@ class ElasticityAgent(ABC):
 
     def __init__(self, elasticity_handler: ElasticityHandler, request_handler: RequestHandler, task_generator: TaskGenerator, track_slo_stats=True):
         self.elasticity_handler = elasticity_handler
-        self.task_generator = task_generator
 
-        self._slo_manager = SloManager(elasticity_handler,
+        self.slo_manager = SloManager(elasticity_handler,
                                       request_handler,
                                       task_generator,
                                       queue_size_tolerance=2,
@@ -34,4 +33,4 @@ class ElasticityAgent(ABC):
         pass
 
     def get_slo_statistics(self) -> pd.DataFrame:
-        return self._slo_manager.get_statistics()
+        return self.slo_manager.get_statistics()

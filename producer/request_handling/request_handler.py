@@ -92,7 +92,7 @@ class RequestHandler(Thread):
             self._channel.send_information(address, changes)
             return
 
-        self._worker_knowledge_base[address].increment_stats()
+        self._worker_knowledge_base.increment_stats(address)
 
         task = self._queue.get() # Task dataclass
 
