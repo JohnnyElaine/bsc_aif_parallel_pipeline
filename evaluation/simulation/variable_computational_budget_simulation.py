@@ -3,7 +3,7 @@ from multiprocessing import Manager
 
 from collector.collector import Collector
 from collector.collector_config import CollectorConfig
-from measurement.simulation.simulation import Simulation
+from evaluation.simulation.simulation import Simulation
 from packages.data import Video
 
 from packages.enums import WorkType, LoadingMode, InferenceQuality
@@ -15,7 +15,7 @@ from worker.worker import Worker
 from worker.worker_config import WorkerConfig
 
 
-class OutageAndRecoverySimulation(Simulation):
+class VariableComputationalBudgetSimulation(Simulation):
     """
     All workers start at the same time and stop when the producer is finished
     Pre-defined set of workers stop requesting tasks at a given % (outage_at) and
@@ -106,10 +106,10 @@ class OutageAndRecoverySimulation(Simulation):
         for i, capacity in enumerate(outage_worker_capacities):
             identity = i + len(regular_worker_capacities)
             config = WorkerConfig(identity, producer_ip, producer_port, collector_ip, collector_port, capacity)
-            outage_config = OutageAndRecoverySimulation.create_outage_config(capacity, total_num_of_frames,
-                                                                             total_capacity, fps,
-                                                                             self._outage_at,
-                                                                             self._recovery_at)
+            outage_config = VariableComputationalBudgetSimulation.create_outage_config(capacity, total_num_of_frames,
+                                                                                       total_capacity, fps,
+                                                                                       self._outage_at,
+                                                                                       self._recovery_at)
             workers.append(Worker(config, outage_config=outage_config))
 
         return workers

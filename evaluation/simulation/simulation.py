@@ -7,7 +7,8 @@ from worker.worker_config import WorkerConfig
 
 
 class Simulation(ABC):
-    def __init__(self, producer_ip: str,
+    def __init__(self,
+                 producer_ip: str,
                  producer_port: int,
                  collector_ip: str,
                  collector_port: int,

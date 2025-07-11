@@ -1,4 +1,4 @@
-from measurement.measurement import Measurement
+from evaluation.evaluation import Measurement
 
 def main():
     Measurement.run_all_simulations()
