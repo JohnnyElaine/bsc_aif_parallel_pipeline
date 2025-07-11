@@ -105,12 +105,12 @@ class VariableComputationalBudgetSimulation(Simulation):
         # outage workers, i.e. worker that will temporarily halt task processing for a set amount of time to simulate an outage
         for i, capacity in enumerate(outage_worker_capacities):
             identity = i + len(regular_worker_capacities)
-            config = WorkerConfig(identity, producer_ip, producer_port, collector_ip, collector_port, capacity)
             outage_config = VariableComputationalBudgetSimulation.create_outage_config(capacity, total_num_of_frames,
                                                                                        total_capacity, fps,
                                                                                        self._outage_at,
                                                                                        self._recovery_at)
-            workers.append(Worker(config, outage_config=outage_config))
+            config = WorkerConfig(identity, producer_ip, producer_port, collector_ip, collector_port, capacity, outage_config=outage_config)
+            workers.append(Worker(config))
 
         return workers
 

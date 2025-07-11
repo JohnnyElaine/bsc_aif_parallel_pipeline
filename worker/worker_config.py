@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 
+from worker.data.outage_config import OutageConfig
+
 
 @dataclass
 class WorkerConfig:
@@ -9,6 +11,7 @@ class WorkerConfig:
     collector_ip: str
     collector_port: int
     processing_capacity: float
+    outage_config: OutageConfig = None
 
 
 

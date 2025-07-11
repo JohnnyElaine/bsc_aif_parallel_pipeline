@@ -31,7 +31,6 @@ class Video:
     def retrieve(self):
         return self.video_capture.retrieve()
 
-
     def release(self):
         if self.is_opened():
             self.video_capture.release()

@@ -4,7 +4,6 @@ from threading import Event
 from multiprocessing import Process
 from queue import Queue
 
-
 import packages.logging as logging
 from producer.request_handling.request_handler import RequestHandler
 from producer.data.task_config import TaskConfig
@@ -43,7 +42,8 @@ class Producer(Process):
         request_handler = RequestHandler(self.config.port,
                                          task_queue,task_config.work_type, task_config.max_work_load,
                                          self.config.loading_mode, start_task_generation_event)
-        task_generator = TaskGenerator(task_queue, src_video, start_task_generation_event)
+        task_generator = TaskGenerator(task_queue, src_video, start_task_generation_event, 
+                                       self.config.stream_multiplier_schedule)
 
         elasticity_handler = ElasticityHandler(task_config, task_generator, request_handler)
         slo_agent_pipeline = AgentPipeline(elasticity_handler, task_generator, request_handler, self.config.agent_type, track_slo_stats=self.config.track_slo_stats)
@@ -64,10 +64,3 @@ class Producer(Process):
         self._stats['worker_stats'] = request_handler.worker_stats_to_df()
 
         log.info('stopped producer')
-
-    def get_statistics(self) -> dict[str, pd.DataFrame]:
-        """Retrieve and deserialize statistics"""
-        return {
-            'slo_stats': pickle.loads(self._stats['slo_stats']) if 'slo_stats' in self._stats else None,
-            'worker_stats': pickle.loads(self._stats['worker_stats']) if 'worker_stats' in self._stats else None
-        }

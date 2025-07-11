@@ -9,15 +9,14 @@ from worker.worker_config import WorkerConfig
 
 
 class Worker(Process):
-    def __init__(self, config: WorkerConfig, outage_config=None):
+    def __init__(self, config: WorkerConfig):
         super().__init__()
         self.config = config
-        self.outage_config = outage_config
 
     def run(self):
         log = logging.setup_logging('worker')
 
-        log.info(f'starting worker-{self.config.identity}, config={self.config}, outage_config={self.outage_config}')
+        log.info(f'starting worker-{self.config.identity}, config={self.config}')
         
         request_channel = RequestChannel(self.config.producer_ip, self.config.producer_port, self.config.identity)
         request_channel.connect()
@@ -43,7 +42,7 @@ class Worker(Process):
                                                           task_pipe_recv_end, result_pipe_send_end,
                                                           self.config.processing_capacity, latest_processing_time)
 
-        work_requesting_pipeline = WorkRequestingPipeline(request_channel, task_pipe_send_end, latest_processing_time, outage_config=self.outage_config)
+        work_requesting_pipeline = WorkRequestingPipeline(request_channel, task_pipe_send_end, latest_processing_time, outage_config=self.config.outage_config)
         result_sending_pipeline = ResultSendingPipeline(self.config.collector_ip, self.config.collector_port, result_pipe_recv_end)
 
         task_processing_pipeline.start()
