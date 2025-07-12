@@ -1,15 +1,16 @@
 import logging
-import math
 import time
 from queue import Queue
 from threading import Thread
-
+from collections import deque
 import numpy as np
 
 import packages.time_util as time_util
 from packages.data import Task, TaskType
 from packages.data.video.video import Video
 from producer.data.resolution import Resolution
+from producer.data.stream_multiplier_threshold import StreamMultiplierThreshold
+from producer.task_generation.frame_skipping.frame_skip_config import FrameSkipConfig
 
 log = logging.getLogger("producer")
 
@@ -31,24 +32,21 @@ class TaskGenerator(Thread):
 
         self._time_last_frame_generated_at = 0
 
-        # values for skipping frames when target_fps < self._video.fps
-        self._numerator = 1
-        self._denominator = 1
-        self._count = -1
+        self._frame_skip_config = FrameSkipConfig()
 
         # Only used for Evaluation:
         # Stream multiplier for simulating multiple streams
         self._stream_multiplier = 1
 
         # Schedule for changing stream multiplier: list of StreamMultiplierEntry objects
-        self._stream_multiplier_schedule = stream_multiplier_schedule or []
         self._total_frames = self._video.frame_count
         
         # Pre-calculate frame thresholds for efficiency (assume schedule is already sorted)
-        self._schedule_thresholds = []
-        for entry in self._stream_multiplier_schedule:
-            frame_threshold = int(self._total_frames * entry.frame_percentage)
-            self._schedule_thresholds.append((frame_threshold, entry.multiplier))
+        if stream_multiplier_schedule is not None and len(stream_multiplier_schedule) > 0:
+            self._schedule_thresholds = deque()
+            for entry in stream_multiplier_schedule:
+                self._schedule_thresholds.append(StreamMultiplierThreshold(int(self._total_frames * entry.frame_percentage), entry.multiplier))
+            self._next_schedule_threshold = self._schedule_thresholds.popleft()
 
     def run(self):
         if not self._video.is_opened():
@@ -81,24 +79,10 @@ class TaskGenerator(Thread):
         self._target_fps = min(fps, self._video.fps)
         self._target_frame_time = 1 / self._target_fps
 
-        self._numerator = fps
-        self._denominator = self._video.fps
-
-        gcd = math.gcd(self._numerator, self._denominator)
-        self._numerator //= gcd
-        self._denominator //= gcd
+        self._frame_skip_config.set(fps, self._video.fps)
 
     def set_resolution(self, res: Resolution):
         self._target_resolution = res
-
-    def _update_stream_multiplier(self):
-        current_frame = self._video.frame_index
-        for frame_threshold, multiplier in self._schedule_thresholds:
-            if current_frame >= frame_threshold:
-                if self._stream_multiplier != multiplier:
-                    self._stream_multiplier = multiplier
-                    percentage = (current_frame / self._total_frames) * 100
-                    log.info(f'Stream multiplier changed to {multiplier} at frame {current_frame}/{self._total_frames} ({percentage:.1f}%)')
 
     def _stream_video(self):
         ok = True
@@ -113,10 +97,11 @@ class TaskGenerator(Thread):
             log.error("End of video stream or error grabbing frame.")
             return False
 
-        self._count = (self._count + 1) % self._denominator
+        self._update_stream_multiplier()
 
-        # skip frame certain frame if current-fps < source-fps
-        if self._count >= self._numerator:
+        self._frame_skip_config.increment()
+
+        if self._frame_skip_config.should_skip_frame():
             return True
 
         ret, frame = self._video.retrieve()
@@ -128,9 +113,7 @@ class TaskGenerator(Thread):
         if self._target_resolution != self._video.resolution:
             frame = self._video.resize_frame(frame, self._target_resolution.width, self._target_resolution.height)
 
-        # Update stream multiplier based on current frame index
-        self._update_stream_multiplier()
-        
+
         self._add_to_queue(frame)
 
         # Enforce timing based on target FPS
@@ -140,6 +123,15 @@ class TaskGenerator(Thread):
         self._time_last_frame_generated_at = time.perf_counter()
 
         return True
+
+    def _update_stream_multiplier(self):
+        if self._next_schedule_threshold is None:
+            return
+
+        if self._video.frame_index < self._next_schedule_threshold.frame:
+            return
+
+        self._stream_multiplier = self._next_schedule_threshold.multiplier
 
     def _add_to_queue(self, data: np.ndarray):
         """
