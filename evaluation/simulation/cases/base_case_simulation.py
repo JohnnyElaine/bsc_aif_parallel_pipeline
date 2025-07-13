@@ -34,7 +34,7 @@ class BaseCaseSimulation(Simulation):
             agent_type=self.agent_type,
             video_path=self.vid_path,
             track_slo_stats=True,
-            initial_stream_multiplier=1
+            initial_stream_multiplier=2
         )
         collector_config = CollectorConfig(self.collector_port)
 

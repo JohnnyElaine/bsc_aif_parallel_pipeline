@@ -19,7 +19,7 @@ class TaskGenerator(Thread):
 
     MAX_QUEUE_SIZE = 120
 
-    def __init__(self, shared_queue: Queue, video: Video, start_event, stream_multiplier_schedule=None):
+    def __init__(self, shared_queue: Queue, video: Video, start_event, initial_stream_multiplier=1, stream_multiplier_schedule=None):
         super().__init__()
         self._queue = shared_queue
         self._video = video
@@ -36,7 +36,7 @@ class TaskGenerator(Thread):
 
         # Only used for Evaluation:
         # Stream multiplier for simulating multiple streams
-        self._stream_multiplier = 1
+        self._stream_multiplier = initial_stream_multiplier
 
         # Schedule for changing stream multiplier: list of StreamMultiplierEntry objects
         self._total_frames = self._video.frame_count
@@ -149,10 +149,17 @@ class TaskGenerator(Thread):
         Args:
             data:
         """
-        for stream_id in range(self._stream_multiplier):
-            frame_copy = data.copy() if stream_id > 0 else data
-            self._queue.put(Task(TaskType.INFERENCE, self._task_id, stream_id, frame_copy))
+        # if statement is only here, because for loops are slow in python
+        if self._stream_multiplier == 1:
+            self._queue.put(Task(TaskType.INFERENCE, self._task_id, 0, data))
             self._task_id += 1
+            return
+
+        for stream_id in range(self._stream_multiplier):
+            frame_copy = data if stream_id > 0 else data
+            self._queue.put(Task(TaskType.INFERENCE, self._task_id, stream_id, frame_copy))
+
+        self._task_id += 1 # id is per stream, not global
 
     def _stop_request_handler(self):
         self._queue.put(Task(TaskType.END, -1, 0, np.empty(0)))
