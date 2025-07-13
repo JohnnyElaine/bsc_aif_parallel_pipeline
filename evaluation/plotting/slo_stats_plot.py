@@ -1,20 +1,25 @@
 import matplotlib.pyplot as plt
+import pandas as pd
 import seaborn as sns
 
 def plot_all_slo_stats(slo_stats):
     plot_slo_values_over_time(slo_stats)
     plot_quality_metrics(slo_stats)
 
-def plot_slo_values_over_time(slo_stats):
+def plot_slo_values_over_time(slo_stats: pd.DataFrame):
     """Plot both SLO ratios over time with critical threshold"""
     slo_stats = slo_stats.reset_index()
 
     plt.figure(figsize=(12, 6))
 
     sns.lineplot(data=slo_stats, x='index', y='queue_size_slo_value',
-                 label='Queue Size Value', color='blue', linewidth=2)
+                 label='Queue Size', color='blue', linewidth=2)
     sns.lineplot(data=slo_stats, x='index', y='memory_usage_slo_value',
-                 label='Memory Usage Value', color='red', linewidth=2)
+                 label='Memory Usage', color='red', linewidth=2)
+    sns.lineplot(data=slo_stats, x='index', y='avg_global_processing_time_slo_value',
+                 label='Global Processing Time', color='green', linewidth=2)
+    sns.lineplot(data=slo_stats, x='index', y='avg_worker_processing_time_slo_value',
+                 label='Worker Processing Time', color='magenta', linewidth=2)
 
     plt.axhline(y=1, color='black', linestyle='--', linewidth=2,
                 label='SLO Fulfillment Threshold')

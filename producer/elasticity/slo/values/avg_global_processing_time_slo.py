@@ -12,7 +12,7 @@ class AvgGlobalProcessingTimeSlo:
 
     def value(self, track_stats=True):
         avg_processing_time = self._request_handler.avg_global_processing_time()
-        value = avg_processing_time / self._task_generator.frame_time * self._tolerance
+        value = avg_processing_time / (self._task_generator.frame_time * self._tolerance)
 
         if track_stats and (self._stats is not None):
             self._stats.avg_global_processing_time.append(avg_processing_time)

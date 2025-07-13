@@ -30,7 +30,7 @@ class SloStatistics:
         data = {
             'fps_capacity': self.fps_capacity,
             'resolution_capacity': self.resolution_capacity,
-            'work_load_capacity': self.inference_quality,
+            'inference_quality_capacity': self.inference_quality,
             'queue_size': self.queue_size,
             'memory_usage': self.memory_usage,
             'avg_global_processing_time': self.avg_global_processing_time,

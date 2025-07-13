@@ -80,7 +80,7 @@ class TaskGenerator(Thread):
         self._target_fps = min(fps, self._video.fps)
         self._target_frame_time = 1 / self._target_fps
 
-        self._frame_skip_config.set(fps, self._video.fps)
+        self._frame_skip_config.set(self._target_fps, self._video.fps)
 
     def set_resolution(self, res: Resolution):
         self._target_resolution = res

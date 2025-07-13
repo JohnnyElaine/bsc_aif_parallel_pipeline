@@ -11,6 +11,7 @@ class AvgWorkerProcessingTimeSlo:
         self._stats = stats
 
     def value(self, track_stats=True):
+        # key=worker-addr, value=processing-time
         avg_worker_processing_times_dict = self._request_handler.avg_worker_processing_times()
 
         if not avg_worker_processing_times_dict:
@@ -18,7 +19,7 @@ class AvgWorkerProcessingTimeSlo:
 
         highest_avg_processing_t = max(avg_worker_processing_times_dict.values())
 
-        value = highest_avg_processing_t / self._task_generator.frame_time * self._tolerance
+        value = highest_avg_processing_t / (self._task_generator.frame_time * self._tolerance)
 
         if track_stats and (self._stats is not None):
             self._stats.avg_worker_processing_time_slo_value.append(value)
