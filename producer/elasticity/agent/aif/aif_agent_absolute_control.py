@@ -132,12 +132,21 @@ class ActiveInferenceAgentAbsoluteControl(ElasticityAgent):
         C = self._construct_C_matrix()
         D = self._construct_D_matrix()
 
-        # Create pymdp agent
+        # Create pymdp agent with proper factor specifications
         self.agent = Agent(
             A=A, B=B, C=C, D=D,
             num_controls=self.control_dims,
             policy_len=self.policy_length,
-            control_fac_idx=[0, 1, 2]  # All three hidden state factors are controllable
+            B_factor_list=[[0], [1], [2]],  # Each B matrix controls its corresponding state factor
+            A_factor_list=[
+                [0],        # OBS_RESOLUTION_INDEX depends only on state factor 0 (resolution)
+                [1],        # OBS_FPS_INDEX depends only on state factor 1 (FPS)
+                [2],        # OBS_INFERENCE_QUALITY_INDEX depends only on state factor 2 (inference quality)
+                [0, 1, 2],  # OBS_QUEUE_SIZE_INDEX depends on all state factors
+                [0, 1, 2],  # OBS_MEMORY_USAGE_INDEX depends on all state factors
+                [0, 1, 2],  # OBS_GLOBAL_PROCESSING_TIME_INDEX depends on all state factors
+                [0, 1, 2]   # OBS_WORKER_PROCESSING_TIME_INDEX depends on all state factors
+            ]
         )
 
     def _construct_A_matrix(self):

@@ -538,13 +538,13 @@ pip3 install torch torchvision torchaudio --index-url https://download.pytorch.o
 pip install ultralytics
 pip install msgpack
 pip install pyzmq
-pip install inferactively-pymdp
-pip install stable-baselines3
-pip install gym
+pip install git+https://github.com/infer-actively/pymdp.git
 
 
 pip freeze > requirements.txt
 ```
+
+Do not install pymdp via ``pip install inferactively-pymdp``. This is not being maintained (Last update 2023)
 
 Add on top of requirements.txt
 ```
