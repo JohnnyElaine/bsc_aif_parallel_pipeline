@@ -11,15 +11,24 @@ class AvgWorkerProcessingTimeSlo:
         self._stats = stats
 
     def value(self, track_stats=True):
-        avg_worker_processing_times = self._request_handler.avg_worker_processing_times()
-        highest_avg_processing_t = max(avg_worker_processing_times.values())
+        avg_worker_processing_times_dict = self._request_handler.avg_worker_processing_times()
+
+        if not avg_worker_processing_times_dict:
+            return 0
+
+        highest_avg_processing_t = max(avg_worker_processing_times_dict.values())
 
         value = highest_avg_processing_t / self._task_generator.frame_time * self._tolerance
 
         if track_stats and (self._stats is not None):
-            for addr, avg_processing_t in avg_worker_processing_times.items():
-                self._stats.avg_worker_processing_time[addr].append(avg_processing_t)
             self._stats.avg_worker_processing_time_slo_value.append(value)
+
+            for addr, avg_processing_t in avg_worker_processing_times_dict.items():
+                # Consider finding better place for single initiation, so we don't have to check every time a new value is added
+                if not addr in self._stats.avg_worker_processing_time:
+                    self._stats.avg_worker_processing_time[addr] = []
+                self._stats.avg_worker_processing_time[addr].append(avg_processing_t)
+
 
         return value
 

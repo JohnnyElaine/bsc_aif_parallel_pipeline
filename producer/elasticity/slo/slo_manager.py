@@ -36,21 +36,6 @@ class SloManager:
         self._avg_global_processing_time_slo = AvgGlobalProcessingTimeSlo(request_handler, task_generator, tolerance=avg_global_processing_t_tolerance, stats=self._stats)
         self._avg_worker_processing_time_slo = AvgWorkerProcessingTimeSlo(request_handler, task_generator, tolerance=avg_worker_processing_t_tolerance, stats=self._stats)
 
-    def get_all_slo_probabilities(self) -> tuple[list[float], list[float], list[float], list[float]]:
-        """
-        Get probabilities for all 4 SLOs.
-        
-        Returns:
-            tuple: (queue_probs, memory_probs, global_processing_probs, worker_processing_probs)
-                   Each element is a list [P(OK), P(WARNING), P(CRITICAL)]
-        """
-        return (
-            self._queue_size_slo.probabilities(),
-            self._memory_slo.probabilities(),
-            self._avg_global_processing_time_slo.probabilities(),
-            self._avg_worker_processing_time_slo.probabilities()
-        )
-
     def get_all_slo_status(self) -> tuple[SloStatus, SloStatus, SloStatus, SloStatus]:
         qsize, mem, global_processing_t, worker_processing_t = self.get_all_slo_values()
 
@@ -66,6 +51,21 @@ class SloManager:
             self._track_capacity_stats()
 
         return qsize_slo_value, mem_slo_value, global_avg_processing_time_value, worker_avg_processing_time_value
+
+    def get_all_slo_probabilities(self) -> tuple[list[float], list[float], list[float], list[float]]:
+        """
+        Get probabilities for all 4 SLOs.
+
+        Returns:
+            tuple: (queue_probs, memory_probs, global_processing_probs, worker_processing_probs)
+                   Each element is a list [P(OK), P(WARNING), P(CRITICAL)]
+        """
+        return (
+            self._queue_size_slo.probabilities(),
+            self._memory_slo.probabilities(),
+            self._avg_global_processing_time_slo.probabilities(),
+            self._avg_worker_processing_time_slo.probabilities()
+        )
 
     def get_statistics(self) -> pd.DataFrame:
         return self._stats.to_dataframe()

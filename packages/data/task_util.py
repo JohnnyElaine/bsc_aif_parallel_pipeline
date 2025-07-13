@@ -12,5 +12,4 @@ class TaskUtil:
     def reconstruct_task(md: dict, task_buffered):
         task = np.frombuffer(task_buffered, dtype=md['dtype'])
         task = task.reshape(md['shape'])
-        stream_key = md['stream_key']
-        return Task(md['type'], md['id'], stream_key, task)
+        return Task(md['type'], md['id'], md['stream_key'], task)

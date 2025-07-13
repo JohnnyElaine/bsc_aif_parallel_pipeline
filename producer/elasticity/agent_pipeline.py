@@ -29,6 +29,7 @@ class AgentPipeline(Thread):
         self._is_running = True
         log.debug("agent-pipeline is waiting for task generator to start")
         self._start_task_generator_event.wait()
+        log.debug('agent-pipeline active')
 
         while self._is_running:
             time.sleep(AgentPipeline.ITERATION_INTERVAL_S)

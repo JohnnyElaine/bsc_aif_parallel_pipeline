@@ -67,7 +67,7 @@ class VariableComputationalDemandSimulation(Simulation):
 
     def run(self) -> dict[str, pd.DataFrame]:
         stream_multiplier_schedule = [
-            StreamMultiplierEntry(self._stream_multiplier_increase_at, self._max_stream_multiplier, ),
+            StreamMultiplierEntry(self._stream_multiplier_increase_at, self._max_stream_multiplier),
             StreamMultiplierEntry(self._stream_multiplier_decrease_at, 1)
         ]
         

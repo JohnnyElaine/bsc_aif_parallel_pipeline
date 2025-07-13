@@ -33,7 +33,7 @@ class WorkerKnowledgeBase:
         return self._worker_info_dict[address].get_all_pending_changes()
 
     def increment_stats(self, address: bytes):
-        self._worker_statistics_dict[address] += 1
+        self._worker_statistics_dict[address].num_requested_tasks += 1
 
     def add_change(self, change: Task):
         for worker_addr in self._worker_info_dict.keys():

@@ -62,9 +62,17 @@ class VariableComputationalBudgetSimulation(Simulation):
         self._recovery_at = recovery_at
 
     def run(self) -> dict[str, pd.DataFrame]:
-        producer_config = ProducerConfig(self.producer_port, self.work_type,
-                                         self.loading_mode, self.max_work_load,
-                                         self.agent_type, self.vid_path)
+        producer_config = ProducerConfig(
+            port=self.producer_port,
+            work_type=self.work_type,
+            loading_mode=self.loading_mode,
+            max_inference_quality=self.max_work_load,
+            agent_type=self.agent_type,
+            video_path=self.vid_path,
+            track_slo_stats=True,
+            initial_stream_multiplier=1,
+        )
+
         collector_config = CollectorConfig(self.collector_port)
 
         stats = None

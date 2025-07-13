@@ -1,7 +1,7 @@
-from evaluation.evaluation import Measurement
+from evaluation.evaluation import Evaluation
 
 def main():
-    Measurement.run_all_simulations()
+    Evaluation.run_all_simulations()
 
 if __name__ == "__main__":
     main()

@@ -42,6 +42,7 @@ class TaskGenerator(Thread):
         self._total_frames = self._video.frame_count
         
         # Pre-calculate frame thresholds for efficiency (assume schedule is already sorted)
+        self._next_schedule_threshold = None
         if stream_multiplier_schedule is not None and len(stream_multiplier_schedule) > 0:
             self._schedule_thresholds = deque()
             for entry in stream_multiplier_schedule:
