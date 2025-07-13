@@ -1,5 +1,5 @@
 from producer.elasticity.agent.aif.aif_agent_absolute_control import ActiveInferenceAgentAbsoluteControl
-from producer.elasticity.agent.aif.aif_agent_experimental_1 import ActiveInferenceAgentExperimental1
+from producer.elasticity.agent.aif.aif_agent_relative_control_experimental_old import ActiveInferenceAgentRelativeControlExperimentalOld
 from producer.elasticity.agent.aif.aif_agent_relative_control import ActiveInferenceAgentRelativeControl
 from producer.elasticity.agent.elasticity_agent import ElasticityAgent
 from producer.elasticity.agent.heuristic.heuristic_agent import HeuristicAgent
@@ -27,7 +27,7 @@ class AgentFactory:
             case AgentType.HEURISTIC:
                 return HeuristicAgent(elasticity_handler, request_handler, task_generator, track_slo_stats=track_slo_stats)
             case AgentType.ACTIVE_INFERENCE_EXPERIMENTAL_1:
-                return ActiveInferenceAgentExperimental1(elasticity_handler, request_handler, task_generator, track_slo_stats=track_slo_stats)
+                return ActiveInferenceAgentRelativeControlExperimentalOld(elasticity_handler, request_handler, task_generator, track_slo_stats=track_slo_stats)
             case AgentType.ACTIVE_INFERENCE_EXPERIMENTAL_2:
                 return ActiveInferenceAgentAbsoluteControl(elasticity_handler, request_handler, task_generator, track_slo_stats=track_slo_stats)
             case _:

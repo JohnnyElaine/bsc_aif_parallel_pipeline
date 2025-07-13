@@ -14,7 +14,7 @@ from producer.task_generation.task_generator import TaskGenerator
 log = logging.getLogger('producer')
 
 
-class ActiveInferenceAgentExperimental1(ElasticityAgent):
+class ActiveInferenceAgentRelativeControlExperimentalOld(ElasticityAgent):
     # Observation indices
     OBS_RESOLUTION_INDEX = 0
     OBS_FPS_INDEX = 1

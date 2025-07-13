@@ -161,10 +161,10 @@ GOAL: Ensure memory usage does not exceed capacity. Consuming the entire memory 
 
 #### Task queue (buffer) size SLO
 $$
-\text{task_queue} \leq X
+\text{items in task_queue} \leq \text{current_fps} * \theta
 $$
 
-- $X$ maximum acceptable number of tasks that may remain in the task_queue (frame buffer). e.g., $X = \text{source_fps} * 2$
+- $\theta \geq 1$ tolerance
 
 GOAL: Make sure there is enough compute power to handle tasks in real time. 
 This SLO makes sure that the internal task buffer of the producer does not grow indefinitely. 
@@ -218,13 +218,27 @@ Observations:
 - FPS of stream
 - Resolution of stream
 - YOLOv11 Inference Quality (Model) used by the worker nodes
-- State of the Memory SLO (as a float value)
-- State of the Queue Size SLO (as a float value)
+- State of the Memory SLO (as a normalized float value)
+- State of the Queue Size SLO (as a normalized float value)
+- State of the Global Average Processing Time SLO (as a normalized float value)
+- State of the Highest Worker Average Processing Time (as a normalized float value)
 
-Actions:
-- Changing of the FPS of the stream
-- Changing the Resolution of the stream
-- Changing the YOLOv1 Inference Quality (The model used by the worker nodes)
+Actions set 1 (absolute control):
+- Direct changing of the FPS of the stream
+- Direct changing the Resolution of the stream
+- Direct Changing the YOLOv1 Inference Quality (The model used by the worker nodes)
+
+Actions set 2 (relative control):
+- Increasing/Decreasing of the FPS of the stream by one step
+- Increasing/Decreasing of the Resolution of the stream by one step
+- Increasing/Decreasing of YOLOv1 Inference Quality (The model used by the worker nodes) by one step
+
+#### Goal
+1. Uphold all 4 SLOs at all times.
+2. While upholding the SLOs: maximize the 3 stream quality parameters (fps, resolution, inference quality)
+The preference for the stream quality parameters should be resolution > fps > inference quality, if the performance impact is equal.
+
+
 
 #### AIF Loop
 The agent defines an interval for the AIF loop. Per default this is 1 second.
