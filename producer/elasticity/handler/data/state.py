@@ -17,6 +17,8 @@ class State:
         return self.possible_states[len(self.possible_states) - 1]
 
     def change(self, index: int):
+        if index == self.current_index:
+            return False
         if index < 0 or index >= len(self.possible_states):
             return False
 
