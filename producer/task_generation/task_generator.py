@@ -132,6 +132,12 @@ class TaskGenerator(Thread):
             return
 
         self._stream_multiplier = self._next_schedule_threshold.multiplier
+        
+        # Move to next threshold if available
+        if self._schedule_thresholds:
+            self._next_schedule_threshold = self._schedule_thresholds.popleft()
+        else:
+            self._next_schedule_threshold = None
 
     def _add_to_queue(self, data: np.ndarray):
         """
@@ -144,11 +150,11 @@ class TaskGenerator(Thread):
         """
         for stream_id in range(self._stream_multiplier):
             frame_copy = data.copy() if stream_id > 0 else data
-            self._queue.put(Task(TaskType.INFERENCE, self._task_id, frame_copy))
+            self._queue.put(Task(TaskType.INFERENCE, self._task_id, stream_id, frame_copy))
             self._task_id += 1
 
     def _stop_request_handler(self):
-        self._queue.put(Task(TaskType.END, -1, np.empty(0)))
+        self._queue.put(Task(TaskType.END, -1, 0, np.empty(0)))
 
 
     @property

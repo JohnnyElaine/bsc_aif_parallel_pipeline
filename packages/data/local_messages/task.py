@@ -6,4 +6,5 @@ from dataclasses import dataclass, field
 class Task:
     type: str = field(compare=False)
     id: int
+    stream_key: int = field(compare=False)
     data: np.ndarray = field(compare=False)

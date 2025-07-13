@@ -70,10 +70,10 @@ class ZmqWorkRequester(WorkRequester):
 
     def _handle_changes(self, changes: dict):
         for change_type, value in changes.items():
-            self._queue.put(Task(change_type, -1, np.array(value)))
+            self._queue.put(Task(change_type, -1, 0, np.array(value)))
 
     def _notify_task_processor_of_end(self):
-        self._queue.put(Task(TaskType.END, -1, np.empty(0)))
+        self._queue.put(Task(TaskType.END, -1, 0, np.empty(0)))
 
     def _add_tasks_to_queue(self, tasks: list[Task]):
         for task in tasks:

@@ -82,7 +82,7 @@ class TaskProcessingPipeline(Process):
     def _inference(self, task: Task):
         processing_start_t = time.perf_counter()
         processed_data = self._process_task_function(task.data)
-        result = Task(TaskType.COLLECT, task.id, processed_data)
+        result = Task(TaskType.COLLECT, task.id, task.stream_key, processed_data)
         processing_t = time.perf_counter() - processing_start_t
         
         # Update shared processing time

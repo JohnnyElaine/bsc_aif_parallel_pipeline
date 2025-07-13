@@ -44,11 +44,13 @@ class ResultCollector(Thread):
             case RepType.END:
                 log.debug('received END from worker')
                 # notify the ResultMapper that it should also stop
-                self._result_dict[END_TASK_ID] = Task(TaskType.END, END_TASK_ID, np.empty(0))
+                self._result_dict[END_TASK_ID] = Task(TaskType.END, END_TASK_ID, 0, np.empty(0))
                 return False
             case _:
                 for result in results:
-                    self._result_dict[result.id] = result
+                    # Only process tasks from the original stream (stream_key=0)
+                    if result.stream_key == 0:
+                        self._result_dict[result.id] = result
                     # TODO do not add tasks with result.id < ResultMapper._expected_id
 
         return True

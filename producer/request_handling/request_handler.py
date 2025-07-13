@@ -58,7 +58,7 @@ class RequestHandler(Thread):
 
     def change_inference_quality(self, work_load: InferenceQuality):
         self._inference_quality = work_load
-        self._broadcast_change(Task(TaskType.CHANGE_INFERENCE_QUALITY, -1, np.array(work_load.value)))
+        self._broadcast_change(Task(TaskType.CHANGE_INFERENCE_QUALITY, -1, 0, np.array(work_load.value)))
 
     def _handle_request(self, address: bytes, request: dict) -> bool:
         req_type = request['type']

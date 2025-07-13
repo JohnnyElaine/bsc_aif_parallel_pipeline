@@ -46,7 +46,7 @@ class PushChannel:
         msg = [msgpack.packb(info)]
 
         for result in results:
-            metadata = dict(id=result.id, type=TaskType.COLLECT, shape=result.data.shape, dtype=str(result.data.dtype))
+            metadata = dict(id=result.id, stream_key=result.stream_key, type=TaskType.COLLECT, shape=result.data.shape, dtype=str(result.data.dtype))
             msg.append(msgpack.packb(metadata)) # send metadata first
             msg.append(result.data) # send raw numpy array after, uses the implemented buffer interface
 
