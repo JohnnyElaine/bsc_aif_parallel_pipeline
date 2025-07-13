@@ -10,5 +10,5 @@ class TaskProcessor(ABC):
         pass
 
     @abstractmethod
-    def change_work_load(self, img):
+    def change_inference_quality(self, img):
         pass

@@ -104,7 +104,7 @@ class ActiveInferenceAgentRelativeControl(ElasticityAgent):
         Perform a single step of the active inference loop
 
         Returns:
-            tuple[GeneralActionType, bool]: The action taken and whether it was successful
+            bool: Whether the actions were successful
         """
         observations = self.observations.get_observations()
 
@@ -159,7 +159,7 @@ class ActiveInferenceAgentRelativeControl(ElasticityAgent):
             A=A, B=B, C=C, D=D,
             num_controls=self.control_dims,
             policy_len=self.policy_length,
-            control_fac_idx=[self.OBS_RESOLUTION_INDEX, self.OBS_FPS_INDEX, self.OBS_INFERENCE_QUALITY_INDEX],  # hidden state factors that are directly controllable
+            control_fac_idx=[0, 1, 2],  # indices of hidden state factors that are directly controllable
         )
 
     def _construct_A_matrix(self):
@@ -193,15 +193,41 @@ class ActiveInferenceAgentRelativeControl(ElasticityAgent):
             A[self.OBS_INFERENCE_QUALITY_INDEX][i, :, :, i] = 1.0
 
         # SLO probability mappings: All 4 SLO status observations
-        queue_probs, mem_probs, global_processing_probs, worker_processing_probs = self.observations.get_all_slo_probabilities()
+        # Instead of using constant probabilities, we model how different parameter combinations
+        # affect SLO violations. Higher quality parameters (resolution, fps, inference quality)
+        # should increase the probability of SLO violations (CRITICAL/WARNING states)
         
         for res in range(self.num_resolution_states):
             for fps in range(self.num_fps_states):
                 for wl in range(self.num_inference_quality_states):
-                    A[self.OBS_QUEUE_SIZE_INDEX][:, res, fps, wl] = queue_probs
-                    A[self.OBS_MEMORY_USAGE_INDEX][:, res, fps, wl] = mem_probs
-                    A[self.OBS_GLOBAL_PROCESSING_TIME_INDEX][:, res, fps, wl] = global_processing_probs
-                    A[self.OBS_WORKER_PROCESSING_TIME_INDEX][:, res, fps, wl] = worker_processing_probs
+                    # Calculate normalized load factor (0.0 to 1.0)
+                    # Higher indices = higher quality = higher computational load = higher SLO violation probability
+                    res_load = res / max(1, self.num_resolution_states - 1)
+                    fps_load = fps / max(1, self.num_fps_states - 1)
+                    wl_load = wl / max(1, self.num_inference_quality_states - 1)
+                    
+                    # Combined load factor (weighted average)
+                    combined_load = (res_load * 0.3 + fps_load * 0.3 + wl_load * 0.4)
+                    
+                    # Convert load to SLO violation probabilities
+                    # Low load -> high P(OK), low P(WARNING), low P(CRITICAL)
+                    # High load -> low P(OK), high P(WARNING), high P(CRITICAL)
+                    p_ok = max(0.1, 1.0 - combined_load)
+                    p_critical = min(0.8, combined_load)
+                    p_warning = 1.0 - p_ok - p_critical
+                    
+                    # Ensure probabilities are valid
+                    total_prob = p_ok + p_warning + p_critical
+                    p_ok /= total_prob
+                    p_warning /= total_prob
+                    p_critical /= total_prob
+                    
+                    # Set the same probability pattern for all SLO types
+                    slo_probs = [p_ok, p_warning, p_critical]
+                    A[self.OBS_QUEUE_SIZE_INDEX][:, res, fps, wl] = slo_probs
+                    A[self.OBS_MEMORY_USAGE_INDEX][:, res, fps, wl] = slo_probs
+                    A[self.OBS_GLOBAL_PROCESSING_TIME_INDEX][:, res, fps, wl] = slo_probs
+                    A[self.OBS_WORKER_PROCESSING_TIME_INDEX][:, res, fps, wl] = slo_probs
 
         return A
 
@@ -220,19 +246,19 @@ class ActiveInferenceAgentRelativeControl(ElasticityAgent):
         probability_to_change_state = 1.0
 
         # State 0 - Resolution: Transitions for Resolution states based on actions
-        B[self.OBS_RESOLUTION_INDEX] = self._construct_sub_transition_model(self.num_resolution_states,
-                                                                                            self.num_resolution_actions,
-                                                                                            probability_to_change_state)
+        B[0] = self._construct_sub_transition_model(self.num_resolution_states,
+                                                     self.num_resolution_actions,
+                                                     probability_to_change_state)
 
         # State 1 - FPS: Transitions for FPS states based on actions
-        B[self.OBS_FPS_INDEX] = self._construct_sub_transition_model(self.num_fps_states,
-                                                                                     self.num_fps_actions,
-                                                                                     probability_to_change_state)
+        B[1] = self._construct_sub_transition_model(self.num_fps_states,
+                                                     self.num_fps_actions,
+                                                     probability_to_change_state)
 
         # State 2 - Work Load: Transitions for Work load states based on actions
-        B[self.OBS_INFERENCE_QUALITY_INDEX] = self._construct_sub_transition_model(self.num_inference_quality_states,
-                                                                                                   self.num_work_load_actions,
-                                                                                                   probability_to_change_state)
+        B[2] = self._construct_sub_transition_model(self.num_inference_quality_states,
+                                                     self.num_work_load_actions,
+                                                     probability_to_change_state)
 
         return B
 

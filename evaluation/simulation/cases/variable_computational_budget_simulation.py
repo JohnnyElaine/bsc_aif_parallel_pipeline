@@ -29,7 +29,7 @@ class VariableComputationalBudgetSimulation(Simulation):
                  collector_port: int,
                  work_type: WorkType,
                  loading_mode: LoadingMode,
-                 max_work_load: InferenceQuality,
+                 max_inference_quality: InferenceQuality,
                  agent_type: AgentType,
                  vid_path: str,
                  regular_worker_capacities: list[float],
@@ -45,7 +45,7 @@ class VariableComputationalBudgetSimulation(Simulation):
             collector_port:
             work_type:
             loading_mode:
-            max_work_load:
+            max_inference_quality:
             agent_type:
             vid_path:
             regular_worker_capacities:
@@ -54,7 +54,7 @@ class VariableComputationalBudgetSimulation(Simulation):
             recovery_at:
         """
         super().__init__(producer_ip, producer_port, collector_ip, collector_port, work_type, loading_mode,
-                         max_work_load, agent_type, vid_path)
+                         max_inference_quality, agent_type, vid_path)
 
         self._regular_worker_capacities = regular_worker_capacities
         self._outage_worker_capacities = outage_worker_capacities
@@ -66,7 +66,7 @@ class VariableComputationalBudgetSimulation(Simulation):
             port=self.producer_port,
             work_type=self.work_type,
             loading_mode=self.loading_mode,
-            max_inference_quality=self.max_work_load,
+            max_inference_quality=self.max_inference_quality,
             agent_type=self.agent_type,
             video_path=self.vid_path,
             track_slo_stats=True,

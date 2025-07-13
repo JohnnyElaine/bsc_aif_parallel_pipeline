@@ -18,6 +18,7 @@ class Evaluation:
     LOCALHOST = 'localhost'
     LOADING_MODE = LoadingMode.EAGER
     INITIAL_INFERENCE_QUALITY = InferenceQuality.MEDIUM
+    NUM_WORKERS = 1
     VID_PATH = WorkerGlobalVariables.PROJECT_ROOT / 'media' / 'vid' / 'general_detection' / '1080p Video of Highway Traffic! [KBsqQez-O4w]_20seconds.mp4'
 
     @staticmethod
@@ -46,9 +47,7 @@ class Evaluation:
 
     @staticmethod
     def run_base_case_simulation(agent_type: AgentType) -> dict[str, pd.DataFrame]:
-        num_workers = 1
-
-        worker_capacities = [1 for _ in range(num_workers)]
+        worker_capacities = [0.5 for _ in range(Evaluation.NUM_WORKERS)]
 
         sim = BaseCaseSimulation(Evaluation.LOCALHOST, Evaluation.PRODUCER_PORT, Evaluation.LOCALHOST,
                                  Evaluation.COLLECTOR_PORT, WorkType.YOLO_DETECTION, Evaluation.LOADING_MODE,
@@ -61,8 +60,8 @@ class Evaluation:
         outage_at = 0.33
         recovery_at = 0.66
 
-        num_regular_workers = 2
-        num_outage_workers = 1
+        num_outage_workers = Evaluation.NUM_WORKERS // 2
+        num_regular_workers = Evaluation.NUM_WORKERS - num_outage_workers
 
         regular_worker_capacities = [1 for _ in range(num_regular_workers)]
         outage_worker_capacities = [1 for _ in range(num_outage_workers)]
@@ -82,8 +81,7 @@ class Evaluation:
         Run simulation with variable computational demand using stream multiplier.
         Timeline: 0-25% single stream, 25-75% double stream, 75-100% single stream
         """
-        num_workers = 3
-        worker_capacities = [1 for _ in range(num_workers)]
+        worker_capacities = [1 for _ in range(Evaluation.NUM_WORKERS)]
 
         increase_at = 0.33
         decrease_at = 0.66

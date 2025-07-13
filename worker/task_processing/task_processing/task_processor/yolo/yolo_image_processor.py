@@ -46,7 +46,7 @@ class YOLOTaskProcessor(TaskProcessor, ABC):
             self._detector_medium.initialize()
             self._detector_high.initialize()
 
-    def change_work_load(self, work_load: InferenceQuality):
+    def change_inference_quality(self, work_load: InferenceQuality):
         self._detector = self._get_detector_by_work_load(work_load)
 
         if not self._detector.is_loaded():

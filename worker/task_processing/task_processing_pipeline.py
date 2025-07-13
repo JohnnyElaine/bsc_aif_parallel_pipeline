@@ -94,7 +94,7 @@ class TaskProcessingPipeline(Process):
     def _change_inference_quality(self, task):
         w = InferenceQuality.int_to_enum(task.data.item())
         self._task_processor.change_inference_quality(w)
-        self.log.info(f'successfully changed work-load to {w}')
+        self.log.info(f'successfully changed inference-quality to {w}')
 
     def _process_task(self, task: ndarray) -> ndarray:
         return self._task_processor.process(task)

@@ -34,7 +34,7 @@ class VariableComputationalDemandSimulation(Simulation):
                  collector_port: int,
                  work_type: WorkType,
                  loading_mode: LoadingMode,
-                 max_work_load: InferenceQuality,
+                 max_inference_quality: InferenceQuality,
                  agent_type: AgentType,
                  vid_path: str,
                  worker_capacities: list[float],
@@ -50,7 +50,7 @@ class VariableComputationalDemandSimulation(Simulation):
             collector_port: Collector port
             work_type: Type of work to perform
             loading_mode: Loading mode for workers
-            max_work_load: Maximum inference quality
+            max_inference_quality: Maximum inference quality
             agent_type: Type of AIF agent to use
             vid_path: Path to video file
             worker_capacities: List of worker processing capacities
@@ -59,7 +59,7 @@ class VariableComputationalDemandSimulation(Simulation):
             stream_multiplier_increase_to: Maximum stream multiplier value
         """
         super().__init__(producer_ip, producer_port, collector_ip, collector_port, work_type, loading_mode,
-                         max_work_load, agent_type, vid_path)
+                         max_inference_quality, agent_type, vid_path)
         
         self._worker_capacities = worker_capacities
         self._stream_multiplier_schedule = [
@@ -72,7 +72,7 @@ class VariableComputationalDemandSimulation(Simulation):
             port=self.producer_port,
             work_type=self.work_type,
             loading_mode=self.loading_mode,
-            max_inference_quality=self.max_work_load,
+            max_inference_quality=self.max_inference_quality,
             agent_type=self.agent_type,
             video_path=self.vid_path,
             track_slo_stats=True,

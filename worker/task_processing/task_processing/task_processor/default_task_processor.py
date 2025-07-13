@@ -10,5 +10,5 @@ class DefaultTaskProcessor(TaskProcessor):
     def process(self, img):
         return img
 
-    def change_work_load(self, img):
+    def change_inference_quality(self, img):
         pass

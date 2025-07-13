@@ -12,7 +12,7 @@ class Simulation(ABC):
                  collector_port: int,
                  work_type: WorkType,
                  loading_mode: LoadingMode,
-                 max_work_load: InferenceQuality,
+                 max_inference_quality: InferenceQuality,
                  agent_type: AgentType,
                  vid_path: str):
         self.producer_ip = producer_ip
@@ -21,7 +21,7 @@ class Simulation(ABC):
         self.collector_port = collector_port
         self.work_type = work_type
         self.loading_mode = loading_mode
-        self.max_work_load = max_work_load
+        self.max_inference_quality = max_inference_quality
         self.agent_type = agent_type
         self.vid_path = vid_path
 

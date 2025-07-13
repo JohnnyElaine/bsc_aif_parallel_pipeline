@@ -30,7 +30,7 @@ class BaseCaseSimulation(Simulation):
             port=self.producer_port,
             work_type=self.work_type,
             loading_mode=self.loading_mode,
-            max_inference_quality=self.max_work_load,
+            max_inference_quality=self.max_inference_quality,
             agent_type=self.agent_type,
             video_path=self.vid_path,
             track_slo_stats=True,
