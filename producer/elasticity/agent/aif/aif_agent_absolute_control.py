@@ -59,10 +59,11 @@ class ActiveInferenceAgentAbsoluteControl(ElasticityAgent):
         self.num_fps_states = len(elasticity_handler.state_fps.possible_states)
         self.num_inference_quality_states = len(elasticity_handler.state_inference_quality.possible_states)
 
-        # For absolute control, actions are direct indices for each parameter
-        self.num_resolution_actions = self.num_resolution_states
-        self.num_fps_actions = self.num_fps_states
-        self.num_inference_quality_actions = self.num_inference_quality_states
+        # For absolute control with "no change" action:
+        # Action 0 = no change, Actions 1-N = set to parameter index 0-(N-1)
+        self.num_resolution_actions = self.num_resolution_states + 1  # +1 for "no change"
+        self.num_fps_actions = self.num_fps_states + 1  # +1 for "no change"
+        self.num_inference_quality_actions = self.num_inference_quality_states + 1  # +1 for "no change"
 
         # Action space dimensions for pymdp
         self.control_dims = [
@@ -95,7 +96,7 @@ class ActiveInferenceAgentAbsoluteControl(ElasticityAgent):
         
         # Sample actions (direct indices for each parameter)
         action_indices = np.array(self.agent.sample_action(), dtype=int).tolist()
-        log.debug(f'AIF Agent sampled actions: resolution_idx={action_indices[0]}, fps_idx={action_indices[1]}, inference_quality_idx={action_indices[2]}')
+        log.debug(f'AIF Agent sampled actions: resolution_action={action_indices[0]}, fps_action={action_indices[1]}, inference_quality_action={action_indices[2]}')
         
         # Execute actions
         success = self._perform_actions(action_indices)
@@ -198,16 +199,33 @@ class ActiveInferenceAgentAbsoluteControl(ElasticityAgent):
                     inf_load = inf_idx / max(1, self.num_inference_quality_states - 1)
                     
                     # Weighted combination (inference quality has highest impact)
-                    combined_load = (res_load * 0.25 + fps_load * 0.25 + inf_load * 0.5)
+                    # Reduced the impact to be less aggressive about predicting SLO violations
+                    combined_load = (res_load * 0.2 + fps_load * 0.2 + inf_load * 0.3)
                     
-                    # Convert to SLO violation probabilities
-                    # Low load -> High P(OK), Low P(CRITICAL)
-                    # High load -> Low P(OK), High P(CRITICAL)
-                    p_ok = max(0.05, 1.0 - combined_load)
-                    p_critical = min(0.9, combined_load)
-                    p_warning = 1.0 - p_ok - p_critical
+                    # Convert to SLO violation probabilities with more conservative mapping
+                    # Only predict violations at higher load levels
+                    if combined_load < 0.3:
+                        # Low load: very high chance of OK SLOs
+                        p_ok = 0.95
+                        p_critical = 0.01
+                        p_warning = 0.04
+                    elif combined_load < 0.6:
+                        # Medium load: good chance of OK, some warnings
+                        p_ok = 0.8
+                        p_critical = 0.05
+                        p_warning = 0.15
+                    elif combined_load < 0.8:
+                        # High load: more warnings, some critical
+                        p_ok = 0.6
+                        p_critical = 0.2
+                        p_warning = 0.2
+                    else:
+                        # Very high load: likely violations
+                        p_ok = 0.3
+                        p_critical = 0.5
+                        p_warning = 0.2
                     
-                    # Normalize probabilities
+                    # Normalize probabilities (should already sum to 1, but just in case)
                     total = p_ok + p_warning + p_critical
                     slo_probs = [p_ok/total, p_warning/total, p_critical/total]
                     
@@ -223,30 +241,47 @@ class ActiveInferenceAgentAbsoluteControl(ElasticityAgent):
         """
         Construct the transition model (B matrix).
         
-        For absolute control, transitions are deterministic:
-        - Action i sets the state to i with probability 1.0
-        - This is different from relative control where actions modify current state
+        For absolute control with "no change" action:
+        - Action 0: No change (stay in current state)
+        - Action 1: Set to parameter index 0
+        - Action 2: Set to parameter index 1
+        - ...
+        - Action N: Set to parameter index N-1
         """
         B = utils.obj_array(len(self.state_dims))
 
-        # Resolution transitions: action directly sets state
+        # Resolution transitions
         B[0] = np.zeros((self.num_resolution_states, self.num_resolution_states, self.num_resolution_actions))
-        for action in range(self.num_resolution_actions):
-            for current_state in range(self.num_resolution_states):
-                # Action i transitions to state i regardless of current state
-                B[0][action, current_state, action] = 1.0
+        for current_state in range(self.num_resolution_states):
+            # Action 0: No change (stay in current state)
+            B[0][current_state, current_state, 0] = 1.0
+            
+            # Actions 1-N: Set to specific parameter index (action-1)
+            for action in range(1, self.num_resolution_actions):
+                target_state = action - 1  # Convert action to parameter index
+                B[0][target_state, current_state, action] = 1.0
 
-        # FPS transitions: action directly sets state  
+        # FPS transitions
         B[1] = np.zeros((self.num_fps_states, self.num_fps_states, self.num_fps_actions))
-        for action in range(self.num_fps_actions):
-            for current_state in range(self.num_fps_states):
-                B[1][action, current_state, action] = 1.0
+        for current_state in range(self.num_fps_states):
+            # Action 0: No change
+            B[1][current_state, current_state, 0] = 1.0
+            
+            # Actions 1-N: Set to specific parameter index
+            for action in range(1, self.num_fps_actions):
+                target_state = action - 1
+                B[1][target_state, current_state, action] = 1.0
 
-        # Inference Quality transitions: action directly sets state
+        # Inference Quality transitions
         B[2] = np.zeros((self.num_inference_quality_states, self.num_inference_quality_states, self.num_inference_quality_actions))
-        for action in range(self.num_inference_quality_actions):
-            for current_state in range(self.num_inference_quality_states):
-                B[2][action, current_state, action] = 1.0
+        for current_state in range(self.num_inference_quality_states):
+            # Action 0: No change
+            B[2][current_state, current_state, 0] = 1.0
+            
+            # Actions 1-N: Set to specific parameter index
+            for action in range(1, self.num_inference_quality_actions):
+                target_state = action - 1
+                B[2][target_state, current_state, action] = 1.0
 
         return B
 
@@ -255,8 +290,11 @@ class ActiveInferenceAgentAbsoluteControl(ElasticityAgent):
         Construct the preference model (C matrix).
         
         Encodes the agent's preferences over observations:
-        - Quality parameters: Higher is better (but less important than SLOs)
+        - Quality parameters: Higher is better (important for user experience)
         - SLO status: Strong preference for OK, strong aversion to CRITICAL
+        
+        The key insight: When SLOs are satisfied, we want to maximize quality.
+        When SLOs are violated, avoiding violations becomes more important than quality.
         """
         C = utils.obj_array(len(self.obs_dims))
 
@@ -264,30 +302,32 @@ class ActiveInferenceAgentAbsoluteControl(ElasticityAgent):
         for obs_idx, obs_dim in enumerate(self.obs_dims):
             C[obs_idx] = np.zeros(obs_dim)
 
-        # Quality parameter preferences (linear scaling favoring higher quality)
+        # Quality parameter preferences - significantly increased to encourage higher quality
+        # when SLOs allow it
         
-        # Resolution preferences
+        # Resolution preferences - strong preference for higher quality
         if self.num_resolution_states > 1:
             C[self.OBS_RESOLUTION_INDEX][:] = [
-                self.MEDIUM_PREFERENCE * (i / (self.num_resolution_states - 1))
+                self.STRONG_PREFERENCE * (i / (self.num_resolution_states - 1))
                 for i in range(self.num_resolution_states)
             ]
 
-        # FPS preferences
+        # FPS preferences - strong preference for higher quality  
         if self.num_fps_states > 1:
             C[self.OBS_FPS_INDEX][:] = [
-                self.MEDIUM_PREFERENCE * (i / (self.num_fps_states - 1))
+                self.STRONG_PREFERENCE * (i / (self.num_fps_states - 1))
                 for i in range(self.num_fps_states)
             ]
 
-        # Inference Quality preferences (slightly lower than others since it's most expensive)
+        # Inference Quality preferences - medium preference (still expensive but important)
         if self.num_inference_quality_states > 1:
             C[self.OBS_INFERENCE_QUALITY_INDEX][:] = [
-                self.LOW_PREFERENCE * (i / (self.num_inference_quality_states - 1))
+                self.MEDIUM_PREFERENCE * (i / (self.num_inference_quality_states - 1))
                 for i in range(self.num_inference_quality_states)
             ]
 
-        # SLO preferences (much more important than quality)
+        # SLO preferences - still the most important, but not overwhelmingly so
+        # This ensures the agent balances quality vs SLO satisfaction
         slo_obs_indices = [
             self.OBS_QUEUE_SIZE_INDEX,
             self.OBS_MEMORY_USAGE_INDEX,
@@ -297,7 +337,7 @@ class ActiveInferenceAgentAbsoluteControl(ElasticityAgent):
 
         for slo_idx in slo_obs_indices:
             C[slo_idx][SloStatus.OK.value] = self.VERY_STRONG_PREFERENCE
-            C[slo_idx][SloStatus.WARNING.value] = self.NEUTRAL
+            C[slo_idx][SloStatus.WARNING.value] = self.LOW_AVERSION  # Slight aversion to warnings
             C[slo_idx][SloStatus.CRITICAL.value] = self.VERY_STRONG_AVERSION
 
         return C
@@ -322,10 +362,17 @@ class ActiveInferenceAgentAbsoluteControl(ElasticityAgent):
 
     def _perform_actions(self, action_indices: list[int]) -> bool:
         """
-        Execute actions by directly setting parameter indices.
+        Execute actions with "no change" support.
+        
+        Action mapping:
+        - Action 0: No change (keep current parameter value)
+        - Action 1: Set parameter to index 0 (lowest quality)
+        - Action 2: Set parameter to index 1
+        - ...
+        - Action N: Set parameter to index N-1 (highest quality)
         
         Args:
-            action_indices: [resolution_idx, fps_idx, inference_quality_idx]
+            action_indices: [resolution_action, fps_action, inference_quality_action]
             
         Returns:
             bool: True if all actions were successful
@@ -333,16 +380,36 @@ class ActiveInferenceAgentAbsoluteControl(ElasticityAgent):
         success = True
         
         try:
-            # Set resolution
-            self.actions.change_resolution_index(action_indices[0])
+            # Validate action indices
+            if (action_indices[0] >= self.num_resolution_actions or 
+                action_indices[1] >= self.num_fps_actions or 
+                action_indices[2] >= self.num_inference_quality_actions):
+                log.error(f'Invalid action indices: {action_indices}')
+                return False
             
-            # Set FPS  
-            self.actions.change_fps_index(action_indices[1])
+            # Resolution action
+            if action_indices[0] == 0:
+                pass  # No change
+            else:
+                param_index = action_indices[0] - 1
+                result = self.actions.change_resolution_index(param_index)
+                success = success and (result is not False)
             
-            # Set inference quality
-            self.actions.change_inference_quality_index(action_indices[2])
+            # FPS action
+            if action_indices[1] == 0:
+                pass  # No change
+            else:
+                param_index = action_indices[1] - 1
+                result = self.actions.change_fps_index(param_index)
+                success = success and (result is not False)
             
-            log.debug(f'Action execution: resolution={action_indices[0]}, fps={action_indices[1]}, inference_quality={action_indices[2]}, success={success}')
+            # Inference quality action
+            if action_indices[2] == 0:
+                pass  # No change
+            else:
+                param_index = action_indices[2] - 1
+                result = self.actions.change_inference_quality_index(param_index)
+                success = success and (result is not False)
             
         except Exception as e:
             log.error(f'Error executing actions: {e}')

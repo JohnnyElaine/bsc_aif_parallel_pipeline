@@ -49,7 +49,7 @@ class Evaluation:
 
     @staticmethod
     def run_base_case_simulation(agent_type: AgentType) -> dict[str, pd.DataFrame]:
-        worker_capacities = [0.5 for _ in range(Evaluation.NUM_WORKERS)]
+        worker_capacities = [1 for _ in range(Evaluation.NUM_WORKERS)]
 
         sim = BaseCaseSimulation(Evaluation.LOCALHOST, Evaluation.PRODUCER_PORT, Evaluation.LOCALHOST,
                                  Evaluation.COLLECTOR_PORT, WorkType.YOLO_DETECTION, Evaluation.LOADING_MODE,

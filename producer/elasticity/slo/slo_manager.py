@@ -47,10 +47,10 @@ class SloManager:
         global_avg_processing_time_value = self._avg_global_processing_time_slo.value()
         worker_avg_processing_time_value = self._avg_worker_processing_time_slo.value()
 
-        print(f"Queue Size SLO Value: {qsize_slo_value:.2f}")
-        print(f"Memory SLO Value: {mem_slo_value:.2f}")
-        print(f"Global Avg Processing Time SLO Value: {global_avg_processing_time_value:.2f}")
-        print(f"Worker Avg Processing Time SLO Value: {worker_avg_processing_time_value:.2f}")
+        #print(f"Queue Size SLO Value: {qsize_slo_value:.2f}")
+        #print(f"Memory SLO Value: {mem_slo_value:.2f}")
+        #print(f"Global Avg Processing Time SLO Value: {global_avg_processing_time_value:.2f}")
+        #print(f"Worker Avg Processing Time SLO Value: {worker_avg_processing_time_value:.2f}")
 
         if self._stats is not None:
             self._track_capacity_stats()
