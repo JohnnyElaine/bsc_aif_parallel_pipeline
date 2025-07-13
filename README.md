@@ -212,7 +212,8 @@ These observations are then used to evaluated SLOs and in turn stream quality pa
 
 ### Implementation of Active Inference
 The agent that controls the elasticity of the system runs on the producer. It is implemented using the active inference library [pymdp](https://github.com/infer-actively/pymdp). More information is available in the offical [paper](https://arxiv.org/abs/2201.03904).
-In order to make intelligent decisions using active inference, we need to model the problem as a Partially observable Markov decision process (POMDP). For this the environment was modeled as follows:
+In order to make intelligent decisions using active inference, we need to model the problem as a Partially observable Markov decision process (POMDP). For this the environment was modeled as follows.
+The agent interfaces with the world in two ways. It can make observations from self.observations and it can make actions using self.actions
 
 Observations:
 - FPS of stream
@@ -236,6 +237,7 @@ Actions set 2 (relative control):
 #### Goal
 1. Uphold all 4 SLOs at all times.
 2. While upholding the SLOs: maximize the 3 stream quality parameters (fps, resolution, inference quality)
+3. Learn the correct configuration for the 3 stream quality parameters over time
 The preference for the stream quality parameters should be resolution > fps > inference quality, if the performance impact is equal.
 
 
