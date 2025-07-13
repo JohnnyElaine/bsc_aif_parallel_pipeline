@@ -40,7 +40,8 @@ class VariableComputationalDemandSimulation(Simulation):
                  worker_capacities: list[float],
                  stream_multiplier_increase_at,
                  stream_multiplier_decrease_at,
-                 max_stream_multiplier):
+                 stream_multiplier_increase_to,
+                 stream_multiplier_decrease_to):
         """
         Args:
             producer_ip: Producer IP address
@@ -53,24 +54,20 @@ class VariableComputationalDemandSimulation(Simulation):
             agent_type: Type of AIF agent to use
             vid_path: Path to video file
             worker_capacities: List of worker processing capacities
-            stream_multiplier_increase_at: Percentage of frames processed when multiplier increases (default: 0.25)
-            stream_multiplier_decrease_at: Percentage of frames processed when multiplier decreases (default: 0.75)
-            max_stream_multiplier: Maximum stream multiplier value (default: 2)
+            stream_multiplier_increase_at: Percentage of frames processed when multiplier increases
+            stream_multiplier_decrease_at: Percentage of frames processed when multiplier decreases
+            stream_multiplier_increase_to: Maximum stream multiplier value
         """
         super().__init__(producer_ip, producer_port, collector_ip, collector_port, work_type, loading_mode,
                          max_work_load, agent_type, vid_path)
         
         self._worker_capacities = worker_capacities
-        self._stream_multiplier_increase_at = stream_multiplier_increase_at
-        self._stream_multiplier_decrease_at = stream_multiplier_decrease_at
-        self._max_stream_multiplier = max_stream_multiplier
+        self._stream_multiplier_schedule = [
+            StreamMultiplierEntry(stream_multiplier_increase_at, stream_multiplier_increase_to),
+            StreamMultiplierEntry(stream_multiplier_decrease_at, stream_multiplier_decrease_to)
+        ]
 
     def run(self) -> dict[str, pd.DataFrame]:
-        stream_multiplier_schedule = [
-            StreamMultiplierEntry(self._stream_multiplier_increase_at, self._max_stream_multiplier),
-            StreamMultiplierEntry(self._stream_multiplier_decrease_at, 1)
-        ]
-        
         producer_config = ProducerConfig(
             port=self.producer_port,
             work_type=self.work_type,
@@ -80,7 +77,7 @@ class VariableComputationalDemandSimulation(Simulation):
             video_path=self.vid_path,
             track_slo_stats=True,
             initial_stream_multiplier=1,  # Start with single stream
-            stream_multiplier_schedule=stream_multiplier_schedule
+            stream_multiplier_schedule=self._stream_multiplier_schedule
         )
         
         collector_config = CollectorConfig(self.collector_port)

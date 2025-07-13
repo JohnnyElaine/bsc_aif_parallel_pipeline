@@ -22,10 +22,9 @@ class Evaluation:
 
     @staticmethod
     def run_all_simulations():
-        #Measurement.run_and_plot_simulation(AgentType.ACTIVE_INFERENCE, SimulationType.BASIC)
-        Evaluation.run_and_plot_simulation(AgentType.ACTIVE_INFERENCE, SimulationType.BASIC)
-        # Uncomment to run variable computational demand simulation:
-        # Measurement.run_and_plot_simulation(AgentType.ACTIVE_INFERENCE, SimulationType.VARIABLE_COMPUTATIONAL_DEMAND)
+        #Evaluation.run_and_plot_simulation(AgentType.ACTIVE_INFERENCE, SimulationType.BASIC)
+        Evaluation.run_and_plot_simulation(AgentType.ACTIVE_INFERENCE, SimulationType.VARIABLE_COMPUTATIONAL_DEMAND)
+        #Evaluation.run_and_plot_simulation(AgentType.ACTIVE_INFERENCE, SimulationType.VARIABLE_COMPUTATIONAL_BUDGET)
 
     @staticmethod
     def run_and_plot_simulation(agent_type: AgentType, sim_type: SimulationType):
@@ -59,8 +58,8 @@ class Evaluation:
 
     @staticmethod
     def run_variable_computational_budget_simulation(agent_type: AgentType) -> dict[str, pd.DataFrame]:
-        outage_at = 0.25
-        recovery_at = 0.75
+        outage_at = 0.33
+        recovery_at = 0.66
 
         num_regular_workers = 2
         num_outage_workers = 1
@@ -84,7 +83,12 @@ class Evaluation:
         Timeline: 0-25% single stream, 25-75% double stream, 75-100% single stream
         """
         num_workers = 3
-        worker_capacities = [0.7 for _ in range(num_workers)]
+        worker_capacities = [1 for _ in range(num_workers)]
+
+        increase_at = 0.33
+        decrease_at = 0.66
+        increase_to = 2
+        decrease_to = 1
 
         sim = VariableComputationalDemandSimulation(
             Evaluation.LOCALHOST, Evaluation.PRODUCER_PORT,
@@ -92,9 +96,10 @@ class Evaluation:
             WorkType.YOLO_DETECTION, Evaluation.LOADING_MODE,
             Evaluation.INITIAL_INFERENCE_QUALITY, agent_type,
             Evaluation.VID_PATH, worker_capacities,
-            0.25,
-            0.75,
-            2
+            increase_at,
+            decrease_at,
+            increase_to,
+            decrease_to
         )
 
         stats = sim.run()

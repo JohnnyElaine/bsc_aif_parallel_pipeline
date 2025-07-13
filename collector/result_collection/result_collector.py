@@ -49,6 +49,8 @@ class ResultCollector(Thread):
             case _:
                 for result in results:
                     # Only process tasks from the original stream (stream_key=0)
+                    if result.stream_key == 1:
+                        print("Another stream bro")
                     if result.stream_key == 0:
                         self._result_dict[result.id] = result
                     # TODO do not add tasks with result.id < ResultMapper._expected_id
