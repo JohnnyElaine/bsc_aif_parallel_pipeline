@@ -22,13 +22,13 @@ class AgentFactory:
                 return None
             case AgentType.TEST:
                 return TestAgent(elasticity_handler, request_handler, task_generator, track_slo_stats=track_slo_stats)
-            case AgentType.ACTIVE_INFERENCE:
+            case AgentType.ACTIVE_INFERENCE_RELATIVE_CONTROL:
                 return ActiveInferenceAgentRelativeControl(elasticity_handler, request_handler, task_generator, track_slo_stats=track_slo_stats)
+            case AgentType.ACTIVE_INFERENCE_ABSOLUTE_CONTROL:
+                return ActiveInferenceAgentAbsoluteControl(elasticity_handler, request_handler, task_generator,track_slo_stats=track_slo_stats)
             case AgentType.HEURISTIC:
                 return HeuristicAgent(elasticity_handler, request_handler, task_generator, track_slo_stats=track_slo_stats)
             case AgentType.ACTIVE_INFERENCE_EXPERIMENTAL_1:
                 return ActiveInferenceAgentRelativeControlExperimentalOld(elasticity_handler, request_handler, task_generator, track_slo_stats=track_slo_stats)
-            case AgentType.ACTIVE_INFERENCE_EXPERIMENTAL_2:
-                return ActiveInferenceAgentAbsoluteControl(elasticity_handler, request_handler, task_generator, track_slo_stats=track_slo_stats)
             case _:
                 return ActiveInferenceAgentRelativeControl(elasticity_handler, request_handler, task_generator, track_slo_stats=track_slo_stats)

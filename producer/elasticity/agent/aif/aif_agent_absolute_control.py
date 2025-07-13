@@ -156,27 +156,37 @@ class ActiveInferenceAgentAbsoluteControl(ElasticityAgent):
         Maps from hidden states (resolution, fps, inference_quality) to observations.
         The key insight: higher quality parameters increase computational load,
         which increases the probability of SLO violations.
+        
+        When using A_factor_list, each A matrix only has dimensions for the
+        state factors it depends on, not all state factors.
         """
         A = utils.obj_array(len(self.obs_dims))
 
-        # Initialize all observation modalities
-        for obs_idx, obs_dim in enumerate(self.obs_dims):
-            A[obs_idx] = np.zeros((obs_dim, *self.state_dims))
-
-        # Direct mappings for controllable parameters
-        # Observation 0: Resolution - direct 1:1 mapping
+        # A[0]: Resolution observation - depends only on resolution state (factor 0)
+        A[self.OBS_RESOLUTION_INDEX] = np.zeros((self.num_resolution_states, self.num_resolution_states))
         for i in range(self.num_resolution_states):
-            A[self.OBS_RESOLUTION_INDEX][i, i, :, :] = 1.0
+            A[self.OBS_RESOLUTION_INDEX][i, i] = 1.0
 
-        # Observation 1: FPS - direct 1:1 mapping
+        # A[1]: FPS observation - depends only on FPS state (factor 1)
+        A[self.OBS_FPS_INDEX] = np.zeros((self.num_fps_states, self.num_fps_states))
         for i in range(self.num_fps_states):
-            A[self.OBS_FPS_INDEX][i, :, i, :] = 1.0
+            A[self.OBS_FPS_INDEX][i, i] = 1.0
 
-        # Observation 2: Inference Quality - direct 1:1 mapping
+        # A[2]: Inference Quality observation - depends only on inference quality state (factor 2)
+        A[self.OBS_INFERENCE_QUALITY_INDEX] = np.zeros((self.num_inference_quality_states, self.num_inference_quality_states))
         for i in range(self.num_inference_quality_states):
-            A[self.OBS_INFERENCE_QUALITY_INDEX][i, :, :, i] = 1.0
+            A[self.OBS_INFERENCE_QUALITY_INDEX][i, i] = 1.0
 
-        # SLO observations: Model the relationship between parameters and SLO violations
+        # SLO observations: depend on all three state factors [0, 1, 2]
+        slo_shape = (self.num_slo_states, self.num_resolution_states, self.num_fps_states, self.num_inference_quality_states)
+        
+        # Initialize SLO observation matrices
+        A[self.OBS_QUEUE_SIZE_INDEX] = np.zeros(slo_shape)
+        A[self.OBS_MEMORY_USAGE_INDEX] = np.zeros(slo_shape)
+        A[self.OBS_GLOBAL_PROCESSING_TIME_INDEX] = np.zeros(slo_shape)
+        A[self.OBS_WORKER_PROCESSING_TIME_INDEX] = np.zeros(slo_shape)
+
+        # Fill SLO observations based on computational load
         for res_idx in range(self.num_resolution_states):
             for fps_idx in range(self.num_fps_states):
                 for inf_idx in range(self.num_inference_quality_states):
@@ -324,13 +334,13 @@ class ActiveInferenceAgentAbsoluteControl(ElasticityAgent):
         
         try:
             # Set resolution
-            success &= self.actions.change_resolution_index(action_indices[0])
+            self.actions.change_resolution_index(action_indices[0])
             
             # Set FPS  
-            success &= self.actions.change_fps_index(action_indices[1])
+            self.actions.change_fps_index(action_indices[1])
             
             # Set inference quality
-            success &= self.actions.change_inference_quality_index(action_indices[2])
+            self.actions.change_inference_quality_index(action_indices[2])
             
             log.debug(f'Action execution: resolution={action_indices[0]}, fps={action_indices[1]}, inference_quality={action_indices[2]}, success={success}')
             

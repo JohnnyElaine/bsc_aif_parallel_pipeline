@@ -196,14 +196,14 @@ class ElasticityHandler(ElasticityAbsoluteActionInterface, ElasticityRelativeAct
         """Gets the current inference quality value."""
         return self.state_inference_quality.value
 
-    def _change_inference_quality(self, work_load: InferenceQuality):
+    def _change_inference_quality(self, inference_quality: InferenceQuality):
         """
         Propagates the change to the request handler.
 
         Args:
-            work_load (InferenceQuality): The new workload value to be applied.
+            inference_quality (InferenceQuality): The new workload value to be applied.
         """
-        self._request_handler.change_inference_quality(work_load)
+        self._request_handler.change_inference_quality(inference_quality)
 
     def _change_fps(self, fps: int):
         """
