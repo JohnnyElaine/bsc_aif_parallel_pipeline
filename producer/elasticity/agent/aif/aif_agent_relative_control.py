@@ -96,28 +96,44 @@ class ActiveInferenceAgentRelativeControl(ElasticityAgent):
 
         # policy settings
         self.policy_length = policy_length
+        
+        # Learning settings
+        self.learning_rate_A = 1.0
+        self.learning_rate_B = 1.0
 
         self._setup_generative_model()
 
     def step(self):
         """
-        Perform a single step of the active inference loop
+        Perform a single step of the active inference loop with learning.
 
         Returns:
-            bool: Whether the actions were successful
+            tuple: (ActionType, bool) Action type and whether the actions were successful
         """
+        # Get current observations
         observations = self.observations.get_observations()
+        
+        # Store previous beliefs for learning (if available)
+        prev_beliefs = None
+        if hasattr(self.agent, 'qs'):
+            prev_beliefs = [qs.copy() for qs in self.agent.qs]
 
-        # Perform active inference, q_s = Q(s) = Posterior believes Q over hidden states  s
+        # Perform active inference
         q_s = self.agent.infer_states(observations)
         q_pi, efe = self.agent.infer_policies()
 
         actions_idx = np.array(self.agent.sample_action(), dtype=int).tolist()
-        print(f'sampled actions: {actions_idx}')
+        log.debug(f'AIF Agent sampled actions: resolution_action={actions_idx[0]}, fps_action={actions_idx[1]}, inference_quality_action={actions_idx[2]}')
 
+        # Execute actions
         success = self._perform_actions(actions_idx)
+        
+        # Update A matrix with learning (always enabled)
+        if prev_beliefs is not None:
+            # Update A matrix based on observed outcomes
+            self.agent.update_A(observations)
+        
         return ActionType.NONE, success
-
 
     def reset(self):
         """Reset the agent's beliefs"""
@@ -159,7 +175,19 @@ class ActiveInferenceAgentRelativeControl(ElasticityAgent):
             A=A, B=B, C=C, D=D,
             num_controls=self.control_dims,
             policy_len=self.policy_length,
-            control_fac_idx=[0, 1, 2],  # indices of hidden state factors that are directly controllable
+            A_factor_list=[
+                [0],        # OBS_RESOLUTION_INDEX depends only on state factor 0 (resolution)
+                [1],        # OBS_FPS_INDEX depends only on state factor 1 (FPS)
+                [2],        # OBS_INFERENCE_QUALITY_INDEX depends only on state factor 2 (inference quality)
+                [0, 1, 2],  # OBS_QUEUE_SIZE_INDEX depends on all state factors
+                [0, 1, 2],  # OBS_MEMORY_USAGE_INDEX depends on all state factors
+                [0, 1, 2],  # OBS_GLOBAL_PROCESSING_TIME_INDEX depends on all state factors
+                [0, 1, 2]   # OBS_WORKER_PROCESSING_TIME_INDEX depends on all state factors
+            ],
+            B_factor_list=[[0], [1], [2]],  # Each B matrix controls its corresponding state factor
+            pA=utils.dirichlet_like(A),     # Initialize Dirichlet priors using built-in function
+            lr_pA=self.learning_rate_A,     # Learning rate for A matrix
+            control_fac_idx=[0, 1, 2],      # indices of hidden state factors that are directly controllable
         )
 
     def _construct_A_matrix(self):
@@ -168,29 +196,35 @@ class ActiveInferenceAgentRelativeControl(ElasticityAgent):
 
         The A array encodes the likelihood mapping between hidden states and observations.
         The A array answers: "Given a hidden state, what observation am I likely to see?"
-
-        A[observation][slo-status, resolution-state, fps-state, workload-state] = probability (0 - 1)
-        """
-        # TODO Idea. replace slo-status with dimensionality for each slo status, i.e. remove observation 3 & 4 and embedd them
         
-        #  A[observation][slo-status_qsize, slo_status_mem, resolution-state, fps-state, workload-state] = probability (0 - 1)
+        When using A_factor_list, each A matrix only has dimensions for the
+        state factors it depends on, not all state factors.
+        """
         A = utils.obj_array(len(self.obs_dims))
 
-        # Initialize observation modalities
-        for obs_idx, obs_dim in enumerate(self.obs_dims):
-            A[obs_idx] = np.zeros((obs_dim, *self.state_dims))
-
-        # Observation 0: Resolution state - direct mapping
+        # A[0]: Resolution observation - depends only on resolution state (factor 0)
+        A[self.OBS_RESOLUTION_INDEX] = np.zeros((self.num_resolution_states, self.num_resolution_states))
         for i in range(self.num_resolution_states):
-            A[self.OBS_RESOLUTION_INDEX][i, i, :, :] = 1.0
+            A[self.OBS_RESOLUTION_INDEX][i, i] = 1.0
 
-        # Observation 1: FPS state - direct mapping
+        # A[1]: FPS observation - depends only on FPS state (factor 1)
+        A[self.OBS_FPS_INDEX] = np.zeros((self.num_fps_states, self.num_fps_states))
         for i in range(self.num_fps_states):
-            A[self.OBS_FPS_INDEX][i, :, i, :] = 1.0
+            A[self.OBS_FPS_INDEX][i, i] = 1.0
 
-        # Observation 2: Work load state - direct mapping
+        # A[2]: Inference Quality observation - depends only on inference quality state (factor 2)
+        A[self.OBS_INFERENCE_QUALITY_INDEX] = np.zeros((self.num_inference_quality_states, self.num_inference_quality_states))
         for i in range(self.num_inference_quality_states):
-            A[self.OBS_INFERENCE_QUALITY_INDEX][i, :, :, i] = 1.0
+            A[self.OBS_INFERENCE_QUALITY_INDEX][i, i] = 1.0
+
+        # SLO observations: depend on all three state factors [0, 1, 2]
+        slo_shape = (self.num_queue_states, self.num_resolution_states, self.num_fps_states, self.num_inference_quality_states)
+        
+        # Initialize SLO observation matrices
+        A[self.OBS_QUEUE_SIZE_INDEX] = np.zeros(slo_shape)
+        A[self.OBS_MEMORY_USAGE_INDEX] = np.zeros(slo_shape)
+        A[self.OBS_GLOBAL_PROCESSING_TIME_INDEX] = np.zeros(slo_shape)
+        A[self.OBS_WORKER_PROCESSING_TIME_INDEX] = np.zeros(slo_shape)
 
         # SLO probability mappings: All 4 SLO status observations
         # Instead of using constant probabilities, we model how different parameter combinations
@@ -206,24 +240,38 @@ class ActiveInferenceAgentRelativeControl(ElasticityAgent):
                     fps_load = fps / max(1, self.num_fps_states - 1)
                     wl_load = wl / max(1, self.num_inference_quality_states - 1)
                     
-                    # Combined load factor (weighted average)
-                    combined_load = (res_load * 0.3 + fps_load * 0.3 + wl_load * 0.4)
+                    # Weighted combination (inference quality has highest impact)
+                    # Reduced the impact to be less aggressive about predicting SLO violations
+                    combined_load = (res_load * 0.2 + fps_load * 0.2 + wl_load * 0.3)
                     
-                    # Convert load to SLO violation probabilities
-                    # Low load -> high P(OK), low P(WARNING), low P(CRITICAL)
-                    # High load -> low P(OK), high P(WARNING), high P(CRITICAL)
-                    p_ok = max(0.1, 1.0 - combined_load)
-                    p_critical = min(0.8, combined_load)
-                    p_warning = 1.0 - p_ok - p_critical
+                    # Convert to SLO violation probabilities with more conservative mapping
+                    # Only predict violations at higher load levels
+                    if combined_load < 0.3:
+                        # Low load: very high chance of OK SLOs
+                        p_ok = 0.95
+                        p_critical = 0.01
+                        p_warning = 0.04
+                    elif combined_load < 0.6:
+                        # Medium load: good chance of OK, some warnings
+                        p_ok = 0.8
+                        p_critical = 0.05
+                        p_warning = 0.15
+                    elif combined_load < 0.8:
+                        # High load: more warnings, some critical
+                        p_ok = 0.6
+                        p_critical = 0.2
+                        p_warning = 0.2
+                    else:
+                        # Very high load: likely violations
+                        p_ok = 0.3
+                        p_critical = 0.5
+                        p_warning = 0.2
                     
-                    # Ensure probabilities are valid
-                    total_prob = p_ok + p_warning + p_critical
-                    p_ok /= total_prob
-                    p_warning /= total_prob
-                    p_critical /= total_prob
+                    # Normalize probabilities (should already sum to 1, but just in case)
+                    total = p_ok + p_warning + p_critical
+                    slo_probs = [p_ok/total, p_warning/total, p_critical/total]
                     
-                    # Set the same probability pattern for all SLO types
-                    slo_probs = [p_ok, p_warning, p_critical]
+                    # Apply to all SLO observation types
                     A[self.OBS_QUEUE_SIZE_INDEX][:, res, fps, wl] = slo_probs
                     A[self.OBS_MEMORY_USAGE_INDEX][:, res, fps, wl] = slo_probs
                     A[self.OBS_GLOBAL_PROCESSING_TIME_INDEX][:, res, fps, wl] = slo_probs
@@ -306,24 +354,26 @@ class ActiveInferenceAgentRelativeControl(ElasticityAgent):
 
     def _set_quality_preferences(self, C):
         """Set preferences for quality parameters (resolution, FPS, inference quality)"""
-        # Preferences for resolution - higher is better (linear scaling)
-        max_res = self.num_resolution_states - 1
-        C[self.OBS_RESOLUTION_INDEX][:] = [
-            self.MEDIUM_PREFERENCE * (i / max_res) for i in range(self.num_resolution_states)
-        ]
+        # Resolution preferences - strong preference for higher quality
+        if self.num_resolution_states > 1:
+            C[self.OBS_RESOLUTION_INDEX][:] = [
+                self.STRONG_PREFERENCE * (i / (self.num_resolution_states - 1))
+                for i in range(self.num_resolution_states)
+            ]
 
-        # Preferences for FPS - higher is better (linear scaling)
-        max_fps = self.num_fps_states - 1
-        C[self.OBS_FPS_INDEX][:] = [
-            self.MEDIUM_PREFERENCE * (i / max_fps) for i in range(self.num_fps_states)
-        ]
+        # FPS preferences - strong preference for higher quality  
+        if self.num_fps_states > 1:
+            C[self.OBS_FPS_INDEX][:] = [
+                self.MEDIUM_PREFERENCE * (i / (self.num_fps_states - 1))
+                for i in range(self.num_fps_states)
+            ]
 
-        # Preferences for inference quality - higher is better (linear scaling)
-        max_inference_quality = self.num_inference_quality_states - 1
-        C[self.OBS_INFERENCE_QUALITY_INDEX][:] = [
-            self.LOW_PREFERENCE * (i / max_inference_quality)
-            for i in range(self.num_inference_quality_states)
-        ]
+        # Inference Quality preferences - medium preference (still expensive but important)
+        if self.num_inference_quality_states > 1:
+            C[self.OBS_INFERENCE_QUALITY_INDEX][:] = [
+                self.MEDIUM_PREFERENCE * (i / (self.num_inference_quality_states - 1))
+                for i in range(self.num_inference_quality_states)
+            ]
 
     def _set_slo_preferences(self, C):
         """Set identical preferences for all SLO observations"""
@@ -335,8 +385,8 @@ class ActiveInferenceAgentRelativeControl(ElasticityAgent):
         ]
 
         for slo_idx in slo_indices:
-            C[slo_idx][SloStatus.OK.value] = self.STRONG_PREFERENCE
-            C[slo_idx][SloStatus.WARNING.value] = self.NEUTRAL
+            C[slo_idx][SloStatus.OK.value] = self.MEDIUM_PREFERENCE
+            C[slo_idx][SloStatus.WARNING.value] = self.NEUTRAL  # Slight aversion to warnings
             C[slo_idx][SloStatus.CRITICAL.value] = self.STRONG_AVERSION
 
     def _construct_D_matrix(self):

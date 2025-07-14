@@ -358,7 +358,7 @@ class ActiveInferenceAgentAbsoluteControl(ElasticityAgent):
         ]
 
         for slo_idx in slo_obs_indices:
-            C[slo_idx][SloStatus.OK.value] = self.STRONG_PREFERENCE
+            C[slo_idx][SloStatus.OK.value] = self.MEDIUM_PREFERENCE
             C[slo_idx][SloStatus.WARNING.value] = self.NEUTRAL
             C[slo_idx][SloStatus.CRITICAL.value] = self.STRONG_AVERSION
 
