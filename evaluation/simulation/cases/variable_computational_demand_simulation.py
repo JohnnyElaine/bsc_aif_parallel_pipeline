@@ -38,10 +38,7 @@ class VariableComputationalDemandSimulation(Simulation):
                  agent_type: AgentType,
                  vid_path: str,
                  worker_capacities: list[float],
-                 stream_multiplier_increase_at,
-                 stream_multiplier_decrease_at,
-                 stream_multiplier_increase_to,
-                 stream_multiplier_decrease_to):
+                 stream_multiplier_schedule: list[StreamMultiplierEntry]):
         """
         Args:
             producer_ip: Producer IP address
@@ -62,10 +59,7 @@ class VariableComputationalDemandSimulation(Simulation):
                          max_inference_quality, agent_type, vid_path)
         
         self._worker_capacities = worker_capacities
-        self._stream_multiplier_schedule = [
-            StreamMultiplierEntry(stream_multiplier_increase_at, stream_multiplier_increase_to),
-            StreamMultiplierEntry(stream_multiplier_decrease_at, stream_multiplier_decrease_to)
-        ]
+        self._stream_multiplier_schedule = stream_multiplier_schedule
 
     def run(self) -> dict[str, pd.DataFrame]:
         producer_config = ProducerConfig(

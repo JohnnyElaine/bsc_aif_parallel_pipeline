@@ -326,43 +326,46 @@ class ActiveInferenceAgentAbsoluteControl(ElasticityAgent):
 
         # Quality parameter preferences - significantly increased to encourage higher quality
         # when SLOs allow it
-        
-        # Resolution preferences - strong preference for higher quality
-        if self.num_resolution_states > 1:
-            C[self.OBS_RESOLUTION_INDEX][:] = [
-                self.STRONG_PREFERENCE * (i / (self.num_resolution_states - 1))
-                for i in range(self.num_resolution_states)
-            ]
 
-        # FPS preferences - strong preference for higher quality  
-        if self.num_fps_states > 1:
-            C[self.OBS_FPS_INDEX][:] = [
-                self.MEDIUM_PREFERENCE * (i / (self.num_fps_states - 1))
-                for i in range(self.num_fps_states)
-            ]
-
-        # Inference Quality preferences - medium preference (still expensive but important)
-        if self.num_inference_quality_states > 1:
-            C[self.OBS_INFERENCE_QUALITY_INDEX][:] = [
-                self.MEDIUM_PREFERENCE * (i / (self.num_inference_quality_states - 1))
-                for i in range(self.num_inference_quality_states)
-            ]
+        self._set_quality_preferences(C)
 
         # SLO preferences - still the most important, but not overwhelmingly so
         # This ensures the agent balances quality vs SLO satisfaction
+        self._set_slo_preferences(C)
+
+        return C
+
+    def _set_slo_preferences(self, C):
         slo_obs_indices = [
             self.OBS_QUEUE_SIZE_INDEX,
             self.OBS_MEMORY_USAGE_INDEX,
             self.OBS_GLOBAL_PROCESSING_TIME_INDEX,
             self.OBS_WORKER_PROCESSING_TIME_INDEX
         ]
-
         for slo_idx in slo_obs_indices:
             C[slo_idx][SloStatus.OK.value] = self.MEDIUM_PREFERENCE
             C[slo_idx][SloStatus.WARNING.value] = self.NEUTRAL
             C[slo_idx][SloStatus.CRITICAL.value] = self.STRONG_AVERSION
 
-        return C
+    def _set_quality_preferences(self, C):
+        # Resolution preferences - strong preference for higher quality
+        if self.num_resolution_states > 1:
+            C[self.OBS_RESOLUTION_INDEX][:] = [
+                self.STRONG_PREFERENCE * (i / (self.num_resolution_states - 1))
+                for i in range(self.num_resolution_states)
+            ]
+        # FPS preferences - strong preference for higher quality
+        if self.num_fps_states > 1:
+            C[self.OBS_FPS_INDEX][:] = [
+                self.MEDIUM_PREFERENCE * (i / (self.num_fps_states - 1))
+                for i in range(self.num_fps_states)
+            ]
+        # Inference Quality preferences - medium preference (still expensive but important)
+        if self.num_inference_quality_states > 1:
+            C[self.OBS_INFERENCE_QUALITY_INDEX][:] = [
+                self.MEDIUM_PREFERENCE * (i / (self.num_inference_quality_states - 1))
+                for i in range(self.num_inference_quality_states)
+            ]
 
     def _construct_D_matrix(self):
         """

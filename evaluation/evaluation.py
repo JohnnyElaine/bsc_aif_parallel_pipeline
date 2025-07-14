@@ -7,6 +7,7 @@ from evaluation.simulation.cases.variable_computational_budget_simulation import
 from evaluation.simulation.cases.variable_computational_demand_simulation import VariableComputationalDemandSimulation
 from packages.enums import WorkType, InferenceQuality
 from packages.enums.loading_mode import LoadingMode
+from producer.data.stream_multiplier_entry import StreamMultiplierEntry
 from producer.enums.agent_type import AgentType
 from worker.global_variables import WorkerGlobalVariables
 
@@ -85,10 +86,11 @@ class Evaluation:
         """
         worker_capacities = [1 for _ in range(Evaluation.NUM_WORKERS)]
 
-        increase_at = 0.33
-        decrease_at = 0.66
-        increase_to = 2
-        decrease_to = 1
+        stream_multiplier_schedule = [
+            StreamMultiplierEntry(0.25, 2),
+            StreamMultiplierEntry(0.5, 1),
+            StreamMultiplierEntry(0.75, 2),
+        ]
 
         sim = VariableComputationalDemandSimulation(
             Evaluation.LOCALHOST, Evaluation.PRODUCER_PORT,
@@ -96,10 +98,7 @@ class Evaluation:
             WorkType.YOLO_DETECTION, Evaluation.LOADING_MODE,
             Evaluation.INITIAL_INFERENCE_QUALITY, agent_type,
             Evaluation.VID_PATH, worker_capacities,
-            increase_at,
-            decrease_at,
-            increase_to,
-            decrease_to
+            stream_multiplier_schedule
         )
 
         stats = sim.run()
