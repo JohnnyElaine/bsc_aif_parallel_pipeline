@@ -117,7 +117,6 @@ class ActiveInferenceAgentRelativeControl(ElasticityAgent):
         if hasattr(self.agent, 'qs'):
             qs_prev = self.agent.qs.copy()
 
-        # Perform active inference
         q_s = self.agent.infer_states(observations)
         q_pi, efe = self.agent.infer_policies()
 
@@ -125,32 +124,10 @@ class ActiveInferenceAgentRelativeControl(ElasticityAgent):
         actions_idx = np.array(self.agent.sample_action(), dtype=int).tolist()
         log.debug(f'AIF Agent sampled actions: resolution_action={actions_idx[0]}, fps_action={actions_idx[1]}, inference_quality_action={actions_idx[2]}')
 
-        # Execute actions
         success = self._perform_actions(actions_idx)
         
-        # Update both A and B matrices with learning
         if qs_prev is not None:
-            print(f"\n=== DEBUGGING B MATRIX LEARNING ===")
-            print(f"prev_beliefs type: {type(qs_prev)}")
-            print(f"prev_beliefs length: {len(qs_prev)}")
-            print(f"prev_beliefs: {qs_prev}")
-            
-            print(f"\nq_s type: {type(q_s)}")
-            print(f"q_s length: {len(q_s)}")
-            print(f"q_s: {q_s}")
-            
-            print(f"\nself.agent.qs type: {type(self.agent.qs)}")
-            print(f"self.agent.qs length: {len(self.agent.qs)}")
-            print(f"self.agent.qs: {self.agent.qs}")
-            
-            print(f"\nB_factor_list: {self.agent.B_factor_list}")
-            print(f"action: {self.agent.action}")
-            print("=====================================\n")
-            
-            # Update A matrix based on observed outcomes
             self.agent.update_A(observations)
-            
-            # Update B matrix based on state transitions and actions
             self.agent.update_B(qs_prev)
         
         return success
