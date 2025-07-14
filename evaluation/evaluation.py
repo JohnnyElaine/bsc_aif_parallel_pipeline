@@ -17,7 +17,7 @@ class Evaluation:
     COLLECTOR_PORT = 10001
     LOCALHOST = 'localhost'
     LOADING_MODE = LoadingMode.EAGER
-    INITIAL_INFERENCE_QUALITY = InferenceQuality.MEDIUM
+    INITIAL_INFERENCE_QUALITY = InferenceQuality.HIGH
     NUM_WORKERS = 1
     VID_PATH = WorkerGlobalVariables.PROJECT_ROOT / 'media' / 'vid' / 'general_detection' / '1080p Video of Highway Traffic! [KBsqQez-O4w]_20seconds.mp4'
 

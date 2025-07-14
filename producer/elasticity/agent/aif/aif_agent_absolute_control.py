@@ -86,10 +86,6 @@ class ActiveInferenceAgentAbsoluteControl(ElasticityAgent):
         # Learning settings
         self.learning_rate_A = 1.0
         self.learning_rate_B = 1.0
-        
-        # Learning data collection
-        self.observation_history = []
-        self.max_history = 50  # Keep recent history for analysis
 
         self._setup_generative_model()
 
@@ -123,11 +119,6 @@ class ActiveInferenceAgentAbsoluteControl(ElasticityAgent):
         if prev_beliefs is not None:
             # Update A matrix based on observed outcomes
             self.agent.update_A(observations)
-
-            # Collect data for analysis (optional)
-            self._collect_learning_data(prev_beliefs, action_indices, observations)
-
-            log.debug("A matrix updated successfully with new observations")
 
         return success
 
@@ -180,6 +171,8 @@ class ActiveInferenceAgentAbsoluteControl(ElasticityAgent):
             # Learning configuration
             use_param_info_gain=False,  # Disable parameter info gain for simplicity
             lr_pA=self.learning_rate_A,   # Learning rate for A matrix
+            pA=utils.dirichlet_like(A),  # Initialize Dirichlet priors using built-in function
+            modalities_to_learn='all'   # Learn all observation modalities
         )
 
     def _construct_A_matrix(self):
@@ -442,91 +435,3 @@ class ActiveInferenceAgentAbsoluteControl(ElasticityAgent):
             success = False
 
         return success
-
-    def _collect_learning_data(self, prev_beliefs, action_indices, observations):
-        """
-        Collect data for learning analysis and debugging.
-        
-        Args:
-            prev_beliefs: Previous state beliefs
-            action_indices: Actions taken
-            observations: Current observations
-        """
-        learning_data = {
-            'timestamp': np.datetime64('now'),
-            'prev_beliefs': prev_beliefs,
-            'actions': action_indices,
-            'observations': observations
-        }
-        
-        self.observation_history.append(learning_data)
-        
-        # Keep only recent history to avoid memory issues
-        if len(self.observation_history) > self.max_history:
-            self.observation_history.pop(0)
-    
-    def get_learning_stats(self):
-        """
-        Get statistics about the learning process.
-        
-        Returns:
-            dict: Learning statistics
-        """
-        if not self.observation_history:
-            return {"message": "No learning data collected yet"}
-        
-        stats = {
-            "total_observations": len(self.observation_history),
-            "learning_rate": self.learning_rate_A,
-            "recent_observations": min(10, len(self.observation_history))
-        }
-        
-        # Add some basic analysis of recent SLO observations
-        if len(self.observation_history) > 0:
-            recent_data = self.observation_history[-10:]  # Last 10 observations
-            slo_indices = [
-                self.OBS_QUEUE_SIZE_INDEX,
-                self.OBS_MEMORY_USAGE_INDEX,
-                self.OBS_GLOBAL_PROCESSING_TIME_INDEX,
-                self.OBS_WORKER_PROCESSING_TIME_INDEX
-            ]
-            
-            slo_stats = {}
-            for idx in slo_indices:
-                slo_values = [data['observations'][idx] for data in recent_data]
-                slo_stats[f"slo_{idx}"] = {
-                    "ok_count": slo_values.count(SloStatus.OK.value),
-                    "warning_count": slo_values.count(SloStatus.WARNING.value),
-                    "critical_count": slo_values.count(SloStatus.CRITICAL.value)
-                }
-            
-            stats["recent_slo_performance"] = slo_stats
-        
-        return stats
-    
-    def log_learning_progress(self):
-        """
-        Log current learning progress and A matrix state for debugging.
-        """
-        # Log basic learning info
-        stats = self.get_learning_stats()
-        log.info(f"Learning Progress - Observations: {stats['total_observations']}, "
-                f"Learning Rate: {stats['learning_rate']}")
-        
-        # Log recent SLO performance if available
-        if 'recent_slo_performance' in stats:
-            for slo_name, slo_data in stats['recent_slo_performance'].items():
-                log.info(f"{slo_name}: OK={slo_data['ok_count']}, "
-                        f"WARNING={slo_data['warning_count']}, "
-                        f"CRITICAL={slo_data['critical_count']}")
-        
-        # Log some A matrix statistics for SLO observations (optional debugging)
-        if hasattr(self.agent, 'A') and len(self.agent.A) > self.OBS_QUEUE_SIZE_INDEX:
-            # Example: log average probability of OK SLO for different parameter combinations
-            queue_a_matrix = self.agent.A[self.OBS_QUEUE_SIZE_INDEX]
-            if queue_a_matrix.ndim == 4:  # Should be (3 SLO states, res, fps, inf_quality)
-                avg_ok_prob = np.mean(queue_a_matrix[SloStatus.OK.value, :, :, :])
-                avg_critical_prob = np.mean(queue_a_matrix[SloStatus.CRITICAL.value, :, :, :])
-                log.debug(f"A matrix - Avg OK prob: {avg_ok_prob:.3f}, "
-                         f"Avg CRITICAL prob: {avg_critical_prob:.3f}")
-
