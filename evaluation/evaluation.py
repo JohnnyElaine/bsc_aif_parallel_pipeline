@@ -20,7 +20,7 @@ class Evaluation:
     LOADING_MODE = LoadingMode.EAGER
     INITIAL_INFERENCE_QUALITY = InferenceQuality.HIGH
     NUM_WORKERS = 1
-    VID_PATH = WorkerGlobalVariables.PROJECT_ROOT / 'media' / 'vid' / 'general_detection' / '1080p Video of Highway Traffic! [KBsqQez-O4w]_20seconds.mp4'
+    VID_PATH = WorkerGlobalVariables.PROJECT_ROOT / 'media' / 'vid' / 'general_detection' / '1080p Video of Highway Traffic! [KBsqQez-O4w].mp4'
 
     @staticmethod
     def run_all_simulations():
@@ -50,7 +50,7 @@ class Evaluation:
 
     @staticmethod
     def run_base_case_simulation(agent_type: AgentType) -> dict[str, pd.DataFrame]:
-        worker_capacities = [1 for _ in range(Evaluation.NUM_WORKERS)]
+        worker_capacities = [0.5 for _ in range(Evaluation.NUM_WORKERS)]
 
         sim = BaseCaseSimulation(Evaluation.LOCALHOST, Evaluation.PRODUCER_PORT, Evaluation.LOCALHOST,
                                  Evaluation.COLLECTOR_PORT, WorkType.YOLO_DETECTION, Evaluation.LOADING_MODE,

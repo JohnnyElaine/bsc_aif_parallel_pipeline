@@ -18,7 +18,7 @@ class SloManager:
                  elasticity_handler: ElasticityHandler,
                  request_handler: RequestHandler,
                  task_generator: TaskGenerator,
-                 queue_size_tolerance=2,
+                 queue_size_tolerance=3,
                  avg_global_processing_t_tolerance=1,
                  avg_worker_processing_t_tolerance=4,
                  max_memory_usage=0.9,

@@ -356,7 +356,7 @@ class ActiveInferenceAgentRelativeControl(ElasticityAgent):
         # Resolution preferences - strong preference for higher quality
         if self.num_resolution_states > 1:
             C[self.OBS_RESOLUTION_INDEX][:] = [
-                self.STRONG_PREFERENCE * (i / (self.num_resolution_states - 1))
+                self.MEDIUM_PREFERENCE * (i / (self.num_resolution_states - 1))
                 for i in range(self.num_resolution_states)
             ]
 
@@ -370,7 +370,7 @@ class ActiveInferenceAgentRelativeControl(ElasticityAgent):
         # Inference Quality preferences - medium preference (still expensive but important)
         if self.num_inference_quality_states > 1:
             C[self.OBS_INFERENCE_QUALITY_INDEX][:] = [
-                self.STRONG_PREFERENCE * (i / (self.num_inference_quality_states - 1))
+                self.MEDIUM_PREFERENCE * (i / (self.num_inference_quality_states - 1))
                 for i in range(self.num_inference_quality_states)
             ]
 
@@ -384,8 +384,8 @@ class ActiveInferenceAgentRelativeControl(ElasticityAgent):
         ]
 
         for slo_idx in slo_indices:
-            C[slo_idx][SloStatus.OK.value] = self.MEDIUM_PREFERENCE
-            C[slo_idx][SloStatus.WARNING.value] = self.NEUTRAL  # Slight aversion to warnings
+            C[slo_idx][SloStatus.OK.value] = self.LOW_PREFERENCE
+            C[slo_idx][SloStatus.WARNING.value] = self.NEUTRAL
             C[slo_idx][SloStatus.CRITICAL.value] = self.STRONG_AVERSION
 
     def _construct_D_matrix(self):

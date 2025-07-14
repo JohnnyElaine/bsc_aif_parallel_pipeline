@@ -9,6 +9,14 @@ def plot_all_slo_stats(slo_stats):
 def plot_slo_values_over_time(slo_stats: pd.DataFrame):
     """Plot both SLO ratios over time with critical threshold"""
     slo_stats = slo_stats.reset_index()
+    
+    # Cap values at upper bound for display purposes
+    upper_bound = 4
+    slo_stats_capped = slo_stats.copy()
+    slo_stats_capped['queue_size_slo_value'] = slo_stats_capped['queue_size_slo_value'].clip(upper=upper_bound)
+    slo_stats_capped['memory_usage_slo_value'] = slo_stats_capped['memory_usage_slo_value'].clip(upper=upper_bound)
+    slo_stats_capped['avg_global_processing_time_slo_value'] = slo_stats_capped['avg_global_processing_time_slo_value'].clip(upper=upper_bound)
+    slo_stats_capped['avg_worker_processing_time_slo_value'] = slo_stats_capped['avg_worker_processing_time_slo_value'].clip(upper=upper_bound)
 
     plt.figure(figsize=(12, 6))
 
