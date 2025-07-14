@@ -32,7 +32,6 @@ class AIFAgentObservations:
             list[int]: [resolution_index, fps_index, inference_quality_index, queue_slo_value, memory_slo_value, global_processing_slo_value, worker_processing_slo_value]
         """
         queue_slo_status, memory_slo_status, global_processing_slo_status, worker_processing_slo_status = self._slo_manager.get_all_slo_status()
-        print(self._elasticity_observations.get_current_inference_quality_state().current_index)
         return [
             self._elasticity_observations.get_current_resolution_state().current_index,
             self._elasticity_observations.get_current_fps_state().current_index,

@@ -5,7 +5,6 @@ import pymdp.utils as utils
 from pymdp.agent import Agent
 
 from producer.elasticity.action.action_type import ActionType
-from producer.elasticity.action.general_action_type import GeneralActionType
 from producer.elasticity.agent.elasticity_agent import ElasticityAgent
 from producer.elasticity.handler.elasticity_handler import ElasticityHandler
 from producer.elasticity.slo.slo_status import SloStatus
@@ -122,16 +121,20 @@ class ActiveInferenceAgentRelativeControl(ElasticityAgent):
         q_s = self.agent.infer_states(observations)
         q_pi, efe = self.agent.infer_policies()
 
+        # Sample actions (direct indices for each parameter)
         actions_idx = np.array(self.agent.sample_action(), dtype=int).tolist()
         log.debug(f'AIF Agent sampled actions: resolution_action={actions_idx[0]}, fps_action={actions_idx[1]}, inference_quality_action={actions_idx[2]}')
 
         # Execute actions
         success = self._perform_actions(actions_idx)
         
-        # Update A matrix with learning (always enabled)
+        # Update both A and B matrices with learning
         if prev_beliefs is not None:
             # Update A matrix based on observed outcomes
             self.agent.update_A(observations)
+            
+            # Update B matrix based on state transitions and actions
+            self.agent.update_B(prev_beliefs)
         
         return success
 
@@ -188,6 +191,8 @@ class ActiveInferenceAgentRelativeControl(ElasticityAgent):
             pA=utils.dirichlet_like(A),     # Initialize Dirichlet priors using built-in function
             lr_pA=self.learning_rate_A,     # Learning rate for A matrix
             control_fac_idx=[0, 1, 2],      # indices of hidden state factors that are directly controllable
+            pB=utils.dirichlet_like(B),     # Initialize Dirichlet priors for B matrix
+            lr_pB=self.learning_rate_B,     # Learning rate for B matrix
         )
 
     def _construct_A_matrix(self):
