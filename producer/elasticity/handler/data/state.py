@@ -46,7 +46,8 @@ class State:
             return False
 
         self.current_index += 1
-        return self.change_function(self.value)
+        self.change_function(self.value)
+        return True
     
     def decrease(self):
         if self.current_index <= 0:

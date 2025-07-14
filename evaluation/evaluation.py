@@ -28,7 +28,7 @@ class Evaluation:
         #for sim_type in SimulationType:
         #    for agent_type in eval_agent_types:
         #        Evaluation.run_and_plot_simulation(agent_type, sim_type)
-        Evaluation.run_and_plot_simulation(AgentType.ACTIVE_INFERENCE_ABSOLUTE_CONTROL, SimulationType.BASIC)
+        Evaluation.run_and_plot_simulation(AgentType.ACTIVE_INFERENCE_RELATIVE_CONTROL, SimulationType.BASIC)
 
     @staticmethod
     def run_and_plot_simulation(agent_type: AgentType, sim_type: SimulationType):
@@ -87,9 +87,9 @@ class Evaluation:
         worker_capacities = [1 for _ in range(Evaluation.NUM_WORKERS)]
 
         stream_multiplier_schedule = [
-            StreamMultiplierEntry(0.25, 2),
-            StreamMultiplierEntry(0.5, 1),
-            StreamMultiplierEntry(0.75, 2),
+            StreamMultiplierEntry(0.25, 3),
+            StreamMultiplierEntry(0.5, 2),
+            StreamMultiplierEntry(0.75, 1),
         ]
 
         sim = VariableComputationalDemandSimulation(

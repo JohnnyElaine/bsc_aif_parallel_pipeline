@@ -371,7 +371,7 @@ class ActiveInferenceAgentRelativeControl(ElasticityAgent):
         # Inference Quality preferences - medium preference (still expensive but important)
         if self.num_inference_quality_states > 1:
             C[self.OBS_INFERENCE_QUALITY_INDEX][:] = [
-                self.MEDIUM_PREFERENCE * (i / (self.num_inference_quality_states - 1))
+                self.STRONG_PREFERENCE * (i / (self.num_inference_quality_states - 1))
                 for i in range(self.num_inference_quality_states)
             ]
 
