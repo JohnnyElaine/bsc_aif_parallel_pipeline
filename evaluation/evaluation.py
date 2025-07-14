@@ -24,11 +24,12 @@ class Evaluation:
 
     @staticmethod
     def run_all_simulations():
-        #eval_agent_types = [AgentType.ACTIVE_INFERENCE_RELATIVE_CONTROL, AgentType.ACTIVE_INFERENCE_ABSOLUTE_CONTROL, AgentType.HEURISTIC]
-        #for sim_type in SimulationType:
-        #    for agent_type in eval_agent_types:
-        #        Evaluation.run_and_plot_simulation(agent_type, sim_type)
-        Evaluation.run_and_plot_simulation(AgentType.ACTIVE_INFERENCE_RELATIVE_CONTROL, SimulationType.BASIC)
+        eval_agent_types = [AgentType.ACTIVE_INFERENCE_RELATIVE_CONTROL, AgentType.ACTIVE_INFERENCE_ABSOLUTE_CONTROL, AgentType.HEURISTIC]
+        eval_sim_types = [SimulationType.BASIC, SimulationType.VARIABLE_COMPUTATIONAL_DEMAND, SimulationType.VARIABLE_COMPUTATIONAL_BUDGET]
+        for sim_type in eval_sim_types:
+            for agent_type in eval_agent_types:
+                Evaluation.run_and_plot_simulation(agent_type, sim_type)
+        # Evaluation.run_and_plot_simulation(AgentType.ACTIVE_INFERENCE_RELATIVE_CONTROL, SimulationType.BASIC)
 
     @staticmethod
     def run_and_plot_simulation(agent_type: AgentType, sim_type: SimulationType):
@@ -44,9 +45,16 @@ class Evaluation:
                 raise ValueError('Unknown SimulationType')
 
         slo_stats_df = stats['slo_stats']
-        plot_all_slo_stats(slo_stats_df)
+        
+        # Create descriptive names for the plots
+        agent_type_name = agent_type.name.lower()
+        sim_type_name = sim_type.name.lower()
+        
+        plot_all_slo_stats(slo_stats_df, agent_type_name, sim_type_name)
         worker_stats_df = stats['worker_stats']
         #plot_all_worker_stats(worker_stats_df)
+        # TODO calc average SLO fulfillment rate (per SLO and all SLOs average)
+        # TODO calc average stream quality capcity (per metric and all averaged)
 
     @staticmethod
     def run_base_case_simulation(agent_type: AgentType) -> dict[str, pd.DataFrame]:
@@ -108,3 +116,8 @@ class Evaluation:
         worker_stats['capacity'] = [worker_capacities[identity] for identity in worker_stats.index]
 
         return stats
+
+    @staticmethod
+    def test_single_simulation():
+        """Test function to run a single simulation and verify plot saving works"""
+        Evaluation.run_and_plot_simulation(AgentType.ACTIVE_INFERENCE_RELATIVE_CONTROL, SimulationType.BASIC)

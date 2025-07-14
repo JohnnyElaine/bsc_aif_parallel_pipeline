@@ -1,12 +1,21 @@
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
+import os
 
-def plot_all_slo_stats(slo_stats):
-    plot_slo_values_over_time(slo_stats)
-    plot_quality_metrics(slo_stats)
+def plot_all_slo_stats(slo_stats, agent_type_name: str, sim_type_name: str, output_dir: str = "out"):
+    """Plot all SLO statistics and save to files"""
+    # Create output directory if it doesn't exist
+    os.makedirs(output_dir, exist_ok=True)
+    
+    # Construct filepaths
+    slo_values_filepath = os.path.join(output_dir, f"slo_values_{agent_type_name}_{sim_type_name}.png")
+    quality_metrics_filepath = os.path.join(output_dir, f"quality_metrics_{agent_type_name}_{sim_type_name}.png")
+    
+    plot_slo_values_over_time(slo_stats, slo_values_filepath)
+    plot_quality_metrics(slo_stats, quality_metrics_filepath)
 
-def plot_slo_values_over_time(slo_stats: pd.DataFrame):
+def plot_slo_values_over_time(slo_stats: pd.DataFrame, filepath: str = None):
     """Plot both SLO ratios over time with critical threshold"""
     slo_stats = slo_stats.reset_index()
     
@@ -20,26 +29,33 @@ def plot_slo_values_over_time(slo_stats: pd.DataFrame):
 
     plt.figure(figsize=(12, 6))
 
-    sns.lineplot(data=slo_stats, x='index', y='queue_size_slo_value',
+    sns.lineplot(data=slo_stats_capped, x='index', y='queue_size_slo_value',
                  label='Queue Size', color='blue', linewidth=2)
-    sns.lineplot(data=slo_stats, x='index', y='memory_usage_slo_value',
+    sns.lineplot(data=slo_stats_capped, x='index', y='memory_usage_slo_value',
                  label='Memory Usage', color='red', linewidth=2)
-    sns.lineplot(data=slo_stats, x='index', y='avg_global_processing_time_slo_value',
+    sns.lineplot(data=slo_stats_capped, x='index', y='avg_global_processing_time_slo_value',
                  label='Global Processing Time', color='green', linewidth=2)
-    sns.lineplot(data=slo_stats, x='index', y='avg_worker_processing_time_slo_value',
+    sns.lineplot(data=slo_stats_capped, x='index', y='avg_worker_processing_time_slo_value',
                  label='Worker Processing Time', color='magenta', linewidth=2)
 
     plt.axhline(y=1, color='black', linestyle='--', linewidth=2,
                 label='SLO Fulfillment Threshold')
-    plt.title('SLO Values Over Time', fontsize=16)
+    plt.title(f'SLO Values Over Time (Capped at {upper_bound})', fontsize=16)
     plt.xlabel('Time Index', fontsize=12)
     plt.ylabel('Ratio Value', fontsize=12)
     plt.legend(fontsize=12)
     plt.grid(True, alpha=0.3)
     plt.tight_layout()
-    plt.show()
+    
+    if filepath:
+        # Create directory if it doesn't exist
+        os.makedirs(os.path.dirname(filepath), exist_ok=True)
+        plt.savefig(filepath, dpi=300, bbox_inches='tight')
+        plt.close()
+    else:
+        plt.show()
 
-def plot_quality_metrics(slo_stats):
+def plot_quality_metrics(slo_stats, filepath: str = None):
     """Plot capacity metrics over time"""
     slo_stats = slo_stats.reset_index()
 
@@ -58,7 +74,14 @@ def plot_quality_metrics(slo_stats):
     plt.legend(fontsize=12)
     plt.grid(True, alpha=0.3)
     plt.tight_layout()
-    plt.show()
+    
+    if filepath:
+        # Create directory if it doesn't exist
+        os.makedirs(os.path.dirname(filepath), exist_ok=True)
+        plt.savefig(filepath, dpi=300, bbox_inches='tight')
+        plt.close()
+    else:
+        plt.show()
 
 def plot_queue_size_over_time(slo_stats):
     """Plot queue size over time"""
