@@ -340,7 +340,7 @@ class ActiveInferenceAgentAbsoluteControl(ElasticityAgent):
         # FPS preferences - strong preference for higher quality  
         if self.num_fps_states > 1:
             C[self.OBS_FPS_INDEX][:] = [
-                self.STRONG_PREFERENCE * (i / (self.num_fps_states - 1))
+                self.MEDIUM_PREFERENCE * (i / (self.num_fps_states - 1))
                 for i in range(self.num_fps_states)
             ]
 
@@ -361,9 +361,9 @@ class ActiveInferenceAgentAbsoluteControl(ElasticityAgent):
         ]
 
         for slo_idx in slo_obs_indices:
-            C[slo_idx][SloStatus.OK.value] = self.VERY_STRONG_PREFERENCE
-            C[slo_idx][SloStatus.WARNING.value] = self.LOW_AVERSION  # Slight aversion to warnings
-            C[slo_idx][SloStatus.CRITICAL.value] = self.VERY_STRONG_AVERSION
+            C[slo_idx][SloStatus.OK.value] = self.STRONG_PREFERENCE
+            C[slo_idx][SloStatus.WARNING.value] = self.NEUTRAL
+            C[slo_idx][SloStatus.CRITICAL.value] = self.STRONG_AVERSION
 
         return C
 
