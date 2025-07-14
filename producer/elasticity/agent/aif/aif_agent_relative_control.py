@@ -133,7 +133,7 @@ class ActiveInferenceAgentRelativeControl(ElasticityAgent):
             # Update A matrix based on observed outcomes
             self.agent.update_A(observations)
         
-        return ActionType.NONE, success
+        return success
 
     def reset(self):
         """Reset the agent's beliefs"""
@@ -404,23 +404,26 @@ class ActiveInferenceAgentRelativeControl(ElasticityAgent):
     def _perform_actions(self, actions: list[int]):
         """Tries to perform for all state dimensions using the relative actions view"""
         # TODO: Return list of actions and if they were successful
-        success = True
         # Resolution action
+        success_res = True
+        success_fps = True
+        success_inf = True
+
         if actions[self.ACTION_RESOLUTION_INDEX] == ActionType.INCREASE:
-            success &= self.actions.increase_resolution()
+            success_res &= self.actions.increase_resolution()
         elif actions[self.ACTION_RESOLUTION_INDEX] == ActionType.DECREASE:
-            success &= self.actions.decrease_resolution()
+            success_res &= self.actions.decrease_resolution()
 
         # FPS action
         if actions[self.ACTION_FPS_INDEX] == ActionType.INCREASE:
-            success &= self.actions.increase_fps()
+            success_fps &= self.actions.increase_fps()
         elif actions[self.ACTION_FPS_INDEX] == ActionType.DECREASE:
-            success &= self.actions.decrease_fps()
+            success_fps &= self.actions.decrease_fps()
 
         # Workload action
         if actions[self.ACTION_INFERENCE_QUALITY_INDEX] == ActionType.INCREASE:
-            success &= self.actions.increase_inference_quality()
+            success_inf &= self.actions.increase_inference_quality()
         elif actions[self.ACTION_INFERENCE_QUALITY_INDEX] == ActionType.DECREASE:
-            success &= self.actions.decrease_inference_quality()
+            success_inf &= self.actions.decrease_inference_quality()
 
-        return success
+        return success_res, success_fps, success_inf
