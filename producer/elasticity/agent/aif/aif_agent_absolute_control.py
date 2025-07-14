@@ -158,21 +158,18 @@ class ActiveInferenceAgentAbsoluteControl(ElasticityAgent):
             A=A, B=B, C=C, D=D,
             num_controls=self.control_dims,
             policy_len=self.policy_length,
-            B_factor_list=[[0], [1], [2]],  # Each B matrix controls its corresponding state factor
             A_factor_list=[
-                [0],        # OBS_RESOLUTION_INDEX depends only on state factor 0 (resolution)
-                [1],        # OBS_FPS_INDEX depends only on state factor 1 (FPS)
-                [2],        # OBS_INFERENCE_QUALITY_INDEX depends only on state factor 2 (inference quality)
+                [0],  # OBS_RESOLUTION_INDEX depends only on state factor 0 (resolution)
+                [1],  # OBS_FPS_INDEX depends only on state factor 1 (FPS)
+                [2],  # OBS_INFERENCE_QUALITY_INDEX depends only on state factor 2 (inference quality)
                 [0, 1, 2],  # OBS_QUEUE_SIZE_INDEX depends on all state factors
                 [0, 1, 2],  # OBS_MEMORY_USAGE_INDEX depends on all state factors
                 [0, 1, 2],  # OBS_GLOBAL_PROCESSING_TIME_INDEX depends on all state factors
-                [0, 1, 2]   # OBS_WORKER_PROCESSING_TIME_INDEX depends on all state factors
+                [0, 1, 2]  # OBS_WORKER_PROCESSING_TIME_INDEX depends on all state factors
             ],
-            # Learning configuration
-            use_param_info_gain=False,  # Disable parameter info gain for simplicity
-            lr_pA=self.learning_rate_A,   # Learning rate for A matrix
+            B_factor_list=[[0], [1], [2]],  # Each B matrix controls its corresponding state factor
             pA=utils.dirichlet_like(A),  # Initialize Dirichlet priors using built-in function
-            modalities_to_learn='all'   # Learn all observation modalities
+            lr_pA=self.learning_rate_A,   # Learning rate for A matrix
         )
 
     def _construct_A_matrix(self):
