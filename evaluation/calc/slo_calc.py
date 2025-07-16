@@ -58,7 +58,7 @@ class SloCalculator:
         metrics.update(quality_metrics)
         
         # 6. Statistical analysis
-        statistical_metrics = self._calculate_statistical_metrics(slo_stats_df)
+        statistical_metrics = self._calculate_slo_statistical_metrics(slo_stats_df)
         metrics.update(statistical_metrics)
         
         return metrics
@@ -122,12 +122,6 @@ class SloCalculator:
         # Recovery time analysis (consecutive violations)
         metrics['max_consecutive_overall_violations'] = self._calculate_max_consecutive_violations(slo_stats_df)
         
-        # Resource utilization efficiency
-        metrics['avg_queue_size'] = float(slo_stats_df['queue_size'].mean())
-        metrics['max_queue_size'] = float(slo_stats_df['queue_size'].max())
-        metrics['avg_memory_usage'] = float(slo_stats_df['memory_usage'].mean())
-        metrics['max_memory_usage'] = float(slo_stats_df['memory_usage'].max())
-        
         return metrics
     
     def _calculate_quality_metrics(self, slo_stats_df: pd.DataFrame) -> Dict[str, float]:
@@ -135,27 +129,15 @@ class SloCalculator:
         Calculate quality metrics (capacity utilization)
         """
         metrics = {}
-        for col in self.QUALITY_COLUMNS:
-            avg_capacity = slo_stats_df[col].mean()
-            min_capacity = slo_stats_df[col].min()
-            max_capacity = slo_stats_df[col].max()
-            std_capacity = slo_stats_df[col].std()
-            
-            metrics[f'avg_{col}'] = float(avg_capacity)
-            metrics[f'min_{col}'] = float(min_capacity)
-            metrics[f'max_{col}'] = float(max_capacity)
-            metrics[f'std_{col}'] = float(std_capacity)
-        
+
         # Overall quality score (average of all quality capacities)
-        quality_values = []
-        for col in self.QUALITY_COLUMNS:
-            quality_values.append(slo_stats_df[col].mean())
+        quality_values = [slo_stats_df[col].mean() for col in self.QUALITY_COLUMNS ]
         
-        metrics['overall_quality_score'] = float(np.mean(quality_values))
+        metrics['avg_stream_quality'] = float(np.mean(quality_values))
         
         return metrics
     
-    def _calculate_statistical_metrics(self, slo_stats_df: pd.DataFrame) -> Dict[str, float]:
+    def _calculate_slo_statistical_metrics(self, slo_stats_df: pd.DataFrame) -> Dict[str, float]:
         """
         Calculate statistical metrics for deeper analysis
         """
@@ -164,11 +146,7 @@ class SloCalculator:
         # SLO value statistics
         for col in self.SLO_COLUMNS:
             metrics[f'{col}_mean'] = float(slo_stats_df[col].mean())
-            metrics[f'{col}_median'] = float(slo_stats_df[col].median())
-            metrics[f'{col}_std'] = float(slo_stats_df[col].std())
-            metrics[f'{col}_95th_percentile'] = float(slo_stats_df[col].quantile(0.95))
-            metrics[f'{col}_99th_percentile'] = float(slo_stats_df[col].quantile(0.99))
-        
+
         return metrics
     
     def _calculate_max_consecutive_violations(self, slo_stats_df: pd.DataFrame) -> int:
