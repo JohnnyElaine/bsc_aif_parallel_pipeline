@@ -125,7 +125,7 @@ class ActiveInferenceAgentAbsoluteControl(ElasticityAgent):
         action_indices = np.array(self.agent.sample_action(), dtype=int).tolist()
         
         # Apply stability filter to prevent oscillations
-        filtered_actions = self._apply_stability_filter(action_indices, observations[-4:])
+        filtered_actions = self._apply_stability_filter(action_indices, self._get_current_slo_status(observations))
         
         log.debug(f'AIF Agent sampled actions: resolution_action={action_indices[0]}, fps_action={action_indices[1]}, inference_quality_action={action_indices[2]}')
         log.debug(f'AIF Agent filtered actions: resolution_action={filtered_actions[0]}, fps_action={filtered_actions[1]}, inference_quality_action={filtered_actions[2]}')
@@ -141,8 +141,7 @@ class ActiveInferenceAgentAbsoluteControl(ElasticityAgent):
             # Update matrices with reduced learning rates
             self.agent.update_A(observations)
             # B matrix updates are less important since transitions are deterministic
-            if self.learning_validation_steps > 50:  # Only after some initial learning
-                self.agent.update_B(qs_prev)
+            # self.agent.update_B(qs_prev)
 
         return success
 
@@ -204,8 +203,8 @@ class ActiveInferenceAgentAbsoluteControl(ElasticityAgent):
             lr_pA=self.learning_rate_A,   # Reduced learning rate for A matrix
             lr_pB=self.learning_rate_B,  # Reduced learning rate for B matrix
             control_fac_idx=[0, 1, 2],  # indices of hidden state factors that are directly controllable
-            use_states_info_gain = False,
-            use_param_info_gain=False,  # Disable to reduce exploration noise. Yields extreme oscillatin
+            use_states_info_gain = True,
+            use_param_info_gain=False,  # Disable to reduce exploration noise. Yields extreme oscillating
         )
 
     def _construct_A_matrix(self):
@@ -608,14 +607,13 @@ class ActiveInferenceAgentAbsoluteControl(ElasticityAgent):
         
         return False
     
-    def _get_current_slo_status(self) -> list[SloStatus]:
+    def _get_current_slo_status(self, observations: list[int]) -> list[SloStatus]:
         """Get current SLO status for all SLOs"""
-        slo_observations = self.observations.get_observations()
         return [
-            SloStatus(slo_observations[self.OBS_QUEUE_SIZE_INDEX]),
-            SloStatus(slo_observations[self.OBS_MEMORY_USAGE_INDEX]),
-            SloStatus(slo_observations[self.OBS_GLOBAL_PROCESSING_TIME_INDEX]),
-            SloStatus(slo_observations[self.OBS_WORKER_PROCESSING_TIME_INDEX])
+            SloStatus(observations[self.OBS_QUEUE_SIZE_INDEX]),
+            SloStatus(observations[self.OBS_MEMORY_USAGE_INDEX]),
+            SloStatus(observations[self.OBS_GLOBAL_PROCESSING_TIME_INDEX]),
+            SloStatus(observations[self.OBS_WORKER_PROCESSING_TIME_INDEX])
         ]
 
     def _perform_actions(self, action_indices: list[int]) -> bool:

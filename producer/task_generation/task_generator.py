@@ -133,6 +133,7 @@ class TaskGenerator(Thread):
             return
 
         self._stream_multiplier = self._next_schedule_threshold.multiplier
+        log.info(f'set stream multiplier to {self._stream_multiplier}')
         
         # Move to next threshold if available
         if self._schedule_thresholds:

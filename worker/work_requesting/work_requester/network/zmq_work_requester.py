@@ -88,6 +88,7 @@ class ZmqWorkRequester(WorkRequester):
 
     def _req_work_with_outage_config(self) -> tuple[dict, list[Task]]:
         if self._num_requested_tasks == self._outage_config.frames_until_outage:
+            log.info(f'Simulating offline worker for {self._outage_config.duration} seconds')
             time.sleep(self._outage_config.duration)
 
         return self._req_work()

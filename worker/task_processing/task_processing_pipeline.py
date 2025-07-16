@@ -1,3 +1,4 @@
+import logging
 import time
 from multiprocessing import Process, Pipe, Event, Value
 
@@ -104,5 +105,6 @@ class TaskProcessingPipeline(Process):
         processed_task = self._process_task(task)
         processing_time = time.perf_counter() - start_time
         time.sleep(processing_time / self._processing_capacity - processing_time) # sleep to simulate less processing power
+
 
         return processed_task

@@ -25,16 +25,15 @@ class Evaluation:
 
     @staticmethod
     def run_all_simulations():
-        #eval_agent_types = [AgentType.ACTIVE_INFERENCE_RELATIVE_CONTROL, AgentType.ACTIVE_INFERENCE_ABSOLUTE_CONTROL,
-        #                    AgentType.HEURISTIC]
+        #eval_agent_types = [AgentType.ACTIVE_INFERENCE_RELATIVE_CONTROL, AgentType.HEURISTIC]
         #eval_sim_types = [SimulationType.BASIC, SimulationType.VARIABLE_COMPUTATIONAL_DEMAND,
         #                  SimulationType.VARIABLE_COMPUTATIONAL_BUDGET]
-#
+
         #for sim_type in eval_sim_types:
         #    for agent_type in eval_agent_types:
         #        Evaluation.run_and_plot_simulation(agent_type, sim_type)
 
-        Evaluation.run_and_plot_simulation(AgentType.ACTIVE_INFERENCE_ABSOLUTE_CONTROL, SimulationType.BASIC)
+        Evaluation.run_and_plot_simulation(AgentType.ACTIVE_INFERENCE_RELATIVE_CONTROL, SimulationType.VARIABLE_COMPUTATIONAL_DEMAND)
 
     @staticmethod
     def run_and_plot_simulation(agent_type: AgentType, sim_type: SimulationType):
@@ -65,7 +64,7 @@ class Evaluation:
 
     @staticmethod
     def run_base_case_simulation(agent_type: AgentType) -> dict[str, pd.DataFrame]:
-        worker_capacities = [0.5 for _ in range(Evaluation.NUM_WORKERS)]
+        worker_capacities = [0.6, 0.5, 0.4]
 
         sim = BaseCaseSimulation(Evaluation.LOCALHOST, Evaluation.PRODUCER_PORT, Evaluation.LOCALHOST,
                                  Evaluation.COLLECTOR_PORT, WorkType.YOLO_DETECTION, Evaluation.LOADING_MODE,
@@ -81,8 +80,8 @@ class Evaluation:
         num_outage_workers = Evaluation.NUM_WORKERS // 2
         num_regular_workers = Evaluation.NUM_WORKERS - num_outage_workers
 
-        regular_worker_capacities = [1 for _ in range(num_regular_workers)]
-        outage_worker_capacities = [1 for _ in range(num_outage_workers)]
+        regular_worker_capacities = [0.5]
+        outage_worker_capacities = [0.5]
 
         sim = VariableComputationalBudgetSimulation(Evaluation.LOCALHOST, Evaluation.PRODUCER_PORT,
                                                     Evaluation.LOCALHOST, Evaluation.COLLECTOR_PORT,
@@ -97,9 +96,8 @@ class Evaluation:
     def run_variable_computational_demand_simulation(agent_type: AgentType) -> dict[str, pd.DataFrame]:
         """
         Run simulation with variable computational demand using stream multiplier.
-        Timeline: 0-25% single stream, 25-75% double stream, 75-100% single stream
         """
-        worker_capacities = [1 for _ in range(Evaluation.NUM_WORKERS)]
+        worker_capacities = [0.8, 0.75, 0.7]
 
         stream_multiplier_schedule = [
             StreamMultiplierEntry(0.25, 3),
@@ -123,8 +121,3 @@ class Evaluation:
         worker_stats['capacity'] = [worker_capacities[identity] for identity in worker_stats.index]
 
         return stats
-
-    @staticmethod
-    def test_single_simulation():
-        """Test function to run a single simulation and verify plot saving works"""
-        Evaluation.run_and_plot_simulation(AgentType.ACTIVE_INFERENCE_RELATIVE_CONTROL, SimulationType.BASIC)

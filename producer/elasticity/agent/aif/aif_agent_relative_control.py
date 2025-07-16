@@ -187,7 +187,7 @@ class ActiveInferenceAgentRelativeControl(ElasticityAgent):
             lr_pA=self.learning_rate_A,     # Learning rate for A matrix
             lr_pB=self.learning_rate_B,     # Learning rate for B matrix
             control_fac_idx=[0, 1, 2],      # indices of hidden state factors that are directly controllable
-            use_states_info_gain=True, # True, slight increases exploration. Try toggling this for complex eval scenario
+            use_states_info_gain=False, # True, slight increases exploration. Try toggling this for complex eval scenario
             use_param_info_gain=False # True, drastically increases exploration but does not yield better results
         )
 
@@ -358,21 +358,21 @@ class ActiveInferenceAgentRelativeControl(ElasticityAgent):
         # Resolution preferences - strong preference for higher quality
         if self.num_resolution_states > 1:
             C[self.OBS_RESOLUTION_INDEX][:] = [
-                self.MEDIUM_PREFERENCE * (i / (self.num_resolution_states - 1))
+                self.VERY_STRONG_PREFERENCE * (i / (self.num_resolution_states - 1))
                 for i in range(self.num_resolution_states)
             ]
 
         # FPS preferences - strong preference for higher quality  
         if self.num_fps_states > 1:
             C[self.OBS_FPS_INDEX][:] = [
-                self.MEDIUM_PREFERENCE * (i / (self.num_fps_states - 1))
+                self.VERY_STRONG_PREFERENCE * (i / (self.num_fps_states - 1))
                 for i in range(self.num_fps_states)
             ]
 
         # Inference Quality preferences - medium preference (still expensive but important)
         if self.num_inference_quality_states > 1:
             C[self.OBS_INFERENCE_QUALITY_INDEX][:] = [
-                self.MEDIUM_PREFERENCE * (i / (self.num_inference_quality_states - 1))
+                self.VERY_STRONG_PREFERENCE * (i / (self.num_inference_quality_states - 1))
                 for i in range(self.num_inference_quality_states)
             ]
 

@@ -22,7 +22,7 @@ class SloManager:
                  queue_size_tolerance=3,
                  avg_global_processing_t_tolerance=1,
                  avg_worker_processing_t_tolerance=4,
-                 max_memory_usage=0.9,
+                 max_memory_usage=0.95,
                  track_stats=True):
         self._elasticity_handler = elasticity_handler
         self._task_generator = task_generator

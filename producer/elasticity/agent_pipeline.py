@@ -12,7 +12,7 @@ log = logging.getLogger('producer')
 
 
 class AgentPipeline(Thread):
-    ITERATION_INTERVAL_S = 1
+    ITERATION_INTERVAL_S = 0.5
 
     def __init__(self, elasticity_handler: ElasticityHandler, task_generator: TaskGenerator, request_handler: RequestHandler, agent_type: AgentType, track_slo_stats=True):
         super().__init__()

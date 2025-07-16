@@ -30,7 +30,7 @@ class HeuristicAgent(ElasticityAgent):
     SLO_HISTORY_SIZE = 5
     MAX_CONSECUTIVE_ACTIONS = 2
 
-    UPSCALE_THRESHOLD = 0.8
+    UPSCALE_THRESHOLD = 0.85
 
     # Action opposites mapping
     ACTION_OPPOSITES = {
