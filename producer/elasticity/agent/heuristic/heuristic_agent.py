@@ -1,4 +1,5 @@
 import logging
+from collections import deque
 from typing import Optional
 
 from producer.elasticity.action.general_action_type import GeneralActionType
@@ -26,8 +27,8 @@ class HeuristicAgent(ElasticityAgent):
     CAPACITY_EQUALITY_THRESHOLD = 0.01
     WARNING_TREND_THRESHOLD = 0.05
     IMPROVEMENT_TREND_THRESHOLD = 0.02
-    COOLDOWN_CYCLES = 2
-    SLO_HISTORY_SIZE = 5
+    COOLDOWN_CYCLES = 4
+    SLO_HISTORY_SIZE = 6
     MAX_CONSECUTIVE_ACTIONS = 2
 
     UPSCALE_THRESHOLD = 0.85
@@ -57,11 +58,11 @@ class HeuristicAgent(ElasticityAgent):
         self.last_action_type = None
         self.consecutive_action_count = 0
 
-        # Track SLO history to detect trends - now for all 4 SLOs
-        self.queue_slo_value_history = []
-        self.memory_slo_value_history = []
-        self.global_processing_slo_value_history = []
-        self.worker_processing_slo_value_history = []
+        # Track SLO history to detect trends - now for all 4 SLOs, using deque for O(1) operations
+        self.queue_slo_value_history = deque(maxlen=self.SLO_HISTORY_SIZE)
+        self.memory_slo_value_history = deque(maxlen=self.SLO_HISTORY_SIZE)
+        self.global_processing_slo_value_history = deque(maxlen=self.SLO_HISTORY_SIZE)
+        self.worker_processing_slo_value_history = deque(maxlen=self.SLO_HISTORY_SIZE)
 
         # Decision thresholds for proactive adjustments
         self.upscale_threshold = HeuristicAgent.UPSCALE_THRESHOLD
@@ -87,12 +88,6 @@ class HeuristicAgent(ElasticityAgent):
         self.memory_slo_value_history.append(memory_slo_value)
         self.global_processing_slo_value_history.append(global_processing_slo_value)
         self.worker_processing_slo_value_history.append(worker_processing_slo_value)
-        
-        # Keep history size manageable
-        for history in [self.queue_slo_value_history, self.memory_slo_value_history, 
-                       self.global_processing_slo_value_history, self.worker_processing_slo_value_history]:
-            if len(history) > self.SLO_HISTORY_SIZE:
-                history.pop(0)
 
         # Check if we're in cooldown period
         if self.cooldown_counter > 0:
@@ -359,7 +354,7 @@ class HeuristicAgent(ElasticityAgent):
         return self.ACTION_OPPOSITES.get(action)
 
     @staticmethod
-    def _calculate_trend(history: list) -> float:
+    def _calculate_trend(history) -> float:
         """
         Calculate the trend in a time series of SLO ratios.
 
