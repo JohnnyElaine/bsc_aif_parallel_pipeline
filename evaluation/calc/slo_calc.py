@@ -77,10 +77,7 @@ class SloCalculator:
         Calculate the average SLO fulfillment rate across all SLOs
         """
         # Calculate fulfillment rate for each SLO individually, then average
-        individual_rates = []
-        for col in self.SLO_COLUMNS:
-            rate = (slo_stats_df[col] <= 1.0).mean()
-            individual_rates.append(rate)
+        individual_rates = [(slo_stats_df[col] <= 1.0).mean() for col in self.SLO_COLUMNS]
         
         return float(np.mean(individual_rates))
     
@@ -88,12 +85,10 @@ class SloCalculator:
         """
         Calculate fulfillment rate for each individual SLO
         """
-        rates = {}
-        for col in self.SLO_COLUMNS:
-            rate = (slo_stats_df[col] <= 1.0).mean()
-            metric_name = col.replace('_slo_value', '_fulfillment_rate')
-            rates[metric_name] = float(rate)
-        return rates
+        return {
+            col.replace('_slo_value', '_fulfillment_rate'): float((slo_stats_df[col] <= 1.0).mean())
+            for col in self.SLO_COLUMNS
+        }
     
     def _calculate_additional_metrics(self, slo_stats_df: pd.DataFrame) -> Dict[str, Any]:
         """
@@ -104,20 +99,24 @@ class SloCalculator:
         # SLO violation severity (how much SLOs are exceeded when violated)
         for col in self.SLO_COLUMNS:
             violations = slo_stats_df[col][slo_stats_df[col] > 1.0]
+            base_name = col.replace("_slo_value", "")
             if len(violations) > 0:
-                avg_violation_severity = violations.mean() - 1.0  # How much over 1.0
-                max_violation_severity = violations.max() - 1.0
-                metrics[f'{col.replace("_slo_value", "_avg_violation_severity")}'] = float(avg_violation_severity)
-                metrics[f'{col.replace("_slo_value", "_max_violation_severity")}'] = float(max_violation_severity)
+                metrics[f'{base_name}_avg_violation_severity'] = float(violations.mean() - 1.0)
+                metrics[f'{base_name}_max_violation_severity'] = float(violations.max() - 1.0)
             else:
-                metrics[f'{col.replace("_slo_value", "_avg_violation_severity")}'] = 0.0
-                metrics[f'{col.replace("_slo_value", "_max_violation_severity")}'] = 0.0
+                metrics[f'{base_name}_avg_violation_severity'] = 0.0
+                metrics[f'{base_name}_max_violation_severity'] = 0.0
         
-        # System stability metrics
-        for col in self.SLO_COLUMNS:
-            std_dev = slo_stats_df[col].std()
-            coefficient_of_variation = std_dev / slo_stats_df[col].mean() if slo_stats_df[col].mean() > 0 else 0
-            metrics[f'{col.replace("_slo_value", "_stability_coefficient")}'] = float(coefficient_of_variation)
+        # System stability metrics using dict comprehension
+        stability_metrics = {
+            f'{col.replace("_slo_value", "_stability_coefficient")}': float(
+                (lambda std_dev, mean: std_dev / mean if mean > 0 else 0)(
+                    slo_stats_df[col].std(), slo_stats_df[col].mean()
+                )
+            )
+            for col in self.SLO_COLUMNS
+        }
+        metrics.update(stability_metrics)
         
         # Recovery time analysis (consecutive violations)
         metrics['max_consecutive_overall_violations'] = self._calculate_max_consecutive_violations(slo_stats_df)
@@ -128,26 +127,20 @@ class SloCalculator:
         """
         Calculate quality metrics (capacity utilization)
         """
-        metrics = {}
-
         # Overall quality score (average of all quality capacities)
-        quality_values = [slo_stats_df[col].mean() for col in self.QUALITY_COLUMNS ]
+        quality_values = [slo_stats_df[col].mean() for col in self.QUALITY_COLUMNS]
         
-        metrics['avg_stream_quality'] = float(np.mean(quality_values))
-        
-        return metrics
+        return {'avg_stream_quality': float(np.mean(quality_values))}
     
     def _calculate_slo_statistical_metrics(self, slo_stats_df: pd.DataFrame) -> Dict[str, float]:
         """
         Calculate statistical metrics for deeper analysis
         """
-        metrics = {}
-        
-        # SLO value statistics
-        for col in self.SLO_COLUMNS:
-            metrics[f'{col}_mean'] = float(slo_stats_df[col].mean())
-
-        return metrics
+        # SLO value statistics using dict comprehension
+        return {
+            f'{col}_mean': float(slo_stats_df[col].mean())
+            for col in self.SLO_COLUMNS
+        }
     
     def _calculate_max_consecutive_violations(self, slo_stats_df: pd.DataFrame) -> int:
         """
@@ -194,16 +187,11 @@ class SloCalculator:
         """
         Format metrics for better readability in output
         """
-        formatted = {}
-        
-        # Round float values to 4 decimal places for readability
-        for key, value in metrics.items():
-            if isinstance(value, float):
-                formatted[key] = round(value, 4)
-            else:
-                formatted[key] = value
-        
-        return formatted
+        # Round float values to 4 decimal places for readability using dict comprehension
+        return {
+            key: round(value, 4) if isinstance(value, float) else value
+            for key, value in metrics.items()
+        }
 
 
 def calculate_and_save_slo_metrics(slo_stats_df: pd.DataFrame, agent_type_name: str, sim_type_name: str) -> Dict[str, Any]:
