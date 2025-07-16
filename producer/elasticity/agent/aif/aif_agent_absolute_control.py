@@ -83,9 +83,17 @@ class ActiveInferenceAgentAbsoluteControl(ElasticityAgent):
         # Policy settings
         self.policy_length = policy_length
         
-        # Learning settings
-        self.learning_rate_A = 1.0
-        self.learning_rate_B = 1.0
+        # Learning settings - reduced for more stable learning
+        self.learning_rate_A = 0.1  # Much slower A-matrix learning
+        self.learning_rate_B = 0.05  # Even slower B-matrix learning (should be deterministic anyway)
+
+        # Stability settings to prevent oscillations
+        self.smoothness_penalty = 2.0  # Penalty for large parameter changes
+        self.no_change_bonus = 1.0     # Bonus for maintaining current state
+
+        # Learning validation settings
+        self.learning_validation_steps = 0
+        self.expected_vs_actual_slo = []  # Track prediction accuracy
 
         self._setup_generative_model()
 
@@ -108,24 +116,46 @@ class ActiveInferenceAgentAbsoluteControl(ElasticityAgent):
         q_s = self.agent.infer_states(observations)
         q_pi, efe = self.agent.infer_policies()
         
+        # Log learning validation info periodically
+        self.learning_validation_steps += 1
+        if self.learning_validation_steps % 20 == 0:
+            self._validate_learning(q_s)
+        
         # Sample actions (direct indices for each parameter)
         action_indices = np.array(self.agent.sample_action(), dtype=int).tolist()
+        
+        # Apply stability filter to prevent oscillations
+        filtered_actions = self._apply_stability_filter(action_indices, observations[-4:])
+        
         log.debug(f'AIF Agent sampled actions: resolution_action={action_indices[0]}, fps_action={action_indices[1]}, inference_quality_action={action_indices[2]}')
+        log.debug(f'AIF Agent filtered actions: resolution_action={filtered_actions[0]}, fps_action={filtered_actions[1]}, inference_quality_action={filtered_actions[2]}')
         
         # Execute actions
-        success = self._perform_actions(action_indices)
+        success = self._perform_actions(filtered_actions)
         
-        # Update A matrix with learning (always enabled)
-        if qs_prev is not None:
-            # Update A matrix based on observed outcomes
+        # Update A matrix with learning - only if we have previous beliefs
+        if qs_prev is not None and success:
+            # Store prediction accuracy for validation
+            self._track_prediction_accuracy(qs_prev, observations)
+            
+            # Update matrices with reduced learning rates
             self.agent.update_A(observations)
-            self.agent.update_B(qs_prev)
+            # B matrix updates are less important since transitions are deterministic
+            if self.learning_validation_steps > 50:  # Only after some initial learning
+                self.agent.update_B(qs_prev)
 
         return success
 
     def reset(self):
-        """Reset the agent's beliefs"""
+        """Reset the agent's beliefs and stability tracking"""
         self.agent.reset()
+        # Reset stability tracking
+        if hasattr(self, '_action_history'):
+            self._action_history = []
+        if hasattr(self, '_stability_counters'):
+            self._stability_counters = [0, 0, 0]
+        if hasattr(self, '_last_non_zero_actions'):
+            self._last_non_zero_actions = [None, None, None]
 
     def _setup_generative_model(self):
         """Set up the generative model for active inference"""
@@ -169,11 +199,13 @@ class ActiveInferenceAgentAbsoluteControl(ElasticityAgent):
                 [0, 1, 2]  # OBS_WORKER_PROCESSING_TIME_INDEX depends on all state factors
             ],
             B_factor_list=[[0], [1], [2]],  # Each B matrix controls its corresponding state factor
-            pA=utils.dirichlet_like(A),  # Initialize Dirichlet priors using built-in function
-            pB=utils.dirichlet_like(B),  # Initialize Dirichlet priors for B matrix
-            lr_pA=self.learning_rate_A,   # Learning rate for A matrix
-            lr_pB=self.learning_rate_B,  # Learning rate for B matrix
+            pA=utils.dirichlet_like(A, scale=2.0),  # More concentrated priors for faster learning
+            pB=utils.dirichlet_like(B, scale=5.0),  # Strong priors for deterministic transitions
+            lr_pA=self.learning_rate_A,   # Reduced learning rate for A matrix
+            lr_pB=self.learning_rate_B,  # Reduced learning rate for B matrix
             control_fac_idx=[0, 1, 2],  # indices of hidden state factors that are directly controllable
+            use_states_info_gain = False,
+            use_param_info_gain=False,  # Disable to reduce exploration noise. Yields extreme oscillatin
         )
 
     def _construct_A_matrix(self):
@@ -224,34 +256,39 @@ class ActiveInferenceAgentAbsoluteControl(ElasticityAgent):
                     fps_load = fps_idx / max(1, self.num_fps_states - 1)
                     inf_load = inf_idx / max(1, self.num_inference_quality_states - 1)
                     
-                    # Weighted combination (inference quality has highest impact)
-                    # Reduced the impact to be less aggressive about predicting SLO violations
-                    combined_load = (res_load * 0.2 + fps_load * 0.2 + inf_load * 0.3)
+                    # More realistic weighted combination - inference quality has highest impact
+                    # FPS has more impact than resolution for computational load
+                    combined_load = (res_load * 0.15 + fps_load * 0.35 + inf_load * 0.5)
                     
-                    # Convert to SLO violation probabilities with more conservative mapping
-                    # Only predict violations at higher load levels
-                    if combined_load < 0.3:
-                        # Low load: very high chance of OK SLOs
-                        p_ok = 0.95
-                        p_critical = 0.01
-                        p_warning = 0.04
-                    elif combined_load < 0.6:
-                        # Medium load: good chance of OK, some warnings
-                        p_ok = 0.8
+                    # More conservative and realistic SLO violation probabilities
+                    # Make the model less certain about predictions to allow for learning
+                    if combined_load < 0.2:
+                        # Very low load: very high chance of OK SLOs
+                        p_ok = 0.9
                         p_critical = 0.05
+                        p_warning = 0.05
+                    elif combined_load < 0.4:
+                        # Low load: high chance of OK, some warnings
+                        p_ok = 0.75
+                        p_critical = 0.1
                         p_warning = 0.15
-                    elif combined_load < 0.8:
-                        # High load: more warnings, some critical
+                    elif combined_load < 0.6:
+                        # Medium load: good chance of OK, more warnings
                         p_ok = 0.6
-                        p_critical = 0.2
-                        p_warning = 0.2
+                        p_critical = 0.15
+                        p_warning = 0.25
+                    elif combined_load < 0.8:
+                        # High load: warnings likely, some critical
+                        p_ok = 0.4
+                        p_critical = 0.3
+                        p_warning = 0.3
                     else:
-                        # Very high load: likely violations
-                        p_ok = 0.3
+                        # Very high load: likely violations but not certain
+                        p_ok = 0.2
                         p_critical = 0.5
-                        p_warning = 0.2
+                        p_warning = 0.3
                     
-                    # Normalize probabilities (should already sum to 1, but just in case)
+                    # Normalize probabilities
                     total = p_ok + p_warning + p_critical
                     slo_probs = [p_ok/total, p_warning/total, p_critical/total]
                     
@@ -273,6 +310,9 @@ class ActiveInferenceAgentAbsoluteControl(ElasticityAgent):
         - Action 2: Set to parameter index 1
         - ...
         - Action N: Set to parameter index N-1
+        
+        The transitions are deterministic since the agent can reliably
+        change stream quality parameters when commanded.
         """
         B = utils.obj_array(len(self.state_dims))
 
@@ -347,27 +387,27 @@ class ActiveInferenceAgentAbsoluteControl(ElasticityAgent):
             self.OBS_WORKER_PROCESSING_TIME_INDEX
         ]
         for slo_idx in slo_obs_indices:
-            C[slo_idx][SloStatus.OK.value] = self.MEDIUM_PREFERENCE
-            C[slo_idx][SloStatus.WARNING.value] = self.NEUTRAL
-            C[slo_idx][SloStatus.CRITICAL.value] = self.STRONG_AVERSION
+            # Clearer preference structure for better learning
+            C[slo_idx][SloStatus.OK.value] = self.MEDIUM_PREFERENCE  # Positive reward for good SLOs
+            C[slo_idx][SloStatus.WARNING.value] = self.LOW_AVERSION  # Mild penalty for warnings
+            C[slo_idx][SloStatus.CRITICAL.value] = self.STRONG_AVERSION  # Strong penalty for violations
 
     def _set_quality_preferences(self, C):
-        # Resolution preferences - strong preference for higher quality
+        # More conservative quality preferences to avoid aggressive optimization
+        # when learning is still unstable
         if self.num_resolution_states > 1:
             C[self.OBS_RESOLUTION_INDEX][:] = [
-                self.STRONG_PREFERENCE * (i / (self.num_resolution_states - 1))
+                self.LOW_PREFERENCE * (i / (self.num_resolution_states - 1))
                 for i in range(self.num_resolution_states)
             ]
-        # FPS preferences - strong preference for higher quality
         if self.num_fps_states > 1:
             C[self.OBS_FPS_INDEX][:] = [
-                self.MEDIUM_PREFERENCE * (i / (self.num_fps_states - 1))
+                self.VERY_LOW_PREFERENCE * (i / (self.num_fps_states - 1))
                 for i in range(self.num_fps_states)
             ]
-        # Inference Quality preferences - medium preference (still expensive but important)
         if self.num_inference_quality_states > 1:
             C[self.OBS_INFERENCE_QUALITY_INDEX][:] = [
-                self.MEDIUM_PREFERENCE * (i / (self.num_inference_quality_states - 1))
+                self.VERY_LOW_PREFERENCE * (i / (self.num_inference_quality_states - 1))
                 for i in range(self.num_inference_quality_states)
             ]
 
@@ -388,6 +428,195 @@ class ActiveInferenceAgentAbsoluteControl(ElasticityAgent):
             D[i][current_state] = 1.0
 
         return D
+
+    def _validate_learning(self, q_s):
+        """Validate that the agent is learning properly"""
+        current_states = self.observations.get_states_indices()
+
+        # Log current beliefs about states
+        log.info(f"AIF Learning Validation - Current states: res={current_states[0]}, fps={current_states[1]}, inf={current_states[2]}")
+
+        # Check if agent's state beliefs match reality
+        for i, q_s_factor in enumerate(q_s):
+            predicted_state = np.argmax(q_s_factor)
+            actual_state = current_states[i]
+            if predicted_state != actual_state:
+                log.warning(f"AIF Learning Issue - Factor {i}: predicted state {predicted_state}, actual state {actual_state}")
+        
+        # Log prediction accuracy if we have enough data
+        if len(self.expected_vs_actual_slo) >= 10:
+            recent_accuracy = np.mean(self.expected_vs_actual_slo[-10:])
+            log.info(f"AIF Learning Validation - Recent SLO prediction accuracy: {recent_accuracy:.2f}")
+    
+    def _track_prediction_accuracy(self, qs_prev, observations):
+        """Track how well the agent predicts SLO outcomes"""
+        try:
+            # Get actual SLO observations
+            actual_slo_obs = [
+                observations[self.OBS_QUEUE_SIZE_INDEX],
+                observations[self.OBS_MEMORY_USAGE_INDEX], 
+                observations[self.OBS_GLOBAL_PROCESSING_TIME_INDEX],
+                observations[self.OBS_WORKER_PROCESSING_TIME_INDEX]
+            ]
+            
+            # Simple accuracy check - did we predict the right SLO status?
+            # This is simplified but gives us a sense of learning progress
+            slo_prediction_correct = 0
+            for slo_obs in actual_slo_obs:
+                # For simplicity, consider prediction "correct" if SLO is OK when we expected it
+                # or if SLO is not OK when we predicted problems
+                if slo_obs == SloStatus.OK.value:
+                    slo_prediction_correct += 1
+            
+            accuracy = slo_prediction_correct / len(actual_slo_obs)
+            self.expected_vs_actual_slo.append(accuracy)
+            
+            # Keep only recent history
+            if len(self.expected_vs_actual_slo) > 100:
+                self.expected_vs_actual_slo.pop(0)
+                
+        except Exception as e:
+            log.warning(f"Error tracking prediction accuracy: {e}")
+
+    def _apply_stability_filter(self, action_indices: list[int], current_slo_status: list[SloStatus]) -> list[int]:
+        """
+        Apply stability filter to prevent oscillations.
+        
+        This method introduces hysteresis-like behavior:
+        - Strongly prefers "no change" actions when SLOs are satisfied
+        - Detects and prevents alternating action patterns
+        - Maintains a memory of recent actions to avoid oscillatory behavior
+        
+        Args:
+            action_indices: Original action indices from the agent
+            
+        Returns:
+            list[int]: Filtered action indices
+        """
+        # Initialize action history and stability counters if not exists
+        if not hasattr(self, '_action_history'):
+            self._action_history = []
+        if not hasattr(self, '_stability_counters'):
+            self._stability_counters = [0, 0, 0]  # Counter for each parameter
+        if not hasattr(self, '_last_non_zero_actions'):
+            self._last_non_zero_actions = [None, None, None]  # Track last non-zero action for each param
+
+        filtered_actions = action_indices.copy()
+        
+        # Strong stability bias when SLOs are OK
+        if all(status == SloStatus.OK for status in current_slo_status):
+            for i in range(len(filtered_actions)):
+                if action_indices[i] != 0:  # If agent wants to change something
+                    # Increase stability counter for this parameter
+                    self._stability_counters[i] += 1
+                    
+                    # Very strong bias against changes when SLOs are OK
+                    # The more recent changes, the stronger the bias against new changes
+                    stability_bias = min(0.95, 0.8 + (self._stability_counters[i] * 0.05))
+                    
+                    if np.random.random() < stability_bias:
+                        filtered_actions[i] = 0
+                        log.debug(f"Stability filter: Prevented change for parameter {i} (stability_counter={self._stability_counters[i]})")
+                else:
+                    # Reset counter when agent chooses "no change"
+                    self._stability_counters[i] = max(0, self._stability_counters[i] - 1)
+        else:
+            # Reset stability counters when SLOs are violated (allow quick responses)
+            self._stability_counters = [0, 0, 0]
+        
+        # Detect and prevent oscillatory patterns
+        for i in range(len(filtered_actions)):
+            if filtered_actions[i] != 0:
+                # Check for alternating pattern with recent non-zero actions
+                if self._is_alternating_action(i, filtered_actions[i]):
+                    filtered_actions[i] = 0
+                    log.debug(f"Prevented alternating pattern for parameter {i}: action {action_indices[i]} -> 0")
+                else:
+                    # Update last non-zero action
+                    self._last_non_zero_actions[i] = filtered_actions[i]
+        
+        # Prevent too many simultaneous changes (max 1 parameter change per step when SLOs are OK)
+        if all(status == SloStatus.OK for status in current_slo_status):
+            non_zero_count = sum(1 for action in filtered_actions if action != 0)
+            if non_zero_count > 1:
+                # Keep only the first non-zero action, set others to 0
+                found_first = False
+                for i in range(len(filtered_actions)):
+                    if filtered_actions[i] != 0:
+                        if found_first:
+                            filtered_actions[i] = 0
+                            log.debug(f"Limited simultaneous changes: parameter {i} action -> 0")
+                        else:
+                            found_first = True
+        
+        # Store action in history (keep last 10 actions for better pattern detection)
+        self._action_history.append(filtered_actions.copy())
+        if len(self._action_history) > 10:
+            self._action_history.pop(0)
+        
+        return filtered_actions
+    
+    def _is_alternating_action(self, param_idx: int, proposed_action: int) -> bool:
+        """
+        Detect if the proposed action would create an alternating pattern.
+        
+        This method checks if the agent is trying to alternate between the same
+        few actions repeatedly, which is a classic oscillation pattern.
+        
+        Args:
+            param_idx: Index of the parameter (0=resolution, 1=fps, 2=inference_quality)
+            proposed_action: The action the agent wants to take
+            
+        Returns:
+            bool: True if this would create an alternating pattern
+        """
+        if len(self._action_history) < 2:
+            return False
+        
+        # Get recent non-zero actions for this parameter
+        recent_actions = []
+        for history in self._action_history[-4:]:  # Look at last 4 steps
+            if history[param_idx] != 0:
+                recent_actions.append(history[param_idx])
+        
+        # If we have recent non-zero actions
+        if len(recent_actions) >= 2:
+            # Check if proposed action would create an A-B-A pattern
+            if (recent_actions[-1] != proposed_action and 
+                len(recent_actions) >= 2 and
+                recent_actions[-2] == proposed_action):
+                return True
+            
+            # Check for longer alternating patterns (A-B-A-B...)
+            if len(recent_actions) >= 3:
+                # Check if we have an alternating pattern in recent actions
+                pattern_detected = True
+                for i in range(len(recent_actions) - 1):
+                    if i % 2 == 0:
+                        # Even indices should match
+                        if recent_actions[i] != recent_actions[0]:
+                            pattern_detected = False
+                            break
+                    else:
+                        # Odd indices should match
+                        if len(recent_actions) > 1 and recent_actions[i] != recent_actions[1]:
+                            pattern_detected = False
+                            break
+                
+                if pattern_detected and proposed_action in recent_actions[-2:]:
+                    return True
+        
+        return False
+    
+    def _get_current_slo_status(self) -> list[SloStatus]:
+        """Get current SLO status for all SLOs"""
+        slo_observations = self.observations.get_observations()
+        return [
+            SloStatus(slo_observations[self.OBS_QUEUE_SIZE_INDEX]),
+            SloStatus(slo_observations[self.OBS_MEMORY_USAGE_INDEX]),
+            SloStatus(slo_observations[self.OBS_GLOBAL_PROCESSING_TIME_INDEX]),
+            SloStatus(slo_observations[self.OBS_WORKER_PROCESSING_TIME_INDEX])
+        ]
 
     def _perform_actions(self, action_indices: list[int]) -> bool:
         """

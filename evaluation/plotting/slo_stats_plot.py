@@ -9,7 +9,7 @@ def plot_all_slo_stats(slo_stats: pd.DataFrame, agent_type_name: str, sim_type_n
     os.makedirs(output_dir, exist_ok=True)
     
     # Construct filepaths
-    slo_values_filepath = os.path.join(output_dir, f"{sim_type_name}_sim_{agent_type_name}_slo-values.png")
+    slo_values_filepath = os.path.join(output_dir, f"{sim_type_name}_sim_{agent_type_name}_slo_values.png")
     quality_metrics_filepath = os.path.join(output_dir, f"{sim_type_name}_sim_{agent_type_name}_quality_metrics.png")
     
     plot_slo_values_over_time(slo_stats, slo_values_filepath)

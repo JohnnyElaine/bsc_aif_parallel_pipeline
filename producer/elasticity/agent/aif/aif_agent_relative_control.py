@@ -187,6 +187,8 @@ class ActiveInferenceAgentRelativeControl(ElasticityAgent):
             lr_pA=self.learning_rate_A,     # Learning rate for A matrix
             lr_pB=self.learning_rate_B,     # Learning rate for B matrix
             control_fac_idx=[0, 1, 2],      # indices of hidden state factors that are directly controllable
+            use_states_info_gain=True, # True, slight increases exploration. Try toggling this for complex eval scenario
+            use_param_info_gain=False # True, drastically increases exploration but does not yield better results
         )
 
     def _construct_A_matrix(self):

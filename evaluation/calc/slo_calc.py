@@ -174,9 +174,7 @@ class SloCalculator:
         
         with open(filepath, 'w') as f:
             json.dump(formatted_metrics, f, indent=2)
-        
-        print(f"Metrics saved to: {filepath}")
-    
+
     def _format_metrics_for_output(self, metrics: Dict[str, Any]) -> Dict[str, Any]:
         """
         Format metrics for better readability in output
