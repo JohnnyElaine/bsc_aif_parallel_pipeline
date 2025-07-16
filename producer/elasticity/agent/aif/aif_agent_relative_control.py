@@ -183,10 +183,10 @@ class ActiveInferenceAgentRelativeControl(ElasticityAgent):
             ],
             B_factor_list=[[0], [1], [2]],  # Each B matrix controls its corresponding state factor
             pA=utils.dirichlet_like(A),     # Initialize Dirichlet priors using built-in function
-            lr_pA=self.learning_rate_A,     # Learning rate for A matrix
-            control_fac_idx=[0, 1, 2],      # indices of hidden state factors that are directly controllable
             pB=utils.dirichlet_like(B),     # Initialize Dirichlet priors for B matrix
+            lr_pA=self.learning_rate_A,     # Learning rate for A matrix
             lr_pB=self.learning_rate_B,     # Learning rate for B matrix
+            control_fac_idx=[0, 1, 2],      # indices of hidden state factors that are directly controllable
         )
 
     def _construct_A_matrix(self):

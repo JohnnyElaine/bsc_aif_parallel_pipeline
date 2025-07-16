@@ -100,9 +100,9 @@ class ActiveInferenceAgentAbsoluteControl(ElasticityAgent):
         observations = self.observations.get_observations()
         
         # Store previous beliefs for learning (if available)
-        prev_beliefs = None
+        qs_prev = None
         if hasattr(self.agent, 'qs'):
-            prev_beliefs = [qs.copy() for qs in self.agent.qs]
+            qs_prev = self.agent.qs.copy()
         
         # Perform active inference
         q_s = self.agent.infer_states(observations)
@@ -116,9 +116,10 @@ class ActiveInferenceAgentAbsoluteControl(ElasticityAgent):
         success = self._perform_actions(action_indices)
         
         # Update A matrix with learning (always enabled)
-        if prev_beliefs is not None:
+        if qs_prev is not None:
             # Update A matrix based on observed outcomes
             self.agent.update_A(observations)
+            self.agent.update_B(qs_prev)
 
         return success
 
@@ -169,7 +170,10 @@ class ActiveInferenceAgentAbsoluteControl(ElasticityAgent):
             ],
             B_factor_list=[[0], [1], [2]],  # Each B matrix controls its corresponding state factor
             pA=utils.dirichlet_like(A),  # Initialize Dirichlet priors using built-in function
+            pB=utils.dirichlet_like(B),  # Initialize Dirichlet priors for B matrix
             lr_pA=self.learning_rate_A,   # Learning rate for A matrix
+            lr_pB=self.learning_rate_B,  # Learning rate for B matrix
+            control_fac_idx=[0, 1, 2],  # indices of hidden state factors that are directly controllable
         )
 
     def _construct_A_matrix(self):

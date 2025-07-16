@@ -3,7 +3,7 @@ import pandas as pd
 
 class SloStatistics:
     def __init__(self):
-        # Quality config (percentage of max capacity (0-1), e.g. fps = 1.0 if streams runs at source fps)
+        # Quality config (percentage of max capacity (0.0-1.0), e.g. fps = 1.0 if streams runs at source fps)
         self.fps_capacity = []
         self.resolution_capacity = []
         self.inference_quality = []
@@ -12,9 +12,9 @@ class SloStatistics:
         self.queue_size = []
         self.memory_usage = []
         self.avg_global_processing_time = []
-        self.avg_worker_processing_time = {} # TODO consider adding to dataframe
+        self.avg_worker_processing_time = {} # TODO consider adding to dataframe later (not yet)
 
-        # SLO values
+        # SLO values (0.0-infinity, values are normalized, values > 1.0 signal an unfulfilled SLO)
         self.queue_size_slo_value = []
         self.memory_usage_slo_value = []
         self.avg_global_processing_time_slo_value = []

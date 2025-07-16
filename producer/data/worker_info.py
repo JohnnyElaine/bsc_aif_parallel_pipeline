@@ -1,6 +1,6 @@
 from packages.data.local_messages.task import Task
 from packages.network_messages import RepType
-from producer.statistics.moving_average import MovingAverage
+from producer.data.moving_average import MovingAverage
 
 
 class WorkerInfo:

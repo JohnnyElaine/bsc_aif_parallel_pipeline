@@ -5,7 +5,7 @@ import pandas as pd
 
 from packages.data.local_messages.task import Task
 from producer.data.worker_info import WorkerInfo
-from producer.statistics.moving_average import MovingAverage
+from producer.data.moving_average import MovingAverage
 from producer.statistics.worker_statistics import WorkerStatistics
 
 

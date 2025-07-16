@@ -3,14 +3,14 @@ import pandas as pd
 import seaborn as sns
 import os
 
-def plot_all_slo_stats(slo_stats, agent_type_name: str, sim_type_name: str, output_dir: str = "out"):
+def plot_all_slo_stats(slo_stats: pd.DataFrame, agent_type_name: str, sim_type_name: str, output_dir: str = "out/img"):
     """Plot all SLO statistics and save to files"""
     # Create output directory if it doesn't exist
     os.makedirs(output_dir, exist_ok=True)
     
     # Construct filepaths
-    slo_values_filepath = os.path.join(output_dir, f"slo_values_{agent_type_name}_{sim_type_name}.png")
-    quality_metrics_filepath = os.path.join(output_dir, f"quality_metrics_{agent_type_name}_{sim_type_name}.png")
+    slo_values_filepath = os.path.join(output_dir, f"{sim_type_name}_sim_{agent_type_name}_slo-values.png")
+    quality_metrics_filepath = os.path.join(output_dir, f"{sim_type_name}_sim_{agent_type_name}_quality_metrics.png")
     
     plot_slo_values_over_time(slo_stats, slo_values_filepath)
     plot_quality_metrics(slo_stats, quality_metrics_filepath)
@@ -46,12 +46,9 @@ def plot_slo_values_over_time(slo_stats: pd.DataFrame, filepath: str = None):
     plt.legend(fontsize=12)
     plt.grid(True, alpha=0.3)
     plt.tight_layout()
-    
+
     if filepath:
-        # Create directory if it doesn't exist
-        os.makedirs(os.path.dirname(filepath), exist_ok=True)
-        plt.savefig(filepath, dpi=300, bbox_inches='tight')
-        plt.close()
+        save_plot(filepath)
     else:
         plt.show()
 
@@ -76,10 +73,7 @@ def plot_quality_metrics(slo_stats, filepath: str = None):
     plt.tight_layout()
     
     if filepath:
-        # Create directory if it doesn't exist
-        os.makedirs(os.path.dirname(filepath), exist_ok=True)
-        plt.savefig(filepath, dpi=300, bbox_inches='tight')
-        plt.close()
+        save_plot(filepath)
     else:
         plt.show()
 
@@ -126,3 +120,8 @@ def plot_memory_ratio_distribution(slo_stats):
     plt.grid(True, alpha=0.3)
     plt.tight_layout()
     plt.show()
+
+def save_plot(filepath):
+    os.makedirs(os.path.dirname(filepath), exist_ok=True)
+    plt.savefig(filepath, dpi=300, bbox_inches='tight')
+    plt.close()

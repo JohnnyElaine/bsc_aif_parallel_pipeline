@@ -1,6 +1,7 @@
 import pandas as pd
 
 from evaluation.plotting.slo_stats_plot import plot_all_slo_stats
+from evaluation.calc.slo_calc import calculate_and_save_slo_metrics
 from evaluation.simulation.cases.base_case_simulation import BaseCaseSimulation
 from evaluation.simulation.simulation_type import SimulationType
 from evaluation.simulation.cases.variable_computational_budget_simulation import VariableComputationalBudgetSimulation
@@ -24,12 +25,16 @@ class Evaluation:
 
     @staticmethod
     def run_all_simulations():
-        eval_agent_types = [AgentType.ACTIVE_INFERENCE_RELATIVE_CONTROL, AgentType.ACTIVE_INFERENCE_ABSOLUTE_CONTROL, AgentType.HEURISTIC]
-        eval_sim_types = [SimulationType.BASIC, SimulationType.VARIABLE_COMPUTATIONAL_DEMAND, SimulationType.VARIABLE_COMPUTATIONAL_BUDGET]
-        for sim_type in eval_sim_types:
-            for agent_type in eval_agent_types:
-                Evaluation.run_and_plot_simulation(agent_type, sim_type)
-        # Evaluation.run_and_plot_simulation(AgentType.ACTIVE_INFERENCE_RELATIVE_CONTROL, SimulationType.BASIC)
+        #eval_agent_types = [AgentType.ACTIVE_INFERENCE_RELATIVE_CONTROL, AgentType.ACTIVE_INFERENCE_ABSOLUTE_CONTROL,
+        #                    AgentType.HEURISTIC]
+        #eval_sim_types = [SimulationType.BASIC, SimulationType.VARIABLE_COMPUTATIONAL_DEMAND,
+        #                  SimulationType.VARIABLE_COMPUTATIONAL_BUDGET]
+#
+        #for sim_type in eval_sim_types:
+        #    for agent_type in eval_agent_types:
+        #        Evaluation.run_and_plot_simulation(agent_type, sim_type)
+
+        Evaluation.run_and_plot_simulation(AgentType.HEURISTIC, SimulationType.BASIC)
 
     @staticmethod
     def run_and_plot_simulation(agent_type: AgentType, sim_type: SimulationType):
@@ -51,10 +56,12 @@ class Evaluation:
         sim_type_name = sim_type.name.lower()
         
         plot_all_slo_stats(slo_stats_df, agent_type_name, sim_type_name)
+        
+        # Calculate and save SLO metrics
+        calculate_and_save_slo_metrics(slo_stats_df, agent_type_name, sim_type_name)
+        
         worker_stats_df = stats['worker_stats']
         #plot_all_worker_stats(worker_stats_df)
-        # TODO calc average SLO fulfillment rate (per SLO and all SLOs average)
-        # TODO calc average stream quality capcity (per metric and all averaged)
 
     @staticmethod
     def run_base_case_simulation(agent_type: AgentType) -> dict[str, pd.DataFrame]:

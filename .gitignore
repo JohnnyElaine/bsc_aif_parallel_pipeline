@@ -6,6 +6,9 @@ media/**/*.mov
 media/**/*.wmv
 media/**/*.flv
 
+# output for simulation data
+out/
+
 # Ignore model checkpoint files
 checkpoints/**/*.pt
 
@@ -25,6 +28,7 @@ __pycache__/
 *.venv
 env/
 venv/
+.venv/
 .Python
 
 # Virtual environment folders

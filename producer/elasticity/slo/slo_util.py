@@ -3,7 +3,7 @@ from producer.elasticity.slo.slo_status import SloStatus
 class SloUtil:
 
     CRITICAL_THRESHOLD = 1  # below this threshold the SLO is satisfied
-    WARNING_THRESHOLD = 0.9
+    WARNING_THRESHOLD = 0.85
 
     @staticmethod
     def get_slo_status(value: float):
