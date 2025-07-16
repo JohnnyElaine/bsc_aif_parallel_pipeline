@@ -25,15 +25,15 @@ class Evaluation:
 
     @staticmethod
     def run_all_simulations():
-        #eval_agent_types = [AgentType.ACTIVE_INFERENCE_RELATIVE_CONTROL, AgentType.HEURISTIC]
-        #eval_sim_types = [SimulationType.BASIC, SimulationType.VARIABLE_COMPUTATIONAL_DEMAND,
-        #                  SimulationType.VARIABLE_COMPUTATIONAL_BUDGET]
+        eval_agent_types = [AgentType.ACTIVE_INFERENCE_RELATIVE_CONTROL, AgentType.HEURISTIC]
+        eval_sim_types = [SimulationType.BASIC, SimulationType.VARIABLE_COMPUTATIONAL_DEMAND,
+                          SimulationType.VARIABLE_COMPUTATIONAL_BUDGET]
 
-        #for sim_type in eval_sim_types:
-        #    for agent_type in eval_agent_types:
-        #        Evaluation.run_and_plot_simulation(agent_type, sim_type)
+        for sim_type in eval_sim_types:
+            for agent_type in eval_agent_types:
+                Evaluation.run_and_plot_simulation(agent_type, sim_type)
 
-        Evaluation.run_and_plot_simulation(AgentType.ACTIVE_INFERENCE_RELATIVE_CONTROL, SimulationType.VARIABLE_COMPUTATIONAL_DEMAND)
+        #Evaluation.run_and_plot_simulation(AgentType.ACTIVE_INFERENCE_RELATIVE_CONTROL, SimulationType.VARIABLE_COMPUTATIONAL_DEMAND)
 
     @staticmethod
     def run_and_plot_simulation(agent_type: AgentType, sim_type: SimulationType):

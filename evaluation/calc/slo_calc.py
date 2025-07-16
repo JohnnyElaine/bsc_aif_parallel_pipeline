@@ -162,12 +162,14 @@ class SloCalculator:
             metrics: Dictionary containing all calculated metrics
             output_dir: Directory to save metrics files
         """
-        os.makedirs(output_dir, exist_ok=True)
-        
         agent_type = metrics['agent_type']
         sim_type = metrics['simulation_type']
-        filename = f"{sim_type}_{agent_type}_metrics.json"
-        filepath = os.path.join(output_dir, filename)
+        
+        dir_path = os.path.join(output_dir, f'{sim_type}_sim')
+        os.makedirs(dir_path, exist_ok=True)
+        
+        filename = f'{agent_type}_metrics.json'
+        filepath = os.path.join(dir_path, filename)
         
         # Format metrics for better readability
         formatted_metrics = self._format_metrics_for_output(metrics)
