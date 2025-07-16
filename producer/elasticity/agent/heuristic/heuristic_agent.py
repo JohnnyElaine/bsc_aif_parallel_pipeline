@@ -23,13 +23,13 @@ class HeuristicAgent(ElasticityAgent):
     by implementing cooldown periods and tracking historical actions.
     """
 
-    # Class constants
-    CAPACITY_EQUALITY_THRESHOLD = 0.01
-    WARNING_TREND_THRESHOLD = 0.05
-    IMPROVEMENT_TREND_THRESHOLD = 0.02
-    COOLDOWN_CYCLES = 4
-    SLO_HISTORY_SIZE = 6
-    MAX_CONSECUTIVE_ACTIONS = 2
+    # Class constants - Tuned for oscillation reduction with 500ms intervals
+    CAPACITY_EQUALITY_THRESHOLD = 0.05
+    WARNING_TREND_THRESHOLD = 0.08
+    IMPROVEMENT_TREND_THRESHOLD = 0.01
+    COOLDOWN_CYCLES = 6                 
+    SLO_HISTORY_SIZE = 8              
+    MAX_CONSECUTIVE_ACTIONS = 1    
 
     UPSCALE_THRESHOLD = 0.85
 
@@ -357,9 +357,10 @@ class HeuristicAgent(ElasticityAgent):
     def _calculate_trend(history) -> float:
         """
         Calculate the trend in a time series of SLO ratios.
+        Optimized for deque: uses iteration instead of indexing to avoid O(n) access time.
 
         Args:
-            history: List of historical SLO ratio values
+            history: Deque of historical SLO ratio values
 
         Returns:
             float: Trend value (positive means worsening, negative means improving)
@@ -367,6 +368,14 @@ class HeuristicAgent(ElasticityAgent):
         if len(history) < 2:
             return 0.0
 
-        # Simple linear trend calculation (average of differences)
-        differences = [history[i] - history[i - 1] for i in range(1, len(history))]
-        return sum(differences) / len(differences)
+        # Convert deque to list once for efficient indexing, or use pairwise iteration
+        # Using pairwise iteration to avoid converting entire deque to list
+        prev_value = None
+        differences = []
+        
+        for current_value in history:
+            if prev_value is not None:
+                differences.append(current_value - prev_value)
+            prev_value = current_value
+        
+        return sum(differences) / len(differences) if differences else 0.0

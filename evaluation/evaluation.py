@@ -33,7 +33,7 @@ class Evaluation:
             for agent_type in eval_agent_types:
                 Evaluation.run_and_plot_simulation(agent_type, sim_type)
 
-        #Evaluation.run_and_plot_simulation(AgentType.ACTIVE_INFERENCE_RELATIVE_CONTROL, SimulationType.VARIABLE_COMPUTATIONAL_DEMAND)
+        #Evaluation.run_and_plot_simulation(AgentType.HEURISTIC, SimulationType.BASIC)
 
     @staticmethod
     def run_and_plot_simulation(agent_type: AgentType, sim_type: SimulationType):
