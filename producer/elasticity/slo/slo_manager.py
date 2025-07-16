@@ -18,6 +18,7 @@ class SloManager:
                  elasticity_handler: ElasticityHandler,
                  request_handler: RequestHandler,
                  task_generator: TaskGenerator,
+                 slo_warning_threshold=0.8,
                  queue_size_tolerance=3,
                  avg_global_processing_t_tolerance=1,
                  avg_worker_processing_t_tolerance=4,
@@ -30,6 +31,8 @@ class SloManager:
         if track_stats:
             self._stats = SloStatistics()
 
+        self._slo_warning_treshhold = slo_warning_threshold
+
         self._queue_size_slo = QueueSizeSlo(task_generator, tolerance=queue_size_tolerance, stats=self._stats)
         self._memory_slo = MemorySlo(max_memory_usage, stats=self._stats)
         # TODO: extract stats (MovingAverage) from request_handler so we dont have to pass entire reference to request_handler
@@ -39,18 +42,18 @@ class SloManager:
     def get_all_slo_status(self) -> tuple[SloStatus, SloStatus, SloStatus, SloStatus]:
         qsize, mem, global_processing_t, worker_processing_t = self.get_all_slo_values()
 
-        return SloUtil.get_slo_status(qsize), SloUtil.get_slo_status(mem), SloUtil.get_slo_status(global_processing_t), SloUtil.get_slo_status(worker_processing_t)
+        return (
+            SloUtil.get_slo_status(qsize, self._slo_warning_treshhold),
+            SloUtil.get_slo_status(mem, self._slo_warning_treshhold),
+            SloUtil.get_slo_status(global_processing_t, self._slo_warning_treshhold),
+            SloUtil.get_slo_status(worker_processing_t, self._slo_warning_treshhold)
+        )
     
     def get_all_slo_values(self) -> tuple[float, float, float, float]:
         qsize_slo_value = self._queue_size_slo.value()
         mem_slo_value = self._memory_slo.value()
         global_avg_processing_time_value = self._avg_global_processing_time_slo.value()
         worker_avg_processing_time_value = self._avg_worker_processing_time_slo.value()
-
-        #print(f"Queue Size SLO Value: {qsize_slo_value:.2f}")
-        #print(f"Memory SLO Value: {mem_slo_value:.2f}")
-        #print(f"Global Avg Processing Time SLO Value: {global_avg_processing_time_value:.2f}")
-        #print(f"Worker Avg Processing Time SLO Value: {worker_avg_processing_time_value:.2f}")
 
         if self._stats is not None:
             self._track_capacity_stats()

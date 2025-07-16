@@ -3,11 +3,11 @@ from producer.elasticity.slo.slo_status import SloStatus
 class SloUtil:
 
     CRITICAL_THRESHOLD = 1  # below this threshold the SLO is satisfied
-    WARNING_THRESHOLD = 0.85
+    WARNING_THRESHOLD = 0.8
 
     @staticmethod
-    def get_slo_status(value: float):
-        if value <= SloUtil.WARNING_THRESHOLD:  # Safe zone
+    def get_slo_status(value: float, warning_threshold=0.8):
+        if value <= warning_threshold:  # Safe zone
             return SloStatus.OK
         elif value <= SloUtil.CRITICAL_THRESHOLD:  # warning zone
             return SloStatus.WARNING

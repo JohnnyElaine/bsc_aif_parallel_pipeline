@@ -30,6 +30,8 @@ class HeuristicAgent(ElasticityAgent):
     SLO_HISTORY_SIZE = 5
     MAX_CONSECUTIVE_ACTIONS = 2
 
+    UPSCALE_THRESHOLD = 0.8
+
     # Action opposites mapping
     ACTION_OPPOSITES = {
         GeneralActionType.INCREASE_FPS: GeneralActionType.DECREASE_FPS,
@@ -62,7 +64,7 @@ class HeuristicAgent(ElasticityAgent):
         self.worker_processing_slo_value_history = []
 
         # Decision thresholds for proactive adjustments
-        self.upscale_threshold = SloUtil.WARNING_THRESHOLD
+        self.upscale_threshold = HeuristicAgent.UPSCALE_THRESHOLD
 
         log.info("Heuristic Elasticity Agent initialized with all 4 SLOs")
 

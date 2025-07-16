@@ -40,7 +40,7 @@ def plot_slo_values_over_time(slo_stats: pd.DataFrame, filepath: str = None):
 
     plt.axhline(y=1, color='black', linestyle='--', linewidth=2,
                 label='SLO Fulfillment Threshold')
-    plt.title(f'SLO Values Over Time (Capped at {upper_bound})', fontsize=16)
+    plt.title(f'SLO Values Over Time', fontsize=16)
     plt.xlabel('Time Index', fontsize=12)
     plt.ylabel('Ratio Value', fontsize=12)
     plt.legend(fontsize=12)

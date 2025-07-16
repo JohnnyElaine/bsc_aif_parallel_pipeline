@@ -33,31 +33,25 @@ class SloCalculator:
         Returns:
             Dictionary containing all calculated metrics
         """
-        metrics = {
-            'agent_type': agent_type_name,
-            'simulation_type': sim_type_name,
-            'total_timesteps': len(slo_stats_df)
-        }
+        metrics = {'agent_type': agent_type_name, 'simulation_type': sim_type_name,
+                   'total_timesteps': len(slo_stats_df),
+                   'overall_slo_fulfillment_rate': self._calculate_overall_slo_fulfillment_rate(slo_stats_df),
+                   'average_slo_fulfillment_rate': self._calculate_average_slo_fulfillment_rate(slo_stats_df)}
         
-        # 1. Overall SLO fulfillment rate (all 4 SLOs fulfilled simultaneously)
-        metrics['overall_slo_fulfillment_rate'] = self._calculate_overall_slo_fulfillment_rate(slo_stats_df)
-        
-        # 2. Average SLO fulfillment rate
-        metrics['average_slo_fulfillment_rate'] = self._calculate_average_slo_fulfillment_rate(slo_stats_df)
-        
-        # 3. Individual SLO fulfillment rates
+
+        # Individual SLO fulfillment rates
         individual_rates = self._calculate_individual_slo_fulfillment_rates(slo_stats_df)
         metrics.update(individual_rates)
         
-        # 4. Additional performance metrics
+        # Additional performance metrics
         additional_metrics = self._calculate_additional_metrics(slo_stats_df)
         metrics.update(additional_metrics)
         
-        # 5. Quality metrics
+        # Quality metrics
         quality_metrics = self._calculate_quality_metrics(slo_stats_df)
         metrics.update(quality_metrics)
         
-        # 6. Statistical analysis
+        # Statistical analysis
         statistical_metrics = self._calculate_slo_statistical_metrics(slo_stats_df)
         metrics.update(statistical_metrics)
         

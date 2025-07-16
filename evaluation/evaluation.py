@@ -20,7 +20,7 @@ class Evaluation:
     LOCALHOST = 'localhost'
     LOADING_MODE = LoadingMode.EAGER
     INITIAL_INFERENCE_QUALITY = InferenceQuality.HIGH
-    NUM_WORKERS = 1
+    NUM_WORKERS = 3
     VID_PATH = WorkerGlobalVariables.PROJECT_ROOT / 'media' / 'vid' / 'general_detection' / '1080p Video of Highway Traffic! [KBsqQez-O4w].mp4'
 
     @staticmethod
