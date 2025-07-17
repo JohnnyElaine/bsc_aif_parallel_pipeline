@@ -476,8 +476,39 @@ result_sending_pipeline.join()
 This sophisticated architecture ensures that each worker can efficiently process tasks while maintaining the responsiveness and reliability required for edge computing scenarios.
 
 ## Collector
-The collector continuously accepts results from  
-The Collector implements a ``zeromq.PULL`` socket that constantly accepts results from workers and aggregates them to produce the final output video-stream.
+The collector operates as a single process with a multi-threaded architecture designed to aggregate processed results from workers and reconstruct the output video stream in correct sequential order.
+
+### Collector Architecture Overview
+The collector manages **three main threads** that work together to ensure proper result ordering and output generation:
+
+1. **Result Collector (Thread)**: Receives processed results from workers via ZeroMQ PULL socket
+2. **Result Mapper (Thread)**: Ensures sequential ordering of results and handles missing frames
+3. **Output Viewer (Thread)**: Displays the final reconstructed video stream
+
+### Key Methodological Components
+
+#### Result Collection and Ordering
+- **ZeroMQ PULL Socket**: Receives results from multiple workers without blocking
+- **Stream Filtering**: Only processes results from the primary stream (stream_key=0) to handle multi-stream scenarios
+- **Sequential Ordering**: Uses task IDs to maintain proper frame sequence despite variable worker processing times
+
+#### Frame Ordering and Recovery
+- **Blocking Dictionary**: Thread-safe data structure that coordinates result availability between collection and mapping
+- **Missing Frame Handling**: Implements timeout mechanism (MAX_STRIKES) to skip frames that arrive too late
+- **Sequential Reconstruction**: Ensures output frames maintain original video sequence order
+
+#### Output Generation
+- **Real-time Display**: Reconstructs and displays the processed video stream using OpenCV
+- **Frame Rate Control**: Maintains target FPS for smooth output playback
+- **Graceful Termination**: Handles END signals from the pipeline for clean shutdown
+
+### Inter-Thread Coordination
+The collector uses thread-safe coordination mechanisms:
+- **Blocking Dictionary**: Synchronizes result availability between collection and mapping threads
+- **Output Queue**: Thread-safe FIFO queue for passing ordered frames to the output viewer
+- **Semaphore-based Signaling**: Ensures proper thread synchronization without busy waiting
+
+This architecture ensures that the distributed processing results are correctly aggregated into a coherent output stream while handling the inherent challenges of variable processing times and potential frame losses in edge computing environments.
 
 ## Work-API
 Implemented by the Producer and used by the Worker.
