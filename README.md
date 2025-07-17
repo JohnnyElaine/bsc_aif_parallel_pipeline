@@ -210,44 +210,60 @@ It is a core methodology that only the producer decides and makes changes in the
 Observations are gathered either directly at the producer level (Queue Size, Memory), or received from workers in ``GET_WORK`` requests.
 These observations are then used to evaluated SLOs and in turn stream quality parameters
 
-### Implementation of Active Inference
-The agent that controls the elasticity of the system runs on the producer. It is implemented using the active inference library [pymdp](https://github.com/infer-actively/pymdp). More information is available in the offical [paper](https://arxiv.org/abs/2201.03904).
-In order to make intelligent decisions using active inference, we need to model the problem as a Partially observable Markov decision process (POMDP). For this the environment was modeled as follows.
-The agent interfaces with the world in two ways. It can make observations from self.observations and it can make actions using self.actions
+### Active Inference Agent Implementation
+The Active Inference Agent controls the elasticity of the system and runs on the producer. It is implemented using the active inference library [pymdp](https://github.com/infer-actively/pymdp), which provides a comprehensive framework for building agents based on the Free Energy Principle. More information about the underlying theory is available in the official [paper](https://arxiv.org/abs/2201.03904).
 
-Observations:
-- FPS of stream
-- Resolution of stream
-- YOLOv11 Inference Quality (Model) used by the worker nodes
-- State of the Memory SLO (as a normalized float value)
-- State of the Queue Size SLO (as a normalized float value)
-- State of the Global Average Processing Time SLO (as a normalized float value)
-- State of the Highest Worker Average Processing Time (as a normalized float value)
+Active Inference is a theoretical framework from computational neuroscience that describes how biological agents (like the brain) make decisions under uncertainty. The core idea is that agents maintain internal models of their environment and continuously update these models based on sensory observations. They then use these models to predict future states and select actions that minimize "free energy" - a quantity that combines prediction error with the complexity of the agent's beliefs.
 
-Actions set 1 (absolute control):
-- Direct changing of the FPS of the stream
-- Direct changing the Resolution of the stream
-- Direct Changing the YOLOv1 Inference Quality (The model used by the worker nodes)
+#### POMDP Modeling
+To make intelligent decisions using active inference, the elasticity control problem is modeled as a Partially Observable Markov Decision Process (POMDP). The agent interfaces with the distributed system through observations and actions:
 
-Actions set 2 (relative control):
-- Increasing/Decreasing of the FPS of the stream by one step
-- Increasing/Decreasing of the Resolution of the stream by one step
-- Increasing/Decreasing of YOLOv1 Inference Quality (The model used by the worker nodes) by one step
+**Observations (7 dimensions):**
+- Current FPS of the stream (discrete state index)
+- Current resolution of the stream (discrete state index)  
+- Current YOLOv11 inference quality/model used by worker nodes (discrete state index)
+- Queue Size SLO status (OK, WARNING, CRITICAL)
+- Memory Usage SLO status (OK, WARNING, CRITICAL)
+- Global Average Processing Time SLO status (OK, WARNING, CRITICAL)
+- Worker Average Processing Time SLO status (OK, WARNING, CRITICAL)
 
-#### Goal
-1. Uphold all 4 SLOs at all times.
-2. While upholding the SLOs: maximize the 3 stream quality parameters (fps, resolution, inference quality)
-3. Learn the correct configuration for the 3 stream quality parameters over time
-The preference for the stream quality parameters should be resolution > fps > inference quality, if the performance impact is equal.
+**Actions (Relative Control Approach):**
+The agent uses relative control, meaning it can incrementally adjust parameters:
+- Increase/Decrease/No-change FPS of the stream by one step
+- Increase/Decrease/No-change Resolution of the stream by one step  
+- Increase/Decrease/No-change YOLOv11 Inference Quality by one step
 
+#### Generative Model Components
+The Active Inference agent learns through four key matrices that define its generative model:
 
+1. **A Matrix (Observation Model)**: Maps from hidden states (stream parameters) to observations. Encodes the agent's beliefs about how computational load affects SLO violations.
 
-#### AIF Loop
-The agent defines an interval for the AIF loop. Per default this is 1 second.
-Meaning every 1s:
-- The agent retrieves the observations (SLO values and stream quality parameters)
-- The agent updates its believes
-- The agent chooses actions according to its believes
+2. **B Matrix (Transition Model)**: Defines state transitions based on actions. For this domain, transitions are largely deterministic since the agent can reliably change stream parameters.
+
+3. **C Matrix (Preference Model)**: Encodes the agent's preferences over observations. Higher quality parameters are preferred, but SLO satisfaction takes priority over quality optimization.
+
+4. **D Matrix (Prior Beliefs)**: Initial beliefs about the current state, typically initialized based on the actual current system configuration.
+
+#### Learning and Adaptation
+The agent continuously learns and adapts its internal model through:
+- **A-matrix updates**: Learning how computational load correlates with SLO violations based on observed outcomes
+- **Belief updates**: Updating beliefs about the current hidden state based on new observations
+- **Policy inference**: Selecting action sequences that minimize expected free energy
+
+#### Goals and Objectives
+1. **Primary Goal**: Uphold all 4 SLOs at all times (Queue Size, Memory Usage, Global Processing Time, Worker Processing Time)
+2. **Secondary Goal**: While maintaining SLO compliance, maximize the 3 stream quality parameters 
+3. **Learning Goal**: Adapt and improve decision-making over time based on system feedback
+
+The preference hierarchy for quality parameters is: **resolution > fps > inference quality** when performance impact is equivalent.
+
+#### AIF Decision Loop
+The agent operates on a configurable interval (default: 1 second):
+1. **Observe**: Retrieve current SLO values and stream quality parameters
+2. **Infer States**: Update beliefs about hidden states using Bayesian inference
+3. **Infer Policies**: Evaluate potential action sequences and their expected outcomes
+4. **Act**: Sample and execute actions based on policy that minimizes expected free energy
+5. **Learn**: Update the generative model based on observed outcomes
 
 ## Worker
 The workers purpose is to process the tasks provided by the producer. It continuously
@@ -432,85 +448,256 @@ info = {
 
 
 # Evaluation
-In order to evaluate the effectiveness of the implementation we implement the following:
+# Evaluation
+
+To evaluate the effectiveness of the distributed pipeline and the elasticity control mechanisms, this project implements multiple agent types for comparison and analysis.
 
 ## Agent Types
-We implement other types of agents that control the elasticity of the system. We implement two different agent types:
-The Active Inference Agent (AIF). This is the main and most important agent of this project. 
-In order to evaluate its effectiveness this prototype also implements one other more standards agent's for comparison:
+
+The system implements different elasticity control agents that manage system resources and quality parameters to maintain Service Level Objectives (SLOs) while maximizing Quality of Experience (QoE). Each agent represents a different approach to the resource management problem in edge computing scenarios.
+
+### Active Inference Agent (Relative Control)
+The **Active Inference Agent with Relative Control** (`ActiveInferenceAgentRelativeControl`) is the primary intelligent agent of this project, implementing cutting-edge neuroscience-inspired decision-making principles.
+
+#### Key Characteristics:
+- **Theoretical Foundation**: Based on the Free Energy Principle from computational neuroscience
+- **Learning Capability**: Continuously adapts its internal model of the system through experience
+- **Relative Control**: Makes incremental adjustments (increase/decrease/no-change) to stream parameters
+- **Probabilistic Reasoning**: Maintains uncertainty estimates and makes decisions under uncertainty
+- **Long-term Optimization**: Balances immediate SLO compliance with long-term quality maximization
+
+#### Decision-Making Process:
+1. **Bayesian Inference**: Updates beliefs about system state based on observations
+2. **Predictive Modeling**: Forecasts likely outcomes of different action sequences
+3. **Free Energy Minimization**: Selects actions that minimize surprise and achieve preferred outcomes
+4. **Adaptive Learning**: Continuously updates its understanding of how actions affect system performance
+
+#### Advantages:
+- Learns optimal policies through experience rather than pre-programmed rules
+- Handles uncertainty and partial observability naturally
+- Adapts to changing system conditions and workload patterns
+- Theoretically grounded approach with strong convergence guarantees
+- Can discover complex, non-obvious optimization strategies
+
+#### Use Cases:
+- Dynamic environments where optimal strategies are not known a priori
+- Systems requiring long-term adaptation and learning
+- Scenarios where the relationship between actions and outcomes is complex
+- Research applications investigating bio-inspired AI approaches
 
 ### Heuristic Agent
-In order to evaluate the effectiveness of statistical models, such as AIF, we implemented a simple agent based on heuristic measurements.
+The **Heuristic Agent** (`HeuristicAgent`) provides a baseline comparison using traditional rule-based decision-making approaches commonly employed in systems engineering.
 
-The agent defines an interval for the loop. Per default this is 1 second.
-Meaning every 1s:
-- The agent retrieves the values of the SLO
-- The agent evaluates the values.
-- If a SLO is in CRITICAL state (i.e. value > 1.0) the agent reduces the stream quality parameters
-- If a SLO is in WARNING state, the agent does nothing.
-- If all SLOs are in OK state, the agent tries to improve the stream quality parameters.
+#### Key Characteristics:
+- **Rule-Based Logic**: Uses predefined decision rules based on engineering heuristics
+- **Reactive Control**: Responds directly to current system state without predictive modeling
+- **Deterministic Behavior**: Consistent, repeatable decisions given the same input conditions
+- **Immediate Response**: Fast decision-making without computational overhead of learning algorithms
+- **Oscillation Prevention**: Implements cooldown periods and trend analysis to avoid instability
 
-Both agents share the same goal of upholding the SLOs while trying to keep high QoE, through elasticity (Changing of quality parameters).
+#### Decision-Making Process:
+1. **SLO State Assessment**: Categorizes each SLO as OK, WARNING, or CRITICAL
+2. **Priority-Based Response**: 
+   - **CRITICAL State**: Immediate parameter reduction to restore SLO compliance
+   - **WARNING State**: Proactive adjustments based on trend analysis
+   - **OK State**: Quality improvement attempts when resource headroom allows
+3. **Balanced Parameter Adjustment**: Uses capacity-based selection to choose which parameter to modify
+4. **Trend Analysis**: Tracks SLO history to detect deteriorating conditions early
 
-## Simulation
-In order to properly evaluate the agent types we have set a simulation. The simulation consists of a simple streaming scenario.
+#### Decision Priority:
+When reducing computational load (CRITICAL/WARNING states):
+1. Decrease Inference Quality (highest computational impact)
+2. Decrease FPS (moderate computational impact)  
+3. Decrease Resolution (lowest computational impact)
 
-### Environment
-The entire simulation is running a single computer with the specs:
+When improving quality (OK states):
+1. Increase Resolution (highest user experience impact)
+2. Increase FPS (moderate user experience impact)
+3. Increase Inference Quality (variable impact based on use case)
+
+#### Oscillation Prevention Mechanisms:
+- **Cooldown Periods**: Prevents rapid successive changes that could destabilize the system
+- **Trend-Based Decisions**: Uses historical SLO values to detect patterns and avoid premature reactions
+- **Capacity Balancing**: Ensures parameter changes are distributed appropriately across the quality dimensions
+- **Action History Tracking**: Prevents alternating between opposite actions
+
+#### Advantages:
+- Fast, deterministic response times
+- Predictable and interpretable behavior
+- No computational overhead for learning or model updates
+- Robust performance in well-understood scenarios
+- Easy to tune and modify for specific requirements
+
+#### Use Cases:
+- Production systems requiring predictable behavior
+- Baseline comparison for evaluating learning-based approaches
+- Scenarios with well-understood system dynamics
+- Resource-constrained environments where computational overhead must be minimized
+
+### Comparative Analysis
+
+| Aspect | Active Inference Agent | Heuristic Agent |
+|--------|----------------------|-----------------|
+| **Learning** | Continuous adaptation through experience | Static rule-based behavior |
+| **Complexity** | High computational overhead, complex internal model | Low overhead, simple logic |
+| **Adaptability** | Excellent - discovers optimal strategies over time | Limited - requires manual tuning |
+| **Predictability** | Variable - behavior evolves with learning | High - deterministic rule execution |
+| **Initialization** | May require exploration period for optimal performance | Immediate effective operation |
+| **Theoretical Foundation** | Neuroscience-inspired, mathematically rigorous | Engineering heuristics, empirically validated |
+| **Robustness** | Handles novel scenarios through learning | Limited to scenarios covered by rules |
+
+Both agents share the same fundamental objectives:
+1. **Primary Goal**: Maintain all SLO constraints (Queue Size, Memory Usage, Processing Times)
+2. **Secondary Goal**: Maximize stream quality parameters (Resolution, FPS, Inference Quality) within SLO bounds
+3. **Operational Goal**: Ensure stable system operation without oscillations or instability
+
+The comparison between these approaches provides insights into the trade-offs between traditional systems engineering approaches and modern AI-based solutions in edge computing scenarios.
+
+## Simulation Methodology
+
+To comprehensively evaluate the effectiveness of different elasticity control agents, this project implements a sophisticated simulation framework with multiple test scenarios. The evaluation compares agent performance across different operational conditions to understand their strengths, weaknesses, and adaptation capabilities.
+
+### Experimental Environment
+All simulations run on a controlled single-machine environment to ensure reproducible results:
+
 - **Operating System:** Windows 11, Version 23H2 (Build 22631.5335)
-- **Python:** Python 3.12.2
-- **CPU:** AMD Ryzen 7 7800X3D
+- **Python Runtime:** Python 3.12.2
+- **CPU:** AMD Ryzen 7 7800X3D (8 cores, 16 threads)
 - **GPU:** Nvidia GeForce GTX 1660Ti (MSI GTX Ti Ventus XS OC)
-- **Memory:** 32GB DDR5 RAM, Clock: 4800MHz, Dual Channel, Timing: 40-40-40-77, tRC: 117, tRFC: 708
-- **Drive:** WD Black SN770 2TB
+- **Memory:** 32GB DDR5 RAM, Clock: 4800MHz, Dual Channel
+- **Storage:** WD Black SN770 2TB NVMe SSD
 
-### Setup
-- 1 Producer
-- n Workers (3 Workers typically)
-- 1 Collector
+### System Configuration
+The distributed pipeline setup consists of:
+- **1 Producer Node**: Generates video stream tasks and controls elasticity
+- **3 Worker Nodes**: Process YOLOv11 inference tasks (configurable capacities)
+- **1 Collector Node**: Aggregates processed results into output stream
 
-The video stream generated by the producer is a video of highway traffic. The goal is to detect the vehicles passing by using YOLOv11 and drawing bounding boxes around them.
-All workers have the same amount of processing power. 
-n Workers start at the same time and register themselves at the producer. During the registration processes the receive the necessary configuration from the producer and load the necessary YOLO model.
-When the workers configuration is fully set up they start requesting work at the Producer. This continues until the original video streams stops and the producer only answers request with ``END``.
+**Video Dataset**: Highway traffic video stream used for vehicle detection via YOLOv11 inference. The video provides realistic computational workload with varying scene complexity throughout the timeline.
 
-In order to measure the elastic capabilities of the agents, m number (1 typically) of the agents will go offline temporarily causing the total amount of computational resources of the distributed system to decrease.
-This will cause the values of the SLOs to change into a critical state. This will prompt to agent to take an action in order to achieve equilibrium.
-This will be done by decreasing the quality parameters in some way, decreasing the computational requirements in such a way that the remaining workers are able to uphold the SLO.
-After a certain period the agents will recover and come back online. This will cause the total total amount of computational resources of the distributed system to increase.
-The agent should then notice this increasing in available resources and try to increase the stream quality parameters to facilitate a better QoE.
-The outage and recovery of the workers are set at 25% and 75% of the total stream duration respectively.
+**Worker Configuration**: Each worker has configurable processing capacity (0.0-1.0 scale) representing their computational power relative to the baseline. Different capacity configurations test system behavior under heterogeneous resource availability.
 
-During the entire runtime of the simulation the producer tracks certain metrics:
-- Registration time of workers
-- Number of requested tasks per worker
-- Stream Quality Parameters Capacity (FPS, Resolution, Inference Quality) over time. The capacity is represented as a float value (0.0-1.0) Where 0 is the worst possible configuration and 1.0 is the best possible configuration.
-- Queue Size over time (Number of Tasks in queue)
-- Memory Usage % over time
-- Queue Size SLO value over time
-- Memory Usage SLO value over time
-and return as a python dataframes.
+### Simulation Test Cases
 
-These values are then plotted using [matplotlib](https://matplotlib.org/) and [seaborn](https://seaborn.pydata.org/). 
+The evaluation framework implements three distinct simulation scenarios to test different aspects of elasticity control:
 
-### Evaluation Cases
-3 Simulations Cases are implemented:
-1. Base 
-2. Variable Computational Budget
-3. Variable Computational Load
+#### 1. Base Case Simulation (`SimulationType.BASIC`)
+**Purpose**: Establish baseline performance under stable conditions.
 
-#### Base Case
-A regular 30fps video stream.
-#### Variable Computational Budget Case
-During 25% of the streams runtime a worker will go offline and re-join at 75% of the streams runtime. 
-When the worker goes offline the computational Budget of the system decreases, below the required threshold to processes the stream in a timely fashion.
-The Producer should react accordingly by reducing the stream quality parameters, when the worker goes offline and increasing them back to baseline when the worker re-joins.
-#### Variable Computational Load Case
-During 25% of the streams runtime, two "additional" video streams will be produced by the producer. At 75% runtime it returns to a single stream.
-In order to simulate multiple streams, the frames of the underlying video stream are just multiplied. i.e., 
-- for 1 stream: 1 task is generated
-- for 2 streams: 2 tasks with equivalent frame data are generated
-- for 3 streams: 3 tasks with equivalent frame data are generated
+**Configuration**:
+- **Timeline**: Complete video processing from start to finish
+- **Workers**: 3 workers with capacities [0.6, 0.5, 0.4] representing heterogeneous edge nodes
+- **Computational Load**: Constant single video stream (multiplier = 1)
+- **Conditions**: No external perturbations or resource changes
+
+**Expected Behavior**: 
+- Agents should maintain high quality parameters while keeping all SLOs satisfied
+- Minimal elasticity adjustments needed
+- Steady-state operation after initial optimization period
+
+#### 2. Variable Computational Budget Simulation (`SimulationType.VARIABLE_COMPUTATIONAL_BUDGET`)
+**Purpose**: Test agent response to sudden resource availability changes (worker outages/recovery).
+
+**Configuration**:
+- **Timeline**: Video processing with scheduled worker outages
+- **Workers**: 
+  - 1regular worker (capacity 0.5) - remain online throughout
+  - 1 outage worker (capacity 0.5) - simulate temporary failures
+- **Outage Schedule**:
+  - **0-33%**: All workers operational (full computational budget)
+  - **33-66%**: Outage workers go offline (reduced computational budget)
+  - **66-100%**: Outage workers return online (restored computational budget)
+
+**Expected Behavior**:
+- **33% mark**: Agents should detect resource reduction and proactively reduce quality parameters
+- **66% mark**: Agents should detect resource restoration and gradually increase quality parameters
+- Demonstrates adaptation to infrastructure failures/recovery scenarios
+
+#### 3. Variable Computational Demand Simulation (`SimulationType.VARIABLE_COMPUTATIONAL_DEMAND`)
+**Purpose**: Test agent response to changing computational workload (multiple concurrent streams).
+
+**Configuration**:
+- **Timeline**: Video processing with scheduled demand increases
+- **Workers**: 3 workers with higher capacities [0.8, 0.75, 0.7] to handle increased load
+- **Demand Schedule**:
+  - **0-25%**: Single stream (multiplier = 1, baseline load)
+  - **25-75%**: Triple stream (multiplier = 3, 3x computational demand)
+  - **75-100%**: Return to single stream (multiplier = 1)
+
+**Stream Multiplier Mechanism**: Simulates multiple concurrent video streams by replicating each frame N times, creating N identical tasks for the same video frame. This realistically increases computational demand without requiring multiple video sources.
+
+**Expected Behavior**:
+- **25% mark**: Agents should detect increased demand and preemptively reduce quality parameters
+- **75% mark**: Agents should detect reduced demand and restore higher quality parameters
+- Tests scalability and load management capabilities
+
+### Metrics and Performance Analysis
+
+The evaluation framework captures comprehensive performance metrics across multiple dimensions:
+
+#### Service Level Objective (SLO) Metrics
+**Primary SLO Fulfillment Metrics**:
+- **Overall SLO Fulfillment Rate**: Percentage of time when ALL 4 SLOs are satisfied simultaneously
+- **Average SLO Fulfillment Rate**: Mean fulfillment rate across individual SLOs
+- **Individual SLO Fulfillment Rates**: Separate rates for each SLO:
+  - Queue Size SLO Fulfillment Rate
+  - Memory Usage SLO Fulfillment Rate  
+  - Global Processing Time SLO Fulfillment Rate
+  - Worker Processing Time SLO Fulfillment Rate
+
+**SLO Violation Analysis**:
+- **Violation Severity**: How much SLOs are exceeded when violated (average and maximum)
+- **Consecutive Violations**: Maximum number of consecutive time steps with ANY SLO violation
+- **Stability Coefficients**: Standard deviation relative to mean for each SLO (measures oscillation)
+
+#### Quality of Experience (QoE) Metrics
+- **Average Stream Quality**: Combined score across all quality dimensions (FPS, Resolution, Inference Quality)
+- **Quality Parameter Utilization**: Individual capacity utilization for each quality dimension
+- **Quality Stability**: Variance in quality parameters over time
+
+#### Statistical Performance Metrics
+- **SLO Value Statistics**: Mean values for each SLO across the simulation
+- **System Stability**: Coefficient of variation for key performance indicators
+- **Recovery Performance**: Time to restore quality after disturbances
+- **Adaptation Efficiency**: Rate of parameter adjustment in response to changes
+
+### Visualization and Analysis
+
+The evaluation system generates comprehensive visualizations using matplotlib and seaborn:
+
+#### SLO Performance Plots
+- **SLO Values Over Time**: Time-series plots showing all 4 SLO values with critical threshold (1.0) marked
+- **SLO Fulfillment Timeline**: Binary visualization of when SLOs are satisfied/violated
+- **SLO Distribution Analysis**: Histograms showing distribution of SLO values across simulation
+
+#### Quality Metrics Visualization  
+- **Quality Parameters Over Time**: Time-series showing FPS, Resolution, and Inference Quality capacity
+- **Quality Utilization Heatmaps**: Visual representation of parameter utilization patterns
+- **Quality-SLO Correlation**: Scatter plots showing relationship between quality settings and SLO performance
+
+#### Worker Performance Analysis
+- **Task Distribution**: Pie charts and bar graphs showing workload distribution among workers
+- **Worker Utilization**: Individual worker performance and task processing rates
+- **Load Balancing Effectiveness**: Analysis of how work is distributed across heterogeneous workers
+
+#### Comparative Analysis
+- **Agent Comparison**: Side-by-side performance comparison between Active Inference and Heuristic agents
+- **Simulation Scenario Analysis**: Performance comparison across different test cases
+- **Metric Correlation Analysis**: Understanding relationships between different performance dimensions
+
+### Output and Reporting
+
+**Automated Output Generation**:
+- **Metrics Files**: JSON files containing all calculated performance metrics for each agent-simulation combination
+- **Visualization Exports**: High-resolution PNG plots organized by simulation type and agent
+- **Directory Structure**: Organized output in `out/` directory with subdirectories for each simulation type
+
+**File Naming Convention**:
+- Metrics: `{agent_type}_metrics.json`
+- Plots: `{agent_type}_{plot_type}.png`
+- Organization: `out/{simulation_type}_sim/` directories
+
+This comprehensive evaluation framework enables systematic comparison of elasticity control approaches and provides quantitative evidence for the effectiveness of Active Inference-based agents in edge computing scenarios.
 
 # Implementation
 ## Compute Platform
