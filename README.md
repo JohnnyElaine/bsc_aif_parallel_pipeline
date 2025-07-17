@@ -287,25 +287,165 @@ The agent operates on a configurable interval (default: 1 second):
 5. **Learn**: Update the generative model based on observed outcomes
 
 ## Worker
-The workers purpose is to process the tasks provided by the producer. It continuously
-1. request work from the producer.
-2. processes it by some form of computation (e.g.  YOLOv11 inference)
-3. sends the result to the collector.
+The worker's purpose is to process tasks provided by the producer. Each worker implements a sophisticated multi-process, multi-threaded architecture designed for high-performance, non-blocking task processing in edge computing environments.
 
-### Requesting Work
-The worker requests work whenever its internal task-buffer (a queue containing TODO tasks ) is empty. The work requesting is done according to the [Work-API](#work-api).
+### Worker Architecture Overview
+Each worker operates as a separate Python process and internally manages three specialized sub-processes connected via inter-process communication pipes. This design maximizes parallelism and ensures that network I/O, computation, and result transmission can occur simultaneously without blocking each other.
 
-### Processing the task
-The worker takes tasks from the task-buffer and runs inference on them using YOLOv11. The result is then stored in the result-buffer (a queue containing processed tasks).
+#### Process-Level Architecture
+The worker spawns **three separate processes** that operate concurrently:
 
-The computation is done in a separate process to enable maximum performance.
-### Sending Results to Collector
-The worker takes the results (processed tasks) from the result-buffer and sends them to the collector using a zeromq.PUSH`
+1. **Work Requesting Pipeline** (Process)
+2. **Task Processing Pipeline** (Process) 
+3. **Result Sending Pipeline** (Process)
 
-#### Results
-Results are identical to ``Task`` objects, with the only difference being that `type=COLLECT`
+#### Inter-Process Communication (IPC)
+The processes communicate through **Python multiprocessing Pipes** and **shared memory Values**:
 
-These 3 concerns (requesting, processing, sending) are implemented in their own threads/processes in order to achieve a non-blocking task processing pipeline.
+**Communication Channels**:
+- **Task Pipe**: Unidirectional pipe from Work Requesting → Task Processing
+- **Result Pipe**: Unidirectional pipe from Task Processing → Result Sending  
+- **Shared Processing Time**: `multiprocessing.Value('d')` for performance metrics sharing
+- **Synchronization Event**: `multiprocessing.Event` for initialization coordination
+
+### Detailed Process Architecture
+
+#### 1. Work Requesting Pipeline (Process)
+**Purpose**: Manages communication with the producer to acquire new tasks.
+
+**Internal Thread Structure**:
+- **ZmqWorkRequester** (Thread): 
+  - Sends REQ messages to producer via ZeroMQ REQ socket
+  - Handles registration, work requests, and parameter changes
+  - Manages outage simulation for testing scenarios
+  - Updates shared processing time metrics
+- **PipeTaskSender** (Thread):
+  - Receives tasks from internal queue
+  - Forwards tasks to Task Processing Pipeline via pipe
+  - Handles graceful shutdown coordination
+
+**Communication Flow**:
+```
+Producer ←→ ZmqWorkRequester → Queue → PipeTaskSender → Task Pipe → Task Processing
+```
+
+**Thread Coordination**: Uses `Queue.join()` to ensure proper synchronization between network I/O and pipe communication.
+
+#### 2. Task Processing Pipeline (Process)
+**Purpose**: Performs the actual computational work (YOLOv11 inference) on received tasks.
+
+**Single-Process Design**: Unlike other pipelines, this runs as a single process (not multi-threaded) to maximize GPU utilization and avoid GIL contention during compute-intensive operations.
+
+**Key Features**:
+- **Task Processor Factory**: Creates appropriate processor based on work type (YOLO detection, OBB, etc.)
+- **Artificial Capacity Control**: Simulates varying computational capacities for evaluation
+- **Processing Time Tracking**: Measures and reports execution times via shared memory
+- **Model Management**: Handles inference quality changes (model switching)
+
+**Processing Flow**:
+```
+Task Pipe → Task Reception → Model Inference → Result Creation → Result Pipe
+```
+
+**Initialization Coordination**: Uses `multiprocessing.Event` to signal readiness before work requesting begins.
+
+#### 3. Result Sending Pipeline (Process)
+**Purpose**: Transmits processed results to the collector node.
+
+**Internal Thread Structure**:
+- **PipeResultReceiver** (Thread):
+  - Receives processed tasks from Task Processing Pipeline via pipe
+  - Queues results for network transmission
+  - Handles end-of-stream coordination
+- **ResultSender** (Thread):
+  - Sends results to collector via ZeroMQ PUSH socket
+  - Manages network connection lifecycle
+  - Handles graceful disconnection and error recovery
+
+**Communication Flow**:
+```
+Result Pipe → PipeResultReceiver → Queue → ResultSender → Collector
+```
+
+### Concurrency and Performance Design
+
+#### Process-Level Parallelism
+- **True Parallelism**: Each process runs independently, avoiding Python's Global Interpreter Lock (GIL) limitations
+- **Pipeline Architecture**: Tasks flow through stages without blocking, maximizing throughput
+- **Resource Isolation**: Each process has isolated memory space, preventing interference
+
+#### Thread-Level Coordination  
+- **Producer-Consumer Pattern**: Threads within processes use `Queue` objects for safe data exchange
+- **Non-Blocking I/O**: Network operations in separate threads prevent computation blocking
+- **Graceful Shutdown**: Coordinated shutdown using `TaskType.END` messages propagated through all stages
+
+#### Memory Management
+- **Shared Values**: Minimal shared state for performance metrics using `multiprocessing.Value`
+- **Pipe Buffers**: Efficient binary data transfer for large NumPy arrays
+- **Queue Management**: FIFO queues with `task_done()` acknowledgments for flow control
+
+### Worker Lifecycle
+
+#### 1. Initialization Phase
+```python
+# Main worker process
+worker = Worker(config)
+worker.start()
+
+# Registration with producer
+request_channel.connect()
+work_config = request_channel.register()
+
+# Process creation and pipe setup
+task_pipe_recv_end, task_pipe_send_end = Pipe(False)
+result_pipe_recv_end, result_pipe_send_end = Pipe(False)
+latest_processing_time = Value('d', 0.0)
+```
+
+#### 2. Operational Phase
+```python
+# Start parallel processes
+task_processing_pipeline.start()     # Process 1
+result_sending_pipeline.start()      # Process 2
+
+# Wait for task processor readiness
+task_processor_ready.wait()
+
+# Start work requesting (runs in main process)
+work_requesting_pipeline.run()       # Main process
+```
+
+#### 3. Shutdown Phase
+```python
+# Coordinated shutdown via END messages
+# Flow: Producer → Work Requesting → Task Processing → Result Sending
+task_processing_pipeline.join()
+result_sending_pipeline.join()
+```
+
+### Key Architectural Benefits
+
+#### 1. **High Throughput**
+- Parallel processing stages eliminate bottlenecks
+- Network I/O doesn't block computation
+- GPU utilization maximized through dedicated compute process
+
+#### 2. **Fault Tolerance**
+- Process isolation prevents cascade failures
+- Graceful error handling and recovery
+- Outage simulation capabilities for testing
+
+#### 3. **Scalability**
+- Independent worker processes scale horizontally
+- Configurable processing capacities for heterogeneous environments
+- Load balancing through producer's work distribution
+
+#### 4. **Resource Efficiency**
+- Minimal inter-process communication overhead
+- Direct NumPy array transfer via pipes
+- Shared memory for lightweight metrics
+
+This sophisticated architecture ensures that each worker can efficiently process tasks while maintaining the responsiveness and reliability required for edge computing scenarios.
 
 ## Collector
 The collector continuously accepts results from  
