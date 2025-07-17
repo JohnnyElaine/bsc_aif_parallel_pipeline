@@ -314,6 +314,34 @@ The agent operates on a configurable interval (default: 1 second):
 4. **Act**: Sample and execute actions based on policy that minimizes expected free energy
 5. **Learn**: Update the generative model based on observed outcomes
 
+### Producer Configuration
+The producer uses a hierarchical configuration approach via the `ProducerConfig` class that defines all operational parameters:
+
+**Core Parameters**:
+- **Work Type**: Defines inference task type (`YOLO_DETECTION`, `YOLO_OBB`, `NONE`)
+- **Loading Mode**: Controls model loading strategy (`LAZY`, `EAGER`)
+- **Agent Type**: Selects elasticity control agent (`ACTIVE_INFERENCE_RELATIVE_CONTROL`, `HEURISTIC`)
+- **Stream Multiplier Schedule**: Defines computational demand variations over time for evaluation
+
+**Stream Multiplier Mechanism**: Uses `StreamMultiplierEntry` objects to schedule demand changes:
+- **Frame Percentage**: Point in video timeline (0.0-1.0) when multiplier activates
+- **Multiplier Value**: Number of concurrent streams to simulate (1=single, 2=double, etc.)
+
+**Task Configuration**: `TaskConfig` encapsulates quality parameters:
+- **Max Resolution**: Highest resolution supported (width x height)
+- **Max FPS**: Maximum frames per second
+- **Max Inference Quality**: Highest model complexity (`LOW`, `MEDIUM`, `HIGH`)
+
+**Communication Configuration**:
+- **Producer REP Port**: Port for responding to worker requests (default: 5555)
+- **Producer PUB Port**: Port for publishing status updates (default: 5556)
+- **Stats Subscriber Port**: Port for collecting worker statistics (default: 5557)
+- **Collector Publisher Port**: Port for collector communication (default: 5570)
+
+**Media Configuration**:
+- **Video Path**: Path to input video file for task generation
+- **Evaluation Mode**: Toggle for evaluation-specific behaviors
+
 ## Worker
 The worker's purpose is to process tasks provided by the producer. Each worker implements a sophisticated multi-process, multi-threaded architecture designed for high-performance, non-blocking task processing in edge computing environments.
 
@@ -475,6 +503,32 @@ result_sending_pipeline.join()
 
 This sophisticated architecture ensures that each worker can efficiently process tasks while maintaining the responsiveness and reliability required for edge computing scenarios.
 
+### Worker Configuration
+The worker system uses a comprehensive configuration approach via the `WorkerConfig` class that defines operational parameters:
+
+**Core Identity**:
+- **Worker ID**: Unique identifier for the worker instance
+- **Worker Type**: Specific worker implementation type
+
+**Model Configuration**:
+- **Model Loading Mode**: Strategy for model initialization (`LAZY`, `EAGER`)
+- **Inference Quality**: Processing complexity level (`LOW`, `MEDIUM`, `HIGH`)
+
+**Communication Configuration**:
+- **Producer REQ Port**: Port for requesting tasks from producer
+- **Collector REQ Port**: Port for sending results to collector
+- **Stats Publisher Port**: Port for publishing performance statistics
+
+**Performance Parameters**:
+- **Slow Processing Mode**: Toggle for simulating constrained resources
+- **Slow Processing Factor**: Multiplier for processing time simulation
+
+**Task Processing**:
+- **Request Interval**: Frequency of task requests from producer
+- **Stats Interval**: Frequency of performance metric reporting
+
+The worker configuration is designed for both production deployment and evaluation scenarios, supporting capacity simulations through configurable performance constraints.
+
 ## Collector
 The collector operates as a single process with a multi-threaded architecture designed to aggregate processed results from workers and reconstruct the output video stream in correct sequential order.
 
@@ -509,6 +563,24 @@ The collector uses thread-safe coordination mechanisms:
 - **Semaphore-based Signaling**: Ensures proper thread synchronization without busy waiting
 
 This architecture ensures that the distributed processing results are correctly aggregated into a coherent output stream while handling the inherent challenges of variable processing times and potential frame losses in edge computing environments.
+
+### Collector Configuration
+The collector uses a streamlined configuration approach via the `CollectorConfig` class:
+
+**Communication Parameters**:
+- **Worker REP Port**: Port for receiving results from workers (default: 5560)
+- **Output Viewer Toggle**: Enable/disable real-time output display
+- **Producer Subscriber Port**: Port for receiving status updates from producer
+
+**Output Configuration**:
+- **Display Mode**: Control for visual output presentation
+- **Frame Rate Target**: Expected FPS for output stream reconstruction
+
+**Processing Parameters**:
+- **Buffer Management**: Configuration for result ordering and assembly
+- **Timeout Settings**: Thresholds for handling delayed or missing frames
+
+The collector configuration is optimized for real-time result aggregation and output generation in distributed processing scenarios.
 
 ## Work-API
 Implemented by the Producer and used by the Worker.
@@ -692,6 +764,29 @@ info = {
     type='END'
 }
 ```
+
+### Work-API Communication Protocol
+The Work-API implements a sophisticated request-reply protocol using ZeroMQ with efficient serialization and multi-stream support:
+
+**Protocol Features**:
+- **Load Balancing Pattern**: Workers pull tasks when ready, maximizing resource utilization
+- **Efficient Serialization**: MessagePack for metadata, direct buffer transfer for NumPy arrays
+- **Multi-Stream Support**: Stream keys enable concurrent processing of multiple video streams
+- **Change Management**: Dynamic parameter updates propagated through the same protocol
+- **Graceful Shutdown**: END signals cascade through the entire system
+
+**Communication Flow**:
+1. **Worker Registration**: Initial handshake to receive stream configuration
+2. **Work Requests**: Continuous task pulling with performance feedback
+3. **Change Propagation**: Dynamic parameter updates when SLOs require adjustment
+4. **Status Reporting**: Performance metrics flow back to producer for SLO monitoring
+5. **Termination Handling**: Clean shutdown coordination across all components
+
+**Protocol Efficiency**:
+- **Zero-Copy Transfer**: NumPy arrays transferred without serialization overhead
+- **Metadata Compression**: MessagePack provides compact metadata representation
+- **Batch Processing**: Multiple tasks can be bundled in single response for efficiency
+- **Type Safety**: Strict validation of data types and shapes during transmission
 
 
 # Evaluation
