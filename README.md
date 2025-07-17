@@ -231,6 +231,34 @@ It is a core methodology that only the producer decides and makes changes in the
 Observations are gathered either directly at the producer level (Queue Size, Memory), or received from workers in ``GET_WORK`` requests.
 These observations are then used to evaluated SLOs and in turn stream quality parameters
 
+### Producer Threading Architecture
+The producer operates as a single process with a multi-threaded architecture that enables concurrent task generation, worker communication, and elasticity control without blocking operations.
+
+#### Key Architectural Components
+The producer manages **three main threads** operating concurrently:
+
+1. **Task Generator (Thread)**: Continuously generates tasks from video stream data at controlled intervals, enforcing target FPS and handling dynamic resolution/quality changes.
+
+2. **Request Handler (Thread)**: Manages ZeroMQ communication with worker nodes, handles registration, distributes tasks, and collects performance statistics for SLO monitoring.
+
+3. **Agent Pipeline (Thread)**: Implements the Active Inference agent for elasticity control, operating on 500ms intervals to monitor SLOs and adjust stream parameters.
+
+#### Inter-Thread Communication
+Threads communicate through thread-safe mechanisms:
+- **Task Queue**: Thread-safe FIFO queue (120 task capacity) for task distribution from generator to request handler
+- **Worker Knowledge Base**: Centralized worker state tracking and performance metrics accessible to the agent
+- **Elasticity Handler**: Mediates parameter changes between agent decisions and system components
+
+#### Data Flow Architecture
+```
+Video Source → Task Generator → Queue → Request Handler → Workers
+                     ↑              ↓
+            Agent Pipeline ← Elasticity Handler ← Statistics
+```
+
+#### Coordination and Benefits
+The architecture ensures **startup synchronization** where task generation waits for the first worker request, and the agent waits for task generation to begin. This design provides **high throughput** through parallel processing, **responsive communication** via non-blocking ZeroMQ operations, and **intelligent control** through the independently operating Active Inference agent.
+
 ### Active Inference Agent Implementation
 The Active Inference Agent controls the elasticity of the system and runs on the producer. It is implemented using the active inference library [pymdp](https://github.com/infer-actively/pymdp), which provides a comprehensive framework for building agents based on the Free Energy Principle. More information about the underlying theory is available in the official [paper](https://arxiv.org/abs/2201.03904).
 
