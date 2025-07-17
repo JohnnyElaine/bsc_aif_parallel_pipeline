@@ -44,10 +44,13 @@ Throughout this README, examples refer to video streams and YOLOv11 inference, b
 The Producer continuously generates a stream of tasks. A ``Task`` object represents a single unit of work (e.g. a video frame).
 
 ### Task
-A `Task` consists of 3 fields:
-- `id` The `integer` id of the task
-- `type` The `string` type of tasks. e.g. YOLOv11 inference
+A `Task` consists of 4 fields:
+- `type` The `string` type of task (e.g., YOLOv11 inference, collection, changes)
+- `id` The `integer` id of the task (used for ordering and tracking)
+- `stream_key` The `integer` identifier to differentiate tasks between multiple concurrent streams
 - `data` A `numpy.ndarray` containing a single frame of the video
+
+The `stream_key` field is essential for handling multiple concurrent video streams in the Variable Computational Demand simulation scenarios. When the system processes multiple streams simultaneously (via stream multiplier), each stream is assigned a unique identifier to ensure proper task routing and result aggregation.
 
 #### Task Types
 The worker nodes strictly adhere to the instructions stated within a given ``Task``. The general task types are:
@@ -59,8 +62,26 @@ The worker nodes strictly adhere to the instructions stated within a given ``Tas
 For example, when running inference on a video stream the producer would produce tasks such as:
 ```
 Task:
+    type = 'INFERENCE'
     id = 10
-    type = 'INFERNCE'
+    stream_key = 0
+    data = np.ndarray
+```
+
+For multiple concurrent streams, tasks would have different stream keys:
+```
+# Stream 1 task
+Task:
+    type = 'INFERENCE'
+    id = 10
+    stream_key = 0
+    data = np.ndarray
+
+# Stream 2 task (different stream)
+Task:
+    type = 'INFERENCE'
+    id = 10
+    stream_key = 1
     data = np.ndarray
 ```
 
@@ -304,7 +325,26 @@ This is often referred to as the [Load Balancing Pattern](https://zguide.zeromq.
 Using this approach, the producer does not decide the distribution of work, rather the decision is made by the worker nodes, as they can choose when to work.
 If the workers are configured to request tasks whenever possible, such a design maximises the resource utilization of the workers and therefore the entire distributed system, as each worker requests work up to its own maximum capacity. 
 The downside of such an architecture is the added overhead, as the workers have to explicitly request work, whenever their internal buffer is empty.
-This overhead is justified as it negligible in comparison to the large amounts of ``Task.data`` that sent via reply of the producer and enables proper load balancing of the worker nodes. 
+This overhead is justified as it negligible in comparison to the large amounts of ``Task.data`` that sent via reply of the producer and enables proper load balancing of the worker nodes.
+
+### Task Serialization and Communication
+The system uses efficient serialization for network communication between producer and workers:
+
+**Serialization Process (Producer → Worker)**:
+1. **Metadata Serialization**: Task metadata (id, type, stream_key, shape, dtype) is serialized using MessagePack
+2. **Data Transmission**: NumPy arrays are sent directly using ZeroMQ's buffer interface for maximum efficiency
+3. **Multipart Messages**: Each response contains info + (metadata, data) pairs for each task
+
+**Deserialization Process (Worker Side)**:
+1. **Metadata Reconstruction**: MessagePack unpacking of task metadata
+2. **Array Reconstruction**: NumPy arrays reconstructed from buffer using dtype and shape information
+3. **Task Assembly**: Complete Task objects created with all fields including stream_key
+
+**Key Implementation Details**:
+- **MessagePack**: Used for metadata serialization due to smaller payload than pickle with similar performance
+- **Buffer Interface**: NumPy arrays sent directly without additional serialization overhead
+- **Stream Key Preservation**: Ensures proper task routing in multi-stream scenarios
+- **Type Safety**: dtype and shape validation during reconstruction prevents data corruption 
 
 ### General Request-Reply Structure
 `REQ:` A dict that defines the type of request and optional additional information.
@@ -335,16 +375,19 @@ task_metadata = {
 data: numpy.ndarray
 ```
 
-So for example a response containg a singular ``Task`` would look like this:
-A multipart message containg
+So for example a response containing a singular ``Task`` would look like this:
+A multipart message containing
 ```python
-info, task_metadata
+info, task_metadata, task_data
 ``` 
 ```python
-{type: str, #(optional additional information)}, {id, dtype, shape}, task
-``` 
+{type: 'WORK'}, {id: 0, type: 'INFERENCE', stream_key: 0, dtype: 'uint8', shape: (1920,1080,3)}, np.ndarray
+```
+
+For multiple concurrent streams, the same frame might be sent with different stream keys:
 ```python
-{type=INFERENCE}, {id=0, dtype=int64, shape=(1920,1080,3)}, np.ndarray
+{type: 'WORK'}, {id: 0, type: 'INFERENCE', stream_key: 0, dtype: 'uint8', shape: (1920,1080,3)}, np.ndarray_stream_0,
+                 {id: 0, type: 'INFERENCE', stream_key: 1, dtype: 'uint8', shape: (1920,1080,3)}, np.ndarray_stream_1
 ``` 
 
 ### Regular REQ-REP
@@ -364,9 +407,9 @@ req = {
 ```python
 info = {
     type='REGISTRATION_CONFIRMATION',
-    work_type:str ∈ ['NONE', 'YOLO_DETECTION', 'YOLO_OBB']
-    work_type:str ∈ ['LOW', 'MEDIUM', 'HIGH']
-    loading_mode:str ∈ [0 (LAZY), 1 (EAGER)]
+    work_type: str ∈ ['NONE', 'YOLO_DETECTION', 'YOLO_OBB'],
+    work_load: int ∈ [0 (LOW), 1 (MEDIUM), 2 (HIGH)],
+    loading_mode: int ∈ [0 (LAZY), 1 (EAGER)]
 }
 ```
 ##### Request Work -> Receive Work
@@ -375,20 +418,24 @@ General mode of operation.
 `REQ:` 
 ```python
 req = {
-    type='GET_WORK'
+    type='GET_WORK',
+    previous_processing_time=0.0 
 }
 ```
+``previous_processing_time`` is the processing of the last completed task. This is used by the producer to evaluate SLOs
 
 `REP:` multipart message containing
 ```python
 info = {
-    type:str ∈ ['INFERENCE', (Other potential work types)]
+    type:str ∈ ['WORK', (Other potential response types)]
 }
 ```
 additionally for each task:
 ```python
 task_metadata = {
+    type: str,
     id: int,
+    stream_key: int,
     dtype: str,
     shape: tuple[int, int, int]
 }
@@ -404,7 +451,8 @@ This is because it is of the utmost importance that the workers adjust to the ch
 `REQ:` 
 ```python
 req = {
-    type='GET_WORK'
+    type='GET_WORK',
+    previous_processing_time=0.0
 }
 ```
 
@@ -621,7 +669,8 @@ The evaluation framework implements three distinct simulation scenarios to test 
 - **Workers**: 3 workers with higher capacities [0.8, 0.75, 0.7] to handle increased load
 - **Demand Schedule**:
   - **0-25%**: Single stream (multiplier = 1, baseline load)
-  - **25-75%**: Triple stream (multiplier = 3, 3x computational demand)
+  - **25-50%**: Triple stream (multiplier = 3, 3x computational demand)
+  - **50%-75%**: Double stream (multiplier = 2, 2x computational demand)
   - **75-100%**: Return to single stream (multiplier = 1)
 
 **Stream Multiplier Mechanism**: Simulates multiple concurrent video streams by replicating each frame N times, creating N identical tasks for the same video frame. This realistically increases computational demand without requiring multiple video sources.
