@@ -34,9 +34,9 @@ class SloCalculator:
             Dictionary containing all calculated metrics
         """
         metrics = {'agent_type': agent_type_name, 'simulation_type': sim_type_name,
-                   'total_timesteps': len(slo_stats_df),
-                   'overall_slo_fulfillment_rate': self._calculate_overall_slo_fulfillment_rate(slo_stats_df),
-                   'average_slo_fulfillment_rate': self._calculate_average_slo_fulfillment_rate(slo_stats_df)}
+                   'total_simulation_timesteps': len(slo_stats_df),
+                   'percentage_time_all_slo_fulfilled_simultaneously_percent': self._calculate_all_slo_fullfillment_simultaneously_rate(slo_stats_df),
+                   'average_slo_fulfillment_rate_percent': self._calculate_average_slo_fulfillment_rate(slo_stats_df)}
         
 
         # Individual SLO fulfillment rates
@@ -57,7 +57,7 @@ class SloCalculator:
         
         return metrics
     
-    def _calculate_overall_slo_fulfillment_rate(self, slo_stats_df: pd.DataFrame) -> float:
+    def _calculate_all_slo_fullfillment_simultaneously_rate(self, slo_stats_df: pd.DataFrame) -> float:
         """
         Calculate the percentage of time when ALL SLOs are fulfilled simultaneously
         """
@@ -78,8 +78,15 @@ class SloCalculator:
         """
         Calculate fulfillment rate for each individual SLO
         """
+        mapping = {
+            'queue_size_slo_value': 'queue_size_slo_fulfillment_rate_percent',
+            'memory_usage_slo_value': 'memory_usage_slo_fulfillment_rate_percent', 
+            'avg_global_processing_time_slo_value': 'global_processing_time_slo_fulfillment_rate_percent',
+            'avg_worker_processing_time_slo_value': 'worker_processing_time_slo_fulfillment_rate_percent'
+        }
+        
         return {
-            col.replace('_slo_value', '_fulfillment_rate'): float((slo_stats_df[col] <= 1.0).mean())
+            mapping[col]: float((slo_stats_df[col] <= 1.0).mean())
             for col in self.SLO_COLUMNS
         }
     
@@ -94,15 +101,15 @@ class SloCalculator:
             violations = slo_stats_df[col][slo_stats_df[col] > 1.0]
             base_name = col.replace("_slo_value", "")
             if len(violations) > 0:
-                metrics[f'{base_name}_avg_violation_severity'] = float(violations.mean() - 1.0)
-                metrics[f'{base_name}_max_violation_severity'] = float(violations.max() - 1.0)
+                metrics[f'{base_name}_avg_violation_severity_factor'] = float(violations.mean() - 1.0)
+                metrics[f'{base_name}_max_violation_severity_factor'] = float(violations.max() - 1.0)
             else:
-                metrics[f'{base_name}_avg_violation_severity'] = 0.0
-                metrics[f'{base_name}_max_violation_severity'] = 0.0
+                metrics[f'{base_name}_average_violation_severity_factor'] = 0.0
+                metrics[f'{base_name}_maximum_violation_severity_factor'] = 0.0
         
         # System stability metrics using dict comprehension
         stability_metrics = {
-            f'{col.replace("_slo_value", "_stability_coefficient")}': float(
+            f'{col.replace("_slo_value", "_stability_coefficient_of_variation")}': float(
                 (lambda std_dev, mean: std_dev / mean if mean > 0 else 0)(
                     slo_stats_df[col].std(), slo_stats_df[col].mean()
                 )
@@ -112,7 +119,7 @@ class SloCalculator:
         metrics.update(stability_metrics)
         
         # Recovery time analysis (consecutive violations)
-        metrics['max_consecutive_overall_violations'] = self._calculate_max_consecutive_violations(slo_stats_df)
+        metrics['maximum_consecutive_timesteps_with_slo_violations'] = self._calculate_max_consecutive_violations(slo_stats_df)
         
         return metrics
     
@@ -123,11 +130,11 @@ class SloCalculator:
         # Overall quality score (average of all quality capacities)
         quality_values = [slo_stats_df[col].mean() for col in self.QUALITY_COLUMNS]
         
-        metrics = {'avg_stream_quality': float(np.mean(quality_values))}
+        metrics = {'average_overall_stream_quality_score': float(np.mean(quality_values))}
         
         # Calculate average time to stable quality configuration
         avg_time_to_stability = self._calculate_avg_time_to_stable_quality(slo_stats_df)
-        metrics['avg_time_to_stable_quality'] = avg_time_to_stability
+        metrics['average_timesteps_to_reach_stable_quality_configuration'] = avg_time_to_stability
         
         return metrics
     
@@ -137,7 +144,7 @@ class SloCalculator:
         """
         # SLO value statistics using dict comprehension
         return {
-            f'{col}_mean': float(slo_stats_df[col].mean())
+            f'{col}_average': float(slo_stats_df[col].mean())
             for col in self.SLO_COLUMNS
         }
     
