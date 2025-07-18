@@ -123,7 +123,13 @@ class SloCalculator:
         # Overall quality score (average of all quality capacities)
         quality_values = [slo_stats_df[col].mean() for col in self.QUALITY_COLUMNS]
         
-        return {'avg_stream_quality': float(np.mean(quality_values))}
+        metrics = {'avg_stream_quality': float(np.mean(quality_values))}
+        
+        # Calculate average time to stable quality configuration
+        avg_time_to_stability = self._calculate_avg_time_to_stable_quality(slo_stats_df)
+        metrics['avg_time_to_stable_quality'] = avg_time_to_stability
+        
+        return metrics
     
     def _calculate_slo_statistical_metrics(self, slo_stats_df: pd.DataFrame) -> Dict[str, float]:
         """
@@ -152,6 +158,65 @@ class SloCalculator:
                 current_consecutive = 0
         
         return max_consecutive
+    
+    def _calculate_avg_time_to_stable_quality(self, slo_stats_df: pd.DataFrame, stability_window: int = 5) -> float:
+        """
+        Calculate the average number of time steps until a stable quality configuration is reached.
+        A stable configuration is when quality capacities haven't changed for the specified window.
+        
+        Args:
+            slo_stats_df: DataFrame containing quality statistics
+            stability_window: Number of consecutive unchanged time steps to consider stable (default: 5)
+            
+        Returns:
+            Average time steps to reach stability across all stability periods found
+        """
+        if len(slo_stats_df) < stability_window:
+            return float(len(slo_stats_df))  # Not enough data for stability analysis
+        
+        # Track when quality values change by comparing consecutive rows
+        quality_df = slo_stats_df[self.QUALITY_COLUMNS]
+        
+        # Find points where any quality metric changes
+        changes = (quality_df.diff().abs() > 1e-6).any(axis=1)  # Use small threshold for float comparison
+        
+        stability_periods = []
+        current_stable_start = None
+        consecutive_stable_count = 0
+        
+        for i, has_change in enumerate(changes):
+            if i == 0:  # Skip first row (diff is always NaN)
+                consecutive_stable_count = 1
+                current_stable_start = 0
+                continue
+                
+            if not has_change:  # No change detected
+                consecutive_stable_count += 1
+                
+                # Check if we've reached stability
+                if consecutive_stable_count >= stability_window and current_stable_start is not None:
+                    # We've found a stable period
+                    time_to_stability = i - stability_window + 1 - current_stable_start
+                    if time_to_stability >= 0:
+                        stability_periods.append(time_to_stability)
+                    # Reset for next period
+                    current_stable_start = None
+                    consecutive_stable_count = 0
+            else:  # Change detected
+                consecutive_stable_count = 0
+                current_stable_start = i
+        
+        # If we ended in a stable state, count it
+        if consecutive_stable_count >= stability_window and current_stable_start is not None:
+            time_to_stability = len(slo_stats_df) - stability_window - current_stable_start
+            if time_to_stability >= 0:
+                stability_periods.append(time_to_stability)
+        
+        # Return average time to stability, or total time if no stability found
+        if stability_periods:
+            return float(np.mean(stability_periods))
+        else:
+            return float(len(slo_stats_df))  # No stable periods found
     
     def save_metrics(self, metrics: Dict[str, Any], output_dir: str = "out/metrics"):
         """
