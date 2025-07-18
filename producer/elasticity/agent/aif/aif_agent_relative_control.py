@@ -122,7 +122,7 @@ class ActiveInferenceAgentRelativeControl(ElasticityAgent):
 
         # Sample actions (direct indices for each parameter)
         actions_idx = np.array(self.agent.sample_action(), dtype=int).tolist()
-        log.debug(f'AIF Agent sampled actions: resolution_action={actions_idx[0]}, fps_action={actions_idx[1]}, inference_quality_action={actions_idx[2]}')
+        #log.debug(f'AIF Agent sampled actions: resolution_action={actions_idx[0]}, fps_action={actions_idx[1]}, inference_quality_action={actions_idx[2]}')
 
         success = self._perform_actions(actions_idx)
         
@@ -358,21 +358,21 @@ class ActiveInferenceAgentRelativeControl(ElasticityAgent):
         # Resolution preferences - strong preference for higher quality
         if self.num_resolution_states > 1:
             C[self.OBS_RESOLUTION_INDEX][:] = [
-                self.VERY_STRONG_PREFERENCE * (i / (self.num_resolution_states - 1))
+                self.STRONG_PREFERENCE * (i / (self.num_resolution_states - 1))
                 for i in range(self.num_resolution_states)
             ]
 
         # FPS preferences - strong preference for higher quality  
         if self.num_fps_states > 1:
             C[self.OBS_FPS_INDEX][:] = [
-                self.VERY_STRONG_PREFERENCE * (i / (self.num_fps_states - 1))
+                self.STRONG_PREFERENCE * (i / (self.num_fps_states - 1))
                 for i in range(self.num_fps_states)
             ]
 
         # Inference Quality preferences - medium preference (still expensive but important)
         if self.num_inference_quality_states > 1:
             C[self.OBS_INFERENCE_QUALITY_INDEX][:] = [
-                self.VERY_STRONG_PREFERENCE * (i / (self.num_inference_quality_states - 1))
+                self.STRONG_PREFERENCE * (i / (self.num_inference_quality_states - 1))
                 for i in range(self.num_inference_quality_states)
             ]
 

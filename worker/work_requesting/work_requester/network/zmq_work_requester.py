@@ -23,10 +23,12 @@ class ZmqWorkRequester(WorkRequester):
         self._outage_config = outage_config
         self._req_work_function = self._req_work if outage_config is None else self._req_work_with_outage_config
         self._num_requested_tasks = 0
+        self._start_time = 0
 
     def run(self):
         log.debug('starting work-requester')
         self._is_running = True
+        self._start_time = time.perf_counter()
 
         try:
             ok = True
@@ -45,8 +47,6 @@ class ZmqWorkRequester(WorkRequester):
         self._queue.join() # Block until queue is empty
 
         info, tasks = self._req_work_function()
-
-        self._num_requested_tasks += 1
 
         return self._handle_work(info, tasks)
 
@@ -87,9 +87,11 @@ class ZmqWorkRequester(WorkRequester):
         return self._channel.get_work(processing_time)
 
     def _req_work_with_outage_config(self) -> tuple[dict, list[Task]]:
-        if self._num_requested_tasks == self._outage_config.frames_until_outage:
-            log.info(f'Simulating offline worker for {self._outage_config.duration} seconds')
+        time_since_start = time.perf_counter() - self._start_time
+        if time_since_start >= self._outage_config.time_until_outage:
+            log.info(f'After {time_since_start} seconds: Simulating offline worker for {self._outage_config.duration} seconds')
             time.sleep(self._outage_config.duration)
+            log.info(f'Worker back online')
 
         return self._req_work()
 

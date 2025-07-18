@@ -3,7 +3,7 @@ from dataclasses import dataclass
 
 @dataclass
 class OutageConfig:
-    frames_until_outage: int
+    time_until_outage: float
     duration: float
 
 

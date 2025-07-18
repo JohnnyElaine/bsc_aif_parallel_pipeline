@@ -165,7 +165,6 @@ class TaskGenerator(Thread):
     def _stop_request_handler(self):
         self._queue.put(Task(TaskType.END, -1, 0, np.empty(0)))
 
-
     @property
     def fps(self) -> int:
         return self._target_fps

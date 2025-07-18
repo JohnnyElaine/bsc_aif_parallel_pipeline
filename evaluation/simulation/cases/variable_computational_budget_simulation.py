@@ -105,6 +105,7 @@ class VariableComputationalBudgetSimulation(Simulation):
         video = Video(self.vid_path)
         fps = video.fps
         total_num_of_frames = video.frame_count
+        video.close()
         total_capacity = sum(regular_worker_capacities + outage_worker_capacities)
 
         # regular workers
@@ -113,8 +114,8 @@ class VariableComputationalBudgetSimulation(Simulation):
         # outage workers, i.e. worker that will temporarily halt task processing for a set amount of time to simulate an outage
         for i, capacity in enumerate(outage_worker_capacities):
             identity = i + len(regular_worker_capacities)
-            outage_config = VariableComputationalBudgetSimulation.create_outage_config(capacity, total_num_of_frames,
-                                                                                       total_capacity, fps,
+            outage_config = VariableComputationalBudgetSimulation.create_outage_config(total_num_of_frames,
+                                                                                       fps,
                                                                                        self._outage_at,
                                                                                        self._recovery_at)
             config = WorkerConfig(identity, producer_ip, producer_port, collector_ip, collector_port, capacity, outage_config=outage_config)
@@ -123,14 +124,13 @@ class VariableComputationalBudgetSimulation(Simulation):
         return workers
 
     @staticmethod
-    def create_outage_config(worker_capacity: float,
+    def create_outage_config(
                              total_num_of_tasks: int,
-                             total_capacity: float,
                              fps: int,
                              outage_at_perc: float,
                              recovery_at_perc: float) -> OutageConfig:
-        frames_until_outage = round(total_num_of_tasks * worker_capacity / total_capacity * outage_at_perc)
+        time_until_outage = (total_num_of_tasks * outage_at_perc) / fps
         duration = (total_num_of_tasks * recovery_at_perc - total_num_of_tasks * outage_at_perc) / fps
 
-        return OutageConfig(frames_until_outage, duration)
+        return OutageConfig(time_until_outage, duration)
 

@@ -113,8 +113,6 @@ class RequestHandler(Thread):
         self._worker_knowledge_base.add_change(change)
 
     def _stop_workers(self, first_worker_addr: bytes):
-        # TODO find alternate stopping condition, if not all workers are online
-
         # stop the initial request
         self._stop_worker(first_worker_addr)
 
@@ -123,6 +121,7 @@ class RequestHandler(Thread):
             address, request = self._channel.get_request()
             self._stop_worker(address)
 
+        log.debug('sent END to all workers')
         self._is_running = False
 
     def _stop_worker(self, address: bytes):

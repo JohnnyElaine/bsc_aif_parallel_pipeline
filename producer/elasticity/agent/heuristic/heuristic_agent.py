@@ -97,10 +97,6 @@ class HeuristicAgent(ElasticityAgent):
         # Handle CRITICAL SLO states first (immediate action required)
         if (queue_status == SloStatus.CRITICAL or memory_status == SloStatus.CRITICAL or 
             global_processing_status == SloStatus.CRITICAL or worker_processing_status == SloStatus.CRITICAL):
-            log.warning(f"Current state - Queue SLO: {queue_status.name} ({queue_slo_value:.3f}), "
-                      f"Memory SLO: {memory_status.name} ({memory_slo_value:.3f}), "
-                      f"Global Processing SLO: {global_processing_status.name} ({global_processing_slo_value:.3f}), "
-                      f"Worker Processing SLO: {worker_processing_status.name} ({worker_processing_slo_value:.3f})")
 
             action, success = self._handle_critical_slo()
             if success:

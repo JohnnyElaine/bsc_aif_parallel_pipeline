@@ -1,6 +1,7 @@
 import pandas as pd
 
 from evaluation.plotting.slo_stats_plot import plot_all_slo_stats
+from evaluation.plotting.worker_stats_plot import plot_all_worker_stats
 from evaluation.calc.slo_calc import calculate_and_save_slo_metrics
 from evaluation.simulation.cases.base_case_simulation import BaseCaseSimulation
 from evaluation.simulation.simulation_type import SimulationType
@@ -21,19 +22,31 @@ class Evaluation:
     LOADING_MODE = LoadingMode.EAGER
     INITIAL_INFERENCE_QUALITY = InferenceQuality.HIGH
     NUM_WORKERS = 3
-    VID_PATH = WorkerGlobalVariables.PROJECT_ROOT / 'media' / 'vid' / 'general_detection' / '1080p Video of Highway Traffic! [KBsqQez-O4w]_450_seconds.mp4'
+    VID_PATH = WorkerGlobalVariables.PROJECT_ROOT / 'media' / 'vid' / 'general_detection' / '1080p Video of Highway Traffic! [KBsqQez-O4w]_450seconds.mp4'
 
     @staticmethod
     def run_all_simulations():
-        eval_agent_types = [AgentType.ACTIVE_INFERENCE_RELATIVE_CONTROL, AgentType.HEURISTIC]
+        Evaluation.run_and_plot_simulation(AgentType.ACTIVE_INFERENCE_RELATIVE_CONTROL, SimulationType.VARIABLE_COMPUTATIONAL_BUDGET)
+        Evaluation.run_and_plot_simulation(AgentType.HEURISTIC, SimulationType.VARIABLE_COMPUTATIONAL_BUDGET)
+
+        #Evaluation.run_aif_agent_simulations()
+        #Evaluation.run_heuristic_agent_simulations()
+
+    @staticmethod
+    def run_aif_agent_simulations():
         eval_sim_types = [SimulationType.BASIC, SimulationType.VARIABLE_COMPUTATIONAL_DEMAND,
                           SimulationType.VARIABLE_COMPUTATIONAL_BUDGET]
 
         for sim_type in eval_sim_types:
-            for agent_type in eval_agent_types:
-                Evaluation.run_and_plot_simulation(agent_type, sim_type)
+            Evaluation.run_and_plot_simulation(AgentType.ACTIVE_INFERENCE_RELATIVE_CONTROL, sim_type)
 
-        #Evaluation.run_and_plot_simulation(AgentType.HEURISTIC, SimulationType.BASIC)
+    @staticmethod
+    def run_heuristic_agent_simulations():
+        eval_sim_types = [SimulationType.BASIC, SimulationType.VARIABLE_COMPUTATIONAL_DEMAND,
+                          SimulationType.VARIABLE_COMPUTATIONAL_BUDGET]
+
+        for sim_type in eval_sim_types:
+            Evaluation.run_and_plot_simulation(AgentType.HEURISTIC, sim_type)
 
     @staticmethod
     def run_and_plot_simulation(agent_type: AgentType, sim_type: SimulationType):
@@ -59,8 +72,8 @@ class Evaluation:
         # Calculate and save SLO metrics
         calculate_and_save_slo_metrics(slo_stats_df, agent_type_name, sim_type_name)
         
-        worker_stats_df = stats['worker_stats']
-        #plot_all_worker_stats(worker_stats_df)
+        # Plot worker statistics
+        plot_all_worker_stats(stats['worker_stats'], agent_type_name, sim_type_name)
 
     @staticmethod
     def run_base_case_simulation(agent_type: AgentType) -> dict[str, pd.DataFrame]:
@@ -72,25 +85,6 @@ class Evaluation:
 
         return sim.run()
 
-    @staticmethod
-    def run_variable_computational_budget_simulation(agent_type: AgentType) -> dict[str, pd.DataFrame]:
-        outage_at = 0.33
-        recovery_at = 0.66
-
-        num_outage_workers = Evaluation.NUM_WORKERS // 2
-        num_regular_workers = Evaluation.NUM_WORKERS - num_outage_workers
-
-        regular_worker_capacities = [0.5]
-        outage_worker_capacities = [0.5]
-
-        sim = VariableComputationalBudgetSimulation(Evaluation.LOCALHOST, Evaluation.PRODUCER_PORT,
-                                                    Evaluation.LOCALHOST, Evaluation.COLLECTOR_PORT,
-                                                    WorkType.YOLO_DETECTION, Evaluation.LOADING_MODE,
-                                                    Evaluation.INITIAL_INFERENCE_QUALITY, agent_type,
-                                                    Evaluation.VID_PATH, regular_worker_capacities,
-                                                    outage_worker_capacities, outage_at, recovery_at)
-
-        return sim.run()
 
     @staticmethod
     def run_variable_computational_demand_simulation(agent_type: AgentType) -> dict[str, pd.DataFrame]:
@@ -121,3 +115,23 @@ class Evaluation:
         worker_stats['capacity'] = [worker_capacities[identity] for identity in worker_stats.index]
 
         return stats
+
+    @staticmethod
+    def run_variable_computational_budget_simulation(agent_type: AgentType) -> dict[str, pd.DataFrame]:
+        outage_at = 0.33
+        recovery_at = 0.66
+
+        num_outage_workers = Evaluation.NUM_WORKERS // 2
+        num_regular_workers = Evaluation.NUM_WORKERS - num_outage_workers
+
+        regular_worker_capacities = [0.5]
+        outage_worker_capacities = [0.5]
+
+        sim = VariableComputationalBudgetSimulation(Evaluation.LOCALHOST, Evaluation.PRODUCER_PORT,
+                                                    Evaluation.LOCALHOST, Evaluation.COLLECTOR_PORT,
+                                                    WorkType.YOLO_DETECTION, Evaluation.LOADING_MODE,
+                                                    Evaluation.INITIAL_INFERENCE_QUALITY, agent_type,
+                                                    Evaluation.VID_PATH, regular_worker_capacities,
+                                                    outage_worker_capacities, outage_at, recovery_at)
+
+        return sim.run()
