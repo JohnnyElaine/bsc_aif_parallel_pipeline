@@ -68,9 +68,8 @@ class SloCalculator:
     
     def _calculate_average_slo_fulfillment_rate(self, slo_stats_df: pd.DataFrame) -> float:
         """
-        Calculate the average SLO fulfillment rate across all SLOs
+        Calculate fulfillment rate for each SLO individually, then average
         """
-        # Calculate fulfillment rate for each SLO individually, then average
         individual_rates = [(slo_stats_df[col] <= 1.0).mean() for col in self.SLO_COLUMNS]
         
         return float(np.mean(individual_rates))

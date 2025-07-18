@@ -196,24 +196,24 @@ Workers send their stats during their requests (e.g., the processing time of the
 Producer tracks the average processing time of the last n frames, regardless of who processed them, using moving average. n defines the window size, e.g. 30
 
 $$
-\text{avg_processing_time} \leq \frac{1}{\text{current_fps}} \cdot \theta
+\text{avg_processing_time} \leq \frac{1}{\text{current_fps}} \cdot \varepsilon
 $$
 with $\text{current_fps}=30$ for a 30fps video. 
-Usually we set $\theta = 1$, To make sure the average processing time per tasks is at least as fast as the source video stream.
+Usually we set $\varepsilon = 1$, To make sure the average processing time per tasks is at least as fast as the source video stream.
 
 GOAL: Make sure worker are processing tasks fast enough to keep up with the input.
 
-#### Average Task Processing Time per Worker
+#### Worker with highest average Task Processing Time
 For each worker, the Producer tracks the average processing time of the last n frames, using moving average.
 
 For each Worker, the average processing time must satisfy:
 
 $$
-\text{avg_processing_time} \leq \frac{1}{\text{current_fps}} \cdot \theta
+\text{avg_processing_time} \leq \frac{1}{\text{current_fps}} \cdot \varepsilon
 $$
 
-where $\theta \geq 1$ represents additional tolerance within the frame budget $\frac{1}{\text{current\_fps}}$.
-Usually we set $\theta \geq 2$, to allow slow nodes to take up to e.g., twice as long for computing a single task.
+where $\varepsilon \geq 1$ represents additional tolerance within the frame budget $\frac{1}{\text{current\_fps}}$.
+Usually we set $\varepsilon \geq 2$, to allow slow nodes to take up to e.g., twice as long for computing a single task.
 
 GOAL: Avoid a configuration where slower workers cause the system to drop tasks (frames).  
 When a worker is below a certain threshold for processing a single \textbf{task}, then this tasks may not be used in the resulting output. 
@@ -222,7 +222,7 @@ This is because by the time the slow worker is done processing its tasks, the ou
 HOW IT IS CALCULATED:
 Take Worker with highest avg_processing_time. Calculate the value using:
 $$
-\text{SLO Value} = \frac{\text{max avg processing time}}{\frac{1}{\text{current_fps}} \cdot \theta}
+\text{SLO Value} = \frac{\text{max avg processing time}}{\frac{1}{\text{current_fps}} \cdot \varepsilon}
 $$.
 
 
@@ -312,7 +312,7 @@ The agent operates on a configurable interval (default: 1 second):
 2. **Infer States**: Update beliefs about hidden states using Bayesian inference
 3. **Infer Policies**: Evaluate potential action sequences and their expected outcomes
 4. **Act**: Sample and execute actions based on policy that minimizes expected free energy
-5. **Learn**: Update the generative model based on observed outcomes
+5. **Learn**: Update the generative model based on observed outcomes (agent.update_A(), agent.update_B())
 
 ### Producer Configuration
 The producer uses a hierarchical configuration approach via the `ProducerConfig` class that defines all operational parameters:
@@ -912,7 +912,7 @@ All simulations run on a controlled single-machine environment to ensure reprodu
 ### System Configuration
 The distributed pipeline setup consists of:
 - **1 Producer Node**: Generates video stream tasks and controls elasticity
-- **3 Worker Nodes**: Process YOLOv11 inference tasks (configurable capacities)
+- **n Worker Nodes**: Process YOLOv11 inference tasks (configurable capacities)
 - **1 Collector Node**: Aggregates processed results into output stream
 
 **Video Dataset**: Highway traffic video stream used for vehicle detection via YOLOv11 inference. The video provides realistic computational workload with varying scene complexity throughout the timeline.
@@ -971,7 +971,8 @@ The evaluation framework implements three distinct simulation scenarios to test 
 
 **Expected Behavior**:
 - **25% mark**: Agents should detect increased demand and preemptively reduce quality parameters
-- **75% mark**: Agents should detect reduced demand and restore higher quality parameters
+- **50% mark**: Agents should detect minor decrease demand and slightly increase reduce quality parameters
+- **75% mark**: Agents should detect baseline demand and restore higher quality parameters
 - Tests scalability and load management capabilities
 
 ### Metrics and Performance Analysis
@@ -1056,8 +1057,6 @@ Supports effective sending of numpy arrays using this [functionality](https://py
 [pgmpy](https://pgmpy.org/) used in in [intelligentVehicle](https://github.com/borissedlak/intelligentVehicle)
 ## Serialization
 [msgpack](https://msgpack.org/index.html) because the result is slightly smaller than [pickle](https://docs.python.org/3/library/pickle.html) and has similar performance in serialization speed for this use case.
-## Reinforcement Learning (RL) Library
-[stable-baselines3](https://stable-baselines3.readthedocs.io/en/master/)
 ## Plotting
 [matplotlib](https://matplotlib.org/) and [seaborn](https://seaborn.pydata.org/)
 ## Date collection
