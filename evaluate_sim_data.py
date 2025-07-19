@@ -128,10 +128,7 @@ def evaluate():
 
     # Step 4: For each simulation type, compare the calculated values between agents
     comparison_df = compare_agent_metrics(metrics_df)
-    
-    # Save comparison results if available
-    if comparison_df is not None and not comparison_df.empty:
-        save_comparison_results(comparison_df)
+    save_comparison_results(comparison_df)
     
 
 if __name__ == "__main__":

@@ -18,7 +18,9 @@ class MetricComparator:
             metrics_df: Multi-indexed DataFrame with metrics
             
         Returns:
-            DataFrame with percentage differences between AIF and Heuristic agents
+            Long format DataFrame with:
+            - Index: simulation_type, value_type
+            - Columns: Each metric as a separate column
         """
         comparison_results = []
         
@@ -39,17 +41,74 @@ class MetricComparator:
                 print(f"Warning: Missing data for simulation type '{sim_type}'")
                 continue
         
-        # Create DataFrame with results
-        if comparison_results:
-            comparison_df = pd.DataFrame(comparison_results)
-            comparison_df = comparison_df.set_index('simulation_type')
-            return comparison_df
-        else:
-            return pd.DataFrame()
+        comparison_df = pd.DataFrame(comparison_results)
+        comparison_df = comparison_df.set_index('simulation_type')
+
+        # Convert from wide to long format
+        print(comparison_df)
+        comparison_df_long = self._convert_to_long_format(comparison_df)
+        print(comparison_df_long)
+        return comparison_df_long
+    
+    def _convert_to_long_format(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Convert the wide format DataFrame to long format for better analysis
+        
+        Args:
+            df: Wide format DataFrame with columns like 'metric_name_agent_type'
+            
+        Returns:
+            Long format DataFrame with separate columns for metric, agent_type, and value_type
+        """
+        # Extract unique metric names by removing the suffixes
+        metrics = set()
+        for col in df.columns:
+            # Remove the suffixes '_aif_agent', '_heuristic', '_delta'
+            if col.endswith('_aif_agent'):
+                metrics.add(col.replace('_aif_agent', ''))
+            elif col.endswith('_heuristic'):
+                metrics.add(col.replace('_heuristic', ''))
+            elif col.endswith('_delta'):
+                metrics.add(col.replace('_delta', ''))
+        
+        # Create lists to store the reshaped data
+        sim_types = []
+        value_types = []
+        metric_data = {metric: [] for metric in metrics}
+        
+        # Iterate through each simulation type (index)
+        for sim_type in df.index:
+            # For each value type (aif_agent, heuristic, delta)
+            for value_type in ['aif_agent', 'heuristic', 'delta']:
+                sim_types.append(sim_type)
+                value_types.append(value_type)
+                
+                # For each metric, get the corresponding value
+                for metric in metrics:
+                    col_name = f'{metric}_{value_type}'
+                    if col_name in df.columns:
+                        metric_data[metric].append(df.loc[sim_type, col_name])
+                    else:
+                        metric_data[metric].append(None)
+        
+        # Create the long format DataFrame
+        long_data = {
+            'simulation_type': sim_types,
+            'value_type': value_types,
+        }
+        # Add all the metric columns
+        long_data.update(metric_data)
+        
+        # Create DataFrame and set multi-index
+        df_long = pd.DataFrame(long_data)
+        df_final = df_long.set_index(['simulation_type', 'value_type']).sort_index()
+        
+        return df_final
     
     def calculate_percentage_differences(self, aif_metrics: pd.Series, heuristic_metrics: pd.Series, sim_type: str) -> Dict[str, Any]:
         """
         Calculate percentage difference between AIF and Heuristic agent metrics
+        Also includes the original values from both agents
         
         Formula: ((AIF_value - Heuristic_value) / Heuristic_value) * 100
         """
@@ -69,16 +128,20 @@ class MetricComparator:
                 not isinstance(heuristic_value, (int, float))):
                 continue
             
+            # Store original values
+            differences[f'{metric_name}_aif_agent'] = round(aif_value, 4)
+            differences[f'{metric_name}_heuristic'] = round(heuristic_value, 4)
+            
             # Calculate percentage difference
             if heuristic_value != 0:
                 percentage_diff = ((aif_value - heuristic_value) / heuristic_value) * 100
-                differences[f'{metric_name}_percent_diff'] = round(percentage_diff, 4)
+                differences[f'{metric_name}_delta'] = round(percentage_diff, 4)
             else:
                 # Handle division by zero
                 if aif_value == 0:
-                    differences[f'{metric_name}_percent_diff'] = 0.0
+                    differences[f'{metric_name}_delta'] = 0.0
                 else:
-                    differences[f'{metric_name}_percent_diff'] = float('inf') if aif_value > 0 else float('-inf')
+                    differences[f'{metric_name}_delta'] = float('inf') if aif_value > 0 else float('-inf')
         
         return differences
 
@@ -91,22 +154,11 @@ def compare_agent_metrics(metrics_df: pd.DataFrame) -> pd.DataFrame:
         metrics_df: Multi-indexed DataFrame with simulation metrics
         
     Returns:
-        DataFrame with percentage differences between agents
+        Long format DataFrame with:
+        - Index: simulation_type, value_type (aif_agent/heuristic/delta)
+        - Columns: Each metric as a separate column
     """
-    if metrics_df is None or metrics_df.empty:
-        print("Error: No metrics data provided for comparison")
-        return pd.DataFrame()
-    
     comparator = MetricComparator()
     comparison_df = comparator.compare_all_simulations(metrics_df)
-    
-    if not comparison_df.empty:
-        print(f"Comparison completed for {len(comparison_df)} simulation types")
-        return comparison_df
-    else:
-        print("Warning: No comparison results generated")
-        return pd.DataFrame()
 
-
-if __name__ == "__main__":
-    compare_agent_metrics()
+    return comparison_df
