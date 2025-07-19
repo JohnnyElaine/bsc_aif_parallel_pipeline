@@ -59,18 +59,11 @@ def create_all_metrics_dataframe(metrics_data: list) -> pd.DataFrame:
     metrics_df = metrics_df.set_index(['simulation_type', 'agent_type'])
     return metrics_df
 
-def save_all_metrics_df(metrics_df: pd.DataFrame) -> None:
-    csv_path = EvaluationUtils.get_consolidated_filepath(DirectoryType.OUTPUT, "consolidated_metrics", "csv")
-    EvaluationUtils.ensure_directory_exists(csv_path)
-    metrics_df.to_csv(csv_path)
-
-
 def save_comparison_results(comparison_df: pd.DataFrame) -> None:
     """Save the comparison results DataFrame to files"""
     csv_path = EvaluationUtils.get_consolidated_filepath(DirectoryType.OUTPUT, "agent_comparison_results", "csv")
     EvaluationUtils.ensure_directory_exists(csv_path)
     comparison_df.to_csv(csv_path)
-
 
 def load_simulation_data(agent_type: AgentType, sim_type: SimulationType) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
@@ -132,7 +125,6 @@ def evaluate():
 
     # Step 3: Create multi-indexed DataFrame
     metrics_df = create_all_metrics_dataframe(metrics_data)
-    save_all_metrics_df(metrics_df)
 
     # Step 4: For each simulation type, compare the calculated values between agents
     comparison_df = compare_agent_metrics(metrics_df)
