@@ -3,6 +3,8 @@ import numpy as np
 import os
 import json
 from typing import Dict, Any
+from producer.enums.agent_type import AgentType
+from evaluation.simulation.simulation_type import SimulationType
 
 
 class SloCalculator:
@@ -280,3 +282,36 @@ def calculate_and_save_slo_metrics(slo_stats_df: pd.DataFrame, agent_type_name: 
     calculator.save_metrics(metrics)
 
     return metrics
+
+
+def calculate_and_save_slo_metrics_from_file(agent_type: AgentType, sim_type: SimulationType, data_dir: str = "out/sim-data") -> Dict[str, Any]:
+    """
+    Load SLO statistics from file and calculate metrics
+    
+    Args:
+        agent_type: The agent type enum
+        sim_type: The simulation type enum
+        data_dir: Directory where statistics files are stored
+        
+    Returns:
+        Dictionary containing all calculated metrics or None if file not found
+    """
+    agent_type_name = agent_type.name.lower()
+    sim_type_name = sim_type.name.lower()
+    
+    # Load SLO statistics from file
+    filepath = os.path.join(data_dir, f'{sim_type_name}_sim', f'{agent_type_name}_slo_stats.parquet')
+    
+    try:
+        slo_stats_df = pd.read_parquet(filepath)
+        print(f"Loaded SLO statistics from: {filepath}")
+        
+        # Calculate and save metrics
+        return calculate_and_save_slo_metrics(slo_stats_df, agent_type_name, sim_type_name)
+        
+    except FileNotFoundError:
+        print(f"Error: SLO statistics file not found: {filepath}")
+        return None
+    except Exception as e:
+        print(f"Error loading SLO statistics from {filepath}: {e}")
+        return None

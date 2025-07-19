@@ -1,8 +1,6 @@
 import pandas as pd
+import os
 
-from evaluation.plotting.slo_stats_plot import plot_all_slo_stats
-from evaluation.plotting.worker_stats_plot import plot_all_worker_stats
-from evaluation.calc.slo_calc import calculate_and_save_slo_metrics
 from evaluation.simulation.cases.base_case_simulation import BaseCaseSimulation
 from evaluation.simulation.simulation_type import SimulationType
 from evaluation.simulation.cases.variable_computational_budget_simulation import VariableComputationalBudgetSimulation
@@ -14,7 +12,7 @@ from producer.enums.agent_type import AgentType
 from worker.global_variables import WorkerGlobalVariables
 
 
-class Evaluation:
+class RunSimulation:
 
     PRODUCER_PORT = 10000
     COLLECTOR_PORT = 10001
@@ -27,7 +25,7 @@ class Evaluation:
 
     @staticmethod
     def run_all_simulations():
-        Evaluation.run_aif_agent_simulations()
+        RunSimulation.run_aif_agent_simulations()
         #Evaluation.run_heuristic_agent_simulations()
 
     @staticmethod
@@ -36,7 +34,7 @@ class Evaluation:
                           SimulationType.VARIABLE_COMPUTATIONAL_BUDGET]
 
         for sim_type in eval_sim_types:
-            Evaluation.run_and_plot_simulation(AgentType.ACTIVE_INFERENCE_RELATIVE_CONTROL, sim_type)
+            RunSimulation.run(AgentType.ACTIVE_INFERENCE_RELATIVE_CONTROL, sim_type)
 
     @staticmethod
     def run_heuristic_agent_simulations():
@@ -44,42 +42,54 @@ class Evaluation:
                           SimulationType.VARIABLE_COMPUTATIONAL_BUDGET]
 
         for sim_type in eval_sim_types:
-            Evaluation.run_and_plot_simulation(AgentType.HEURISTIC, sim_type)
+            RunSimulation.run(AgentType.HEURISTIC, sim_type)
 
     @staticmethod
-    def run_and_plot_simulation(agent_type: AgentType, sim_type: SimulationType):
+    def run(agent_type: AgentType, sim_type: SimulationType):
         stats = None
         match sim_type:
             case SimulationType.BASIC:
-                stats = Evaluation.run_base_case_simulation(agent_type)
+                stats = RunSimulation.run_base_case_simulation(agent_type)
             case SimulationType.VARIABLE_COMPUTATIONAL_BUDGET:
-                stats = Evaluation.run_variable_computational_budget_simulation(agent_type)
+                stats = RunSimulation.run_variable_computational_budget_simulation(agent_type)
             case SimulationType.VARIABLE_COMPUTATIONAL_DEMAND:
-                stats = Evaluation.run_variable_computational_demand_simulation(agent_type)
+                stats = RunSimulation.run_variable_computational_demand_simulation(agent_type)
             case _:
                 raise ValueError('Unknown SimulationType')
 
-        slo_stats_df = stats['slo_stats']
+        RunSimulation.save_simulation_statistics(stats['slo_stats'], stats['worker_stats'], agent_type, sim_type)
+
+    @staticmethod
+    def save_simulation_statistics(slo_stats_df: pd.DataFrame, worker_stats_df: pd.DataFrame, agent_type: AgentType, sim_type: SimulationType, output_dir: str = "out/sim-data"):
+        """
+        Save simulation statistics to files for later analysis
         
-        # Create descriptive names for the plots
+        Args:
+            slo_stats_df: DataFrame containing SLO statistics
+            worker_stats_df: DataFrame containing worker statistics
+            agent_type: The agent type enum
+            sim_type: The simulation type enum
+            output_dir: Directory to save statistics files
+        """
         agent_type_name = agent_type.name.lower()
         sim_type_name = sim_type.name.lower()
         
-        plot_all_slo_stats(slo_stats_df, agent_type_name, sim_type_name)
+        dir_path = os.path.join(output_dir, f'{sim_type_name}_sim')
+        os.makedirs(dir_path, exist_ok=True)
         
-        # Calculate and save SLO metrics
-        calculate_and_save_slo_metrics(slo_stats_df, agent_type_name, sim_type_name)
+        slo_stats_filepath = os.path.join(dir_path, f'{agent_type_name}_slo_stats.parquet')
+        slo_stats_df.to_parquet(slo_stats_filepath, index=True)
         
-        # Plot worker statistics
-        plot_all_worker_stats(stats['worker_stats'], agent_type_name, sim_type_name)
+        worker_stats_filepath = os.path.join(dir_path, f'{agent_type_name}_worker_stats.parquet')
+        worker_stats_df.to_parquet(worker_stats_filepath, index=True)
 
     @staticmethod
     def run_base_case_simulation(agent_type: AgentType) -> dict[str, pd.DataFrame]:
         worker_capacities = [0.6, 0.5, 0.4]
 
-        sim = BaseCaseSimulation(Evaluation.LOCALHOST, Evaluation.PRODUCER_PORT, Evaluation.LOCALHOST,
-                                 Evaluation.COLLECTOR_PORT, WorkType.YOLO_DETECTION, Evaluation.LOADING_MODE,
-                                 Evaluation.INITIAL_INFERENCE_QUALITY, agent_type, Evaluation.VID_PATH, worker_capacities)
+        sim = BaseCaseSimulation(RunSimulation.LOCALHOST, RunSimulation.PRODUCER_PORT, RunSimulation.LOCALHOST,
+                                 RunSimulation.COLLECTOR_PORT, WorkType.YOLO_DETECTION, RunSimulation.LOADING_MODE,
+                                 RunSimulation.INITIAL_INFERENCE_QUALITY, agent_type, RunSimulation.VID_PATH, worker_capacities)
 
         return sim.run()
 
@@ -99,11 +109,11 @@ class Evaluation:
         ]
 
         sim = VariableComputationalDemandSimulation(
-            Evaluation.LOCALHOST, Evaluation.PRODUCER_PORT,
-            Evaluation.LOCALHOST, Evaluation.COLLECTOR_PORT,
-            WorkType.YOLO_DETECTION, Evaluation.LOADING_MODE,
-            Evaluation.INITIAL_INFERENCE_QUALITY, agent_type,
-            Evaluation.VID_PATH, worker_capacities,
+            RunSimulation.LOCALHOST, RunSimulation.PRODUCER_PORT,
+            RunSimulation.LOCALHOST, RunSimulation.COLLECTOR_PORT,
+            WorkType.YOLO_DETECTION, RunSimulation.LOADING_MODE,
+            RunSimulation.INITIAL_INFERENCE_QUALITY, agent_type,
+            RunSimulation.VID_PATH, worker_capacities,
             stream_multiplier_schedule
         )
 
@@ -120,17 +130,17 @@ class Evaluation:
         outage_at = 0.33
         recovery_at = 0.66
 
-        num_outage_workers = Evaluation.NUM_WORKERS // 2
-        num_regular_workers = Evaluation.NUM_WORKERS - num_outage_workers
+        num_outage_workers = RunSimulation.NUM_WORKERS // 2
+        num_regular_workers = RunSimulation.NUM_WORKERS - num_outage_workers
 
         regular_worker_capacities = [0.5]
         outage_worker_capacities = [0.5]
 
-        sim = VariableComputationalBudgetSimulation(Evaluation.LOCALHOST, Evaluation.PRODUCER_PORT,
-                                                    Evaluation.LOCALHOST, Evaluation.COLLECTOR_PORT,
-                                                    WorkType.YOLO_DETECTION, Evaluation.LOADING_MODE,
-                                                    Evaluation.INITIAL_INFERENCE_QUALITY, agent_type,
-                                                    Evaluation.VID_PATH, regular_worker_capacities,
+        sim = VariableComputationalBudgetSimulation(RunSimulation.LOCALHOST, RunSimulation.PRODUCER_PORT,
+                                                    RunSimulation.LOCALHOST, RunSimulation.COLLECTOR_PORT,
+                                                    WorkType.YOLO_DETECTION, RunSimulation.LOADING_MODE,
+                                                    RunSimulation.INITIAL_INFERENCE_QUALITY, agent_type,
+                                                    RunSimulation.VID_PATH, regular_worker_capacities,
                                                     outage_worker_capacities, outage_at, recovery_at)
 
         return sim.run()

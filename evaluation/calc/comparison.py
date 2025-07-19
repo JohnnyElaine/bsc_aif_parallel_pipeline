@@ -1,6 +1,6 @@
 import json
 import os
-from typing import Dict, Any, List
+from typing import Any
 
 # TODO make this into latex table
 class MetricComparator:
@@ -34,7 +34,7 @@ class MetricComparator:
         # Save comparison results
         self.save_comparison(comparison, sim_type)
     
-    def load_metrics(self, agent_type: str, sim_type: str) -> Dict[str, Any]:
+    def load_metrics(self, agent_type: str, sim_type: str) -> dict[str, Any]:
         """Load metrics from JSON file for a specific agent type and simulation type"""
         filepath = os.path.join(self.metrics_dir, f'{sim_type}_sim', f'{agent_type}_metrics.json')
         
@@ -48,7 +48,7 @@ class MetricComparator:
             print(f"Error: Could not parse JSON file {filepath}: {e}")
             return {}
     
-    def calculate_comparison(self, aif_metrics: Dict[str, Any], heuristic_metrics: Dict[str, Any], sim_type: str) -> Dict[str, Any]:
+    def calculate_comparison(self, aif_metrics: dict[str, Any], heuristic_metrics: dict[str, Any], sim_type: str) -> Dict[str, Any]:
         """
         Calculate percentage difference between AIF and Heuristic agent metrics
         
@@ -116,7 +116,7 @@ class MetricComparator:
         
         return comparison
     
-    def save_comparison(self, comparison: Dict[str, Any], sim_type: str):
+    def save_comparison(self, comparison: dict[str, Any], sim_type: str):
         """Save comparison results to JSON file"""
         # Create output directory
         dir_path = os.path.join(self.output_dir, f'{sim_type}_sim')
