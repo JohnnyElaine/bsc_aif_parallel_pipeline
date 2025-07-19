@@ -53,13 +53,13 @@ def get_metrics_for_combination(sim_type: SimulationType, agent_type: AgentType,
         return None
 
 
-def create_consolidated_metrics_dataframe(metrics_data: list) -> pd.DataFrame:
+def create_all_metrics_dataframe(metrics_data: list) -> pd.DataFrame:
     metrics_df = pd.DataFrame(metrics_data)
     # Set multi-index with simulation_type as level 0 and agent_type as level 1
     metrics_df = metrics_df.set_index(['simulation_type', 'agent_type'])
     return metrics_df
 
-def save_consolidated_metrics(metrics_df: pd.DataFrame, output_dir: str = 'out') -> None:
+def save_all_metrics_df(metrics_df: pd.DataFrame) -> None:
     csv_path = EvaluationUtils.get_consolidated_filepath(DirectoryType.OUTPUT, "consolidated_metrics", "csv")
     EvaluationUtils.ensure_directory_exists(csv_path)
     metrics_df.to_csv(csv_path)
@@ -130,10 +130,9 @@ def evaluate():
             metrics_row['agent_type'] = agent_type.name.lower()
             metrics_data.append(metrics_row)
 
-    
     # Step 3: Create multi-indexed DataFrame
-    metrics_df = create_consolidated_metrics_dataframe(metrics_data)
-    save_consolidated_metrics(metrics_df)
+    metrics_df = create_all_metrics_dataframe(metrics_data)
+    save_all_metrics_df(metrics_df)
 
     # Step 4: For each simulation type, compare the calculated values between agents
     comparison_df = compare_agent_metrics(metrics_df)

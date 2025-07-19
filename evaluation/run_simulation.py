@@ -73,14 +73,9 @@ class RunSimulation:
             sim_type: The simulation type enum
             output_dir: Directory to save statistics files
         """
-        agent_type_name = agent_type.name.lower()
-        sim_type_name = sim_type.name.lower()
-        
-        # Use EvaluationUtils for consistent filepath creation
         slo_stats_filepath = EvaluationUtils.get_filepath(DirectoryType.SIM_DATA, sim_type, agent_type, "slo_stats", "csv")
         worker_stats_filepath = EvaluationUtils.get_filepath(DirectoryType.SIM_DATA, sim_type, agent_type, "worker_stats", "csv")
         
-        # Ensure directories exist
         EvaluationUtils.ensure_directory_exists(slo_stats_filepath)
         EvaluationUtils.ensure_directory_exists(worker_stats_filepath)
         
