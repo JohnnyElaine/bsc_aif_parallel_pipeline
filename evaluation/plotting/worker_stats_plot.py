@@ -19,36 +19,6 @@ def plot_all_worker_stats(worker_stats: pd.DataFrame, agent_type: AgentType, sim
     
     plot_task_distribution_pie(worker_stats, task_distribution_filepath)
 
-
-def plot_all_worker_stats_from_file(agent_type: AgentType, sim_type: SimulationType, data_dir: str = "out/sim-data", output_dir: str = "out/img"):
-    """
-    Load worker statistics from file and generate plots
-    
-    Args:
-        agent_type: The agent type enum
-        sim_type: The simulation type enum
-        data_dir: Directory where statistics files are stored
-        output_dir: Directory to save plot files
-    """
-    agent_type_name = agent_type.name.lower()
-    sim_type_name = sim_type.name.lower()
-    
-    # Load worker statistics from file
-    filepath = os.path.join(data_dir, f'{sim_type_name}', f'{agent_type_name}_worker_stats.parquet')
-    
-    try:
-        worker_stats_df = pd.read_parquet(filepath)
-        print(f"Loaded worker statistics from: {filepath}")
-        
-        # Generate plots
-        plot_all_worker_stats(worker_stats_df, agent_type, sim_type, output_dir)
-        print(f"Generated worker plots for {agent_type_name} - {sim_type_name}")
-        
-    except FileNotFoundError:
-        print(f"Error: Worker statistics file not found: {filepath}")
-    except Exception as e:
-        print(f"Error loading worker statistics from {filepath}: {e}")
-
 def plot_task_distribution_pie(worker_stats: pd.DataFrame, filepath: str = None):
     """Plot task distribution among workers as a pie chart and save to file"""
     plt.figure(figsize=(10, 8))

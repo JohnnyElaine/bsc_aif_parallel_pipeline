@@ -21,36 +21,6 @@ def plot_all_slo_stats(slo_stats: pd.DataFrame, agent_type: AgentType, sim_type:
     plot_slo_values_over_time(slo_stats, slo_values_filepath)
     plot_quality_metrics(slo_stats, quality_metrics_filepath)
 
-
-def plot_all_slo_stats_from_file(agent_type: AgentType, sim_type: SimulationType, data_dir: str = "out/sim-data", output_dir: str = "out/img"):
-    """
-    Load SLO statistics from file and generate plots
-    
-    Args:
-        agent_type: The agent type enum
-        sim_type: The simulation type enum
-        data_dir: Directory where statistics files are stored
-        output_dir: Directory to save plot files
-    """
-    agent_type_name = agent_type.name.lower()
-    sim_type_name = sim_type.name.lower()
-    
-    # Load SLO statistics from file
-    filepath = os.path.join(data_dir, f'{sim_type_name}', f'{agent_type_name}_slo_stats.parquet')
-    
-    try:
-        slo_stats_df = pd.read_parquet(filepath)
-        print(f"Loaded SLO statistics from: {filepath}")
-        
-        # Generate plots
-        plot_all_slo_stats(slo_stats_df, agent_type, sim_type, output_dir)
-        print(f"Generated SLO plots for {agent_type_name} - {sim_type_name}")
-        
-    except FileNotFoundError:
-        print(f"Error: SLO statistics file not found: {filepath}")
-    except Exception as e:
-        print(f"Error loading SLO statistics from {filepath}: {e}")
-
 def plot_slo_values_over_time(slo_stats: pd.DataFrame, filepath: str = None):
     """Plot both SLO ratios over time with critical threshold"""
     slo_stats = slo_stats.reset_index()

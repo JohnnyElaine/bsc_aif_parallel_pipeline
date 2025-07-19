@@ -12,9 +12,10 @@ Usage:
 """
 
 import pandas as pd
-from evaluation.plotting.slo_stats_plot import plot_all_slo_stats_from_file
-from evaluation.plotting.worker_stats_plot import plot_all_worker_stats_from_file
-from evaluation.calc.slo_calc import calculate_and_save_slo_metrics_from_file
+import os
+from evaluation.plotting.slo_stats_plot import plot_all_slo_stats
+from evaluation.plotting.worker_stats_plot import plot_all_worker_stats
+from evaluation.calc.slo_calc import calculate_and_save_slo_metrics
 from evaluation.calc.comparison import compare_agent_metrics
 from producer.enums.agent_type import AgentType
 from evaluation.simulation.simulation_type import SimulationType
@@ -79,6 +80,36 @@ def save_comparison_results(comparison_df: pd.DataFrame, output_dir: str = 'out'
     comparison_df.to_csv(csv_path)
 
 
+def load_simulation_data(agent_type: AgentType, sim_type: SimulationType, data_dir: str = "out/sim-data") -> tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    Load both SLO stats and worker stats for a given agent and simulation type
+    
+    Args:
+        agent_type: The agent type enum
+        sim_type: The simulation type enum
+        data_dir: Directory where statistics files are stored
+        
+    Returns:
+        Tuple of (slo_stats_df, worker_stats_df) or (None, None) if files not found
+    """
+    agent_type_name = agent_type.name.lower()
+    sim_type_name = sim_type.name.lower()
+    
+    slo_stats_filepath = os.path.join(data_dir, f'{sim_type_name}', f'{agent_type_name}_slo_stats.parquet')
+    worker_stats_filepath = os.path.join(data_dir, f'{sim_type_name}', f'{agent_type_name}_worker_stats.parquet')
+    
+    try:
+        slo_stats_df = pd.read_parquet(slo_stats_filepath)
+        worker_stats_df = pd.read_parquet(worker_stats_filepath)
+        return slo_stats_df, worker_stats_df
+    except FileNotFoundError as e:
+        print(f"Error: Simulation data file not found: {e.filename}")
+        return None, None
+    except Exception as e:
+        print(f"Error loading simulation data: {e}")
+        return None, None
+
+
 def evaluate():
     """Run evaluation pipeline for all simulation data"""
     
@@ -88,16 +119,23 @@ def evaluate():
 
     metrics_data = []
 
-    # Step 1 & 2: Read simulation data and create plots for each simulation and agent
+    # Step 1 & 2: Load simulation data once and create plots, then calculate metrics
     for sim_type in sim_types:
         for agent_type in agent_types:
-            plot_all_slo_stats_from_file(agent_type, sim_type)
-            plot_all_worker_stats_from_file(agent_type, sim_type)
-
-            # Calculate and get the metrics
-            metrics = calculate_and_save_slo_metrics_from_file(agent_type, sim_type)
-
-            # Create a row for the DataFrame with simulation type and agent type as index
+            # Load simulation data once
+            slo_stats_df, worker_stats_df = load_simulation_data(agent_type, sim_type)
+            
+            if slo_stats_df is None or worker_stats_df is None:
+                print(f"Skipping {agent_type.name}/{sim_type.name} due to missing data")
+                continue
+            
+            # Create plots using the loaded data
+            plot_all_slo_stats(slo_stats_df, agent_type, sim_type)
+            plot_all_worker_stats(worker_stats_df, agent_type, sim_type)
+            
+            # Calculate metrics using the loaded data
+            metrics = calculate_and_save_slo_metrics(slo_stats_df, agent_type.name.lower(), sim_type.name.lower())
+            
             metrics_row = metrics.copy()
             metrics_row['simulation_type'] = sim_type.name.lower()
             metrics_row['agent_type'] = agent_type.name.lower()
@@ -114,6 +152,7 @@ def evaluate():
     # Save comparison results if available
     if comparison_df is not None and not comparison_df.empty:
         save_comparison_results(comparison_df)
+    
 
 if __name__ == "__main__":
     evaluate()
