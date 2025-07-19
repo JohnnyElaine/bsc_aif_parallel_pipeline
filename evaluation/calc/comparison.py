@@ -15,12 +15,13 @@ class MetricComparator:
         Compare metrics between agent types for all simulation types
         
         Args:
-            metrics_df: Multi-indexed DataFrame with metrics
+            metrics_df: Multi-indexed DataFrame with metrics indexed by (simulation_type, agent_type)
             
         Returns:
             Long format DataFrame with:
-            - Index: simulation_type, value_type
-            - Columns: Each metric as a separate column
+            - Index: simulation_type, metric_name
+            - Columns: 'aif_agent', 'heuristic', 'delta'
+            - Access pattern: df.loc[(sim_type, metric_name)] returns Series with 3 values
         """
         comparison_results = []
         
@@ -30,10 +31,11 @@ class MetricComparator:
         for sim_type in sim_types:
             try:
                 # Get metrics for both agents for this simulation type
+                # These contain the original metric values from the input metrics_df
                 aif_metrics = metrics_df.loc[(sim_type, 'active_inference_relative_control')]
                 heuristic_metrics = metrics_df.loc[(sim_type, 'heuristic')]
                 
-                # Calculate percentage differences
+                # Calculate percentage differences and store all three value types
                 differences = self.calculate_percentage_differences(aif_metrics, heuristic_metrics, sim_type)
                 comparison_results.append(differences)
                 
@@ -45,7 +47,7 @@ class MetricComparator:
         comparison_df = comparison_df.set_index('simulation_type')
 
         # Convert from wide to long format
-        print(comparison_df)
+        #print(comparison_df)
         comparison_df_long = self._convert_to_long_format(comparison_df)
         print(comparison_df_long)
         return comparison_df_long
@@ -55,10 +57,13 @@ class MetricComparator:
         Convert the wide format DataFrame to long format for better analysis
         
         Args:
-            df: Wide format DataFrame with columns like 'metric_name_agent_type'
+            df: Wide format DataFrame with columns like 'metric_name_aif_agent', 'metric_name_heuristic', 'metric_name_delta'
             
         Returns:
-            Long format DataFrame with separate columns for metric, agent_type, and value_type
+            Long format DataFrame where:
+            - Index: simulation_type, metric_name
+            - Columns: 'aif_agent', 'heuristic', 'delta'
+            - Access pattern: df.loc[(sim_type, metric_name)] gives you all 3 values
         """
         # Extract unique metric names by removing the suffixes
         metrics = set()
@@ -73,35 +78,39 @@ class MetricComparator:
         
         # Create lists to store the reshaped data
         sim_types = []
-        value_types = []
-        metric_data = {metric: [] for metric in metrics}
+        metric_names = []
+        aif_agent_values = []
+        heuristic_values = []
+        delta_values = []
         
         # Iterate through each simulation type (index)
         for sim_type in df.index:
-            # For each value type (aif_agent, heuristic, delta)
-            for value_type in ['aif_agent', 'heuristic', 'delta']:
+            # For each metric, create one row with all 3 values
+            for metric in metrics:
                 sim_types.append(sim_type)
-                value_types.append(value_type)
+                metric_names.append(metric)
                 
-                # For each metric, get the corresponding value
-                for metric in metrics:
-                    col_name = f'{metric}_{value_type}'
-                    if col_name in df.columns:
-                        metric_data[metric].append(df.loc[sim_type, col_name])
-                    else:
-                        metric_data[metric].append(None)
+                # Get the three values for this metric
+                aif_col = f'{metric}_aif_agent'
+                heuristic_col = f'{metric}_heuristic'
+                delta_col = f'{metric}_delta'
+                
+                aif_agent_values.append(df.loc[sim_type, aif_col] if aif_col in df.columns else None)
+                heuristic_values.append(df.loc[sim_type, heuristic_col] if heuristic_col in df.columns else None)
+                delta_values.append(df.loc[sim_type, delta_col] if delta_col in df.columns else None)
         
         # Create the long format DataFrame
         long_data = {
             'simulation_type': sim_types,
-            'value_type': value_types,
+            'metric_name': metric_names,
+            'aif_agent': aif_agent_values,
+            'heuristic': heuristic_values,
+            'delta': delta_values
         }
-        # Add all the metric columns
-        long_data.update(metric_data)
         
         # Create DataFrame and set multi-index
         df_long = pd.DataFrame(long_data)
-        df_final = df_long.set_index(['simulation_type', 'value_type']).sort_index()
+        df_final = df_long.set_index(['simulation_type', 'metric_name']).sort_index()
         
         return df_final
     
@@ -151,12 +160,13 @@ def compare_agent_metrics(metrics_df: pd.DataFrame) -> pd.DataFrame:
     Compare agent metrics across all simulation types
     
     Args:
-        metrics_df: Multi-indexed DataFrame with simulation metrics
+        metrics_df: Multi-indexed DataFrame with simulation metrics indexed by (simulation_type, agent_type)
         
     Returns:
         Long format DataFrame with:
-        - Index: simulation_type, value_type (aif_agent/heuristic/delta)
-        - Columns: Each metric as a separate column
+        - Index: simulation_type, metric_name
+        - Columns: 'aif_agent', 'heuristic', 'delta'
+        - Access pattern: df.loc[('basic', 'time_all_slo_fulfilled_simultaneously_percent')] gives you all 3 values
     """
     comparator = MetricComparator()
     comparison_df = comparator.compare_all_simulations(metrics_df)
