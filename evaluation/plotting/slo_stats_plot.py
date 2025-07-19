@@ -4,19 +4,17 @@ import seaborn as sns
 import os
 from producer.enums.agent_type import AgentType
 from evaluation.simulation.simulation_type import SimulationType
+from ..evaluation_utils import EvaluationUtils
+from ..enums.directory_type import DirectoryType
 
 def plot_all_slo_stats(slo_stats: pd.DataFrame, agent_type: AgentType, sim_type: SimulationType, output_dir: str = "out/img"):
     """Plot all SLO statistics and save to files"""
-    agent_type_name = agent_type.name.lower()
-    sim_type_name = sim_type.name.lower()
+    # Get plot filepaths from EvaluationUtils
+    slo_values_filepath = EvaluationUtils.get_filepath(DirectoryType.IMG, sim_type, agent_type, "slo_values", "png")
+    quality_metrics_filepath = EvaluationUtils.get_filepath(DirectoryType.IMG, sim_type, agent_type, "quality_metrics", "png")
     
-    # Create output directory if it doesn't exist
-    dir_path = os.path.join(output_dir, f'{sim_type_name}')
-    os.makedirs(dir_path, exist_ok=True)
-    
-    # Construct filepaths
-    slo_values_filepath = os.path.join(dir_path, f'{agent_type_name}_slo_values.png')
-    quality_metrics_filepath = os.path.join(dir_path, f'{agent_type_name}_quality_metrics.png')
+    # Ensure directory exists
+    EvaluationUtils.ensure_directory_exists(slo_values_filepath)
     
     plot_slo_values_over_time(slo_stats, slo_values_filepath)
     plot_quality_metrics(slo_stats, quality_metrics_filepath)

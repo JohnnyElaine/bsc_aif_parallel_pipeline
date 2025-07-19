@@ -10,6 +10,8 @@ from packages.enums.loading_mode import LoadingMode
 from producer.data.stream_multiplier_entry import StreamMultiplierEntry
 from producer.enums.agent_type import AgentType
 from worker.global_variables import WorkerGlobalVariables
+from evaluation.evaluation_utils import EvaluationUtils
+from evaluation.enums.directory_type import DirectoryType
 
 
 class RunSimulation:
@@ -74,13 +76,15 @@ class RunSimulation:
         agent_type_name = agent_type.name.lower()
         sim_type_name = sim_type.name.lower()
         
-        dir_path = os.path.join(output_dir, f'{sim_type_name}')
-        os.makedirs(dir_path, exist_ok=True)
+        # Use EvaluationUtils for consistent filepath creation
+        slo_stats_filepath = EvaluationUtils.get_filepath(DirectoryType.SIM_DATA, sim_type, agent_type, "slo_stats", "parquet")
+        worker_stats_filepath = EvaluationUtils.get_filepath(DirectoryType.SIM_DATA, sim_type, agent_type, "worker_stats", "parquet")
         
-        slo_stats_filepath = os.path.join(dir_path, f'{agent_type_name}_slo_stats.parquet')
+        # Ensure directories exist
+        EvaluationUtils.ensure_directory_exists(slo_stats_filepath)
+        EvaluationUtils.ensure_directory_exists(worker_stats_filepath)
+        
         slo_stats_df.to_parquet(slo_stats_filepath, index=True)
-        
-        worker_stats_filepath = os.path.join(dir_path, f'{agent_type_name}_worker_stats.parquet')
         worker_stats_df.to_parquet(worker_stats_filepath, index=True)
 
     @staticmethod

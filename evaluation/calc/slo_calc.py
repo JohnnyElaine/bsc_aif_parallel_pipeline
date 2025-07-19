@@ -5,6 +5,8 @@ import json
 from typing import Dict, Any
 from producer.enums.agent_type import AgentType
 from evaluation.simulation.simulation_type import SimulationType
+from ..evaluation_utils import EvaluationUtils
+from ..enums.directory_type import DirectoryType
 
 
 class SloCalculator:
@@ -242,11 +244,16 @@ class SloCalculator:
         agent_type = metrics['agent_type']
         sim_type = metrics['simulation_type']
         
-        dir_path = os.path.join(output_dir, f'{sim_type}')
-        os.makedirs(dir_path, exist_ok=True)
+        # Convert string names to enum instances if needed
+        if isinstance(agent_type, str):
+            agent_type = AgentType[agent_type.upper()]
+        if isinstance(sim_type, str):
+            sim_type = SimulationType[sim_type.upper()]
         
-        filename = f'{agent_type}_metrics.json'
-        filepath = os.path.join(dir_path, filename)
+        filepath = EvaluationUtils.get_filepath(DirectoryType.METRICS, sim_type, agent_type, "metrics", "json")
+        
+        # Ensure directory exists
+        EvaluationUtils.ensure_directory_exists(filepath)
         
         # Format metrics for better readability
         formatted_metrics = self._format_metrics_for_output(metrics)

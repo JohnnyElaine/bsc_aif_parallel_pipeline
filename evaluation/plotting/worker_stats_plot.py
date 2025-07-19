@@ -4,18 +4,16 @@ import seaborn as sns
 import os
 from producer.enums.agent_type import AgentType
 from evaluation.simulation.simulation_type import SimulationType
+from ..evaluation_utils import EvaluationUtils
+from ..enums.directory_type import DirectoryType
 
 def plot_all_worker_stats(worker_stats: pd.DataFrame, agent_type: AgentType, sim_type: SimulationType, output_dir: str = "out/img"):
     """Plot all worker statistics and save to files"""
-    agent_type_name = agent_type.name.lower()
-    sim_type_name = sim_type.name.lower()
+    # Get plot filepath from EvaluationUtils
+    task_distribution_filepath = EvaluationUtils.get_filepath(DirectoryType.IMG, sim_type, agent_type, "task_distribution_pie", "png")
     
-    # Create output directory if it doesn't exist
-    dir_path = os.path.join(output_dir, f'{sim_type_name}')
-    os.makedirs(dir_path, exist_ok=True)
-    
-    # Construct filepath
-    task_distribution_filepath = os.path.join(dir_path, f'{agent_type_name}_task_distribution_pie.png')
+    # Ensure directory exists
+    EvaluationUtils.ensure_directory_exists(task_distribution_filepath)
     
     plot_task_distribution_pie(worker_stats, task_distribution_filepath)
 
