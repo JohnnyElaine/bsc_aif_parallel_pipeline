@@ -13,7 +13,7 @@ class EvaluationUtils:
     @classmethod
     def get_filepath(cls, dir_type: DirectoryType, sim_type: Union[SimulationType, str], 
                      agent_type: Union[AgentType, str], suffix: str, 
-                     file_extension: str = "parquet") -> str:
+                     file_extension: str = "csv") -> str:
         """
         Build a complete filepath using directory type, simulation type, agent type, and suffix
         
@@ -22,7 +22,7 @@ class EvaluationUtils:
             sim_type: Simulation type enum or string
             agent_type: Agent type enum or string
             suffix: Suffix for the filename (e.g., "metrics", "slo_values", "worker_stats")
-            file_extension: File extension (defaults to "parquet")
+            file_extension: File extension (defaults to "csv")
             
         Returns:
             Full filepath string
@@ -40,7 +40,7 @@ class EvaluationUtils:
     
     @classmethod
     def get_consolidated_filepath(cls, dir_type: DirectoryType, filename: str, 
-                                 file_extension: str = "parquet") -> str:
+                                 file_extension: str = "csv") -> str:
         """
         Build filepath for consolidated files (not agent/sim-specific)
         

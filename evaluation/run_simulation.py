@@ -28,7 +28,7 @@ class RunSimulation:
     @staticmethod
     def run_all_simulations():
         RunSimulation.run_aif_agent_simulations()
-        #Evaluation.run_heuristic_agent_simulations()
+        RunSimulation.run_heuristic_agent_simulations()
 
     @staticmethod
     def run_aif_agent_simulations():
@@ -77,15 +77,15 @@ class RunSimulation:
         sim_type_name = sim_type.name.lower()
         
         # Use EvaluationUtils for consistent filepath creation
-        slo_stats_filepath = EvaluationUtils.get_filepath(DirectoryType.SIM_DATA, sim_type, agent_type, "slo_stats", "parquet")
-        worker_stats_filepath = EvaluationUtils.get_filepath(DirectoryType.SIM_DATA, sim_type, agent_type, "worker_stats", "parquet")
+        slo_stats_filepath = EvaluationUtils.get_filepath(DirectoryType.SIM_DATA, sim_type, agent_type, "slo_stats", "csv")
+        worker_stats_filepath = EvaluationUtils.get_filepath(DirectoryType.SIM_DATA, sim_type, agent_type, "worker_stats", "csv")
         
         # Ensure directories exist
         EvaluationUtils.ensure_directory_exists(slo_stats_filepath)
         EvaluationUtils.ensure_directory_exists(worker_stats_filepath)
         
-        slo_stats_df.to_parquet(slo_stats_filepath, index=True)
-        worker_stats_df.to_parquet(worker_stats_filepath, index=True)
+        slo_stats_df.to_csv(slo_stats_filepath, index=True)
+        worker_stats_df.to_csv(worker_stats_filepath, index=True)
 
     @staticmethod
     def run_base_case_simulation(agent_type: AgentType) -> dict[str, pd.DataFrame]:

@@ -12,20 +12,20 @@ Usage:
 """
 
 import pandas as pd
-import os
+
+from evaluation.calc.comparison import compare_agent_metrics
+from evaluation.calc.slo_calc import calculate_and_save_slo_metrics
+from evaluation.enums.directory_type import DirectoryType
+from evaluation.evaluation_utils import EvaluationUtils
 from evaluation.plotting.slo_stats_plot import plot_all_slo_stats
 from evaluation.plotting.worker_stats_plot import plot_all_worker_stats
-from evaluation.calc.slo_calc import calculate_and_save_slo_metrics
-from evaluation.calc.comparison import compare_agent_metrics
-from producer.enums.agent_type import AgentType
 from evaluation.simulation.simulation_type import SimulationType
-from evaluation.evaluation_utils import EvaluationUtils
-from evaluation.enums.directory_type import DirectoryType
+from producer.enums.agent_type import AgentType
 
 
-def load_consolidated_metrics(filepath: str = 'out/consolidated_metrics.parquet') -> pd.DataFrame:
+def load_consolidated_metrics(filepath: str = 'out/consolidated_metrics.csv') -> pd.DataFrame:
     try:
-        df = pd.read_parquet(filepath)
+        df = pd.read_csv(filepath, index_col=[0, 1])
         return df
     except FileNotFoundError:
         print(f"Error: Consolidated metrics file not found: {filepath}")
@@ -60,16 +60,16 @@ def create_consolidated_metrics_dataframe(metrics_data: list) -> pd.DataFrame:
     return metrics_df
 
 def save_consolidated_metrics(metrics_df: pd.DataFrame, output_dir: str = 'out') -> None:
-    parquet_path = EvaluationUtils.get_consolidated_filepath(DirectoryType.OUTPUT, "consolidated_metrics", "parquet")
-    EvaluationUtils.ensure_directory_exists(parquet_path)
-    metrics_df.to_parquet(parquet_path)
+    csv_path = EvaluationUtils.get_consolidated_filepath(DirectoryType.OUTPUT, "consolidated_metrics", "csv")
+    EvaluationUtils.ensure_directory_exists(csv_path)
+    metrics_df.to_csv(csv_path)
 
 
 def save_comparison_results(comparison_df: pd.DataFrame) -> None:
     """Save the comparison results DataFrame to files"""
-    parquet_path = EvaluationUtils.get_consolidated_filepath(DirectoryType.OUTPUT, "agent_comparison_results", "parquet")
-    EvaluationUtils.ensure_directory_exists(parquet_path)
-    comparison_df.to_parquet(parquet_path)
+    csv_path = EvaluationUtils.get_consolidated_filepath(DirectoryType.OUTPUT, "agent_comparison_results", "csv")
+    EvaluationUtils.ensure_directory_exists(csv_path)
+    comparison_df.to_csv(csv_path)
 
 
 def load_simulation_data(agent_type: AgentType, sim_type: SimulationType) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -84,12 +84,12 @@ def load_simulation_data(agent_type: AgentType, sim_type: SimulationType) -> tup
     Returns:
         Tuple of (slo_stats_df, worker_stats_df) or (None, None) if files not found
     """
-    slo_stats_filepath = EvaluationUtils.get_filepath(DirectoryType.SIM_DATA, sim_type, agent_type, "slo_stats", "parquet")
-    worker_stats_filepath = EvaluationUtils.get_filepath(DirectoryType.SIM_DATA, sim_type, agent_type, "worker_stats", "parquet")
+    slo_stats_filepath = EvaluationUtils.get_filepath(DirectoryType.SIM_DATA, sim_type, agent_type, "slo_stats", "csv")
+    worker_stats_filepath = EvaluationUtils.get_filepath(DirectoryType.SIM_DATA, sim_type, agent_type, "worker_stats", "csv")
     
     try:
-        slo_stats_df = pd.read_parquet(slo_stats_filepath)
-        worker_stats_df = pd.read_parquet(worker_stats_filepath)
+        slo_stats_df = pd.read_csv(slo_stats_filepath, index_col=0)
+        worker_stats_df = pd.read_csv(worker_stats_filepath, index_col=0)
         return slo_stats_df, worker_stats_df
     except FileNotFoundError as e:
         print(f"Error: Simulation data file not found: {e.filename}")
