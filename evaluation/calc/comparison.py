@@ -2,12 +2,15 @@ import json
 import os
 from typing import Any
 
+from evaluation.simulation.simulation_type import SimulationType
+
+
 # TODO make this into latex table
 class MetricComparator:
     """Compare metrics between different agent types for each simulation type"""
     
     AGENT_TYPES = ['active_inference_relative_control', 'heuristic']
-    SIMULATION_TYPES = ['basic', 'variable_computational_demand', 'variable_computational_budget']
+    SIMULATION_TYPES = [SimulationType.BASIC.name.lower(), SimulationType.VARIABLE_COMPUTATIONAL_DEMAND.name.lower(), SimulationType.VARIABLE_COMPUTATIONAL_BUDGET.name.lower()]
     
     def __init__(self, metrics_dir: str = "out/metrics", output_dir: str = "out/comparison"):
         self.metrics_dir = metrics_dir
@@ -36,7 +39,7 @@ class MetricComparator:
     
     def load_metrics(self, agent_type: str, sim_type: str) -> dict[str, Any]:
         """Load metrics from JSON file for a specific agent type and simulation type"""
-        filepath = os.path.join(self.metrics_dir, f'{sim_type}_sim', f'{agent_type}_metrics.json')
+        filepath = os.path.join(self.metrics_dir, f'{sim_type}', f'{agent_type}_metrics.json')
         
         try:
             with open(filepath, 'r') as f:
@@ -119,7 +122,7 @@ class MetricComparator:
     def save_comparison(self, comparison: dict[str, Any], sim_type: str):
         """Save comparison results to JSON file"""
         # Create output directory
-        dir_path = os.path.join(self.output_dir, f'{sim_type}_sim')
+        dir_path = os.path.join(self.output_dir, f'{sim_type}')
         os.makedirs(dir_path, exist_ok=True)
         
         # Create filename following the same pattern
@@ -149,7 +152,7 @@ class MetricComparator:
         }
         
         for sim_type in self.SIMULATION_TYPES:
-            comparison_file = os.path.join(self.output_dir, f'{sim_type}_sim', 'aif_vs_heuristic_comparison.json')
+            comparison_file = os.path.join(self.output_dir, f'{sim_type}', 'aif_vs_heuristic_comparison.json')
             try:
                 with open(comparison_file, 'r') as f:
                     sim_comparison = json.load(f)

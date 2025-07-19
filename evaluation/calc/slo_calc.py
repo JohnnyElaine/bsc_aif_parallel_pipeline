@@ -242,7 +242,7 @@ class SloCalculator:
         agent_type = metrics['agent_type']
         sim_type = metrics['simulation_type']
         
-        dir_path = os.path.join(output_dir, f'{sim_type}_sim')
+        dir_path = os.path.join(output_dir, f'{sim_type}')
         os.makedirs(dir_path, exist_ok=True)
         
         filename = f'{agent_type}_metrics.json'
@@ -300,7 +300,7 @@ def calculate_and_save_slo_metrics_from_file(agent_type: AgentType, sim_type: Si
     sim_type_name = sim_type.name.lower()
     
     # Load SLO statistics from file
-    filepath = os.path.join(data_dir, f'{sim_type_name}_sim', f'{agent_type_name}_slo_stats.parquet')
+    filepath = os.path.join(data_dir, f'{sim_type_name}', f'{agent_type_name}_slo_stats.parquet')
     
     try:
         slo_stats_df = pd.read_parquet(filepath)

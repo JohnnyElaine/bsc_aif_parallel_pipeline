@@ -74,7 +74,7 @@ class RunSimulation:
         agent_type_name = agent_type.name.lower()
         sim_type_name = sim_type.name.lower()
         
-        dir_path = os.path.join(output_dir, f'{sim_type_name}_sim')
+        dir_path = os.path.join(output_dir, f'{sim_type_name}')
         os.makedirs(dir_path, exist_ok=True)
         
         slo_stats_filepath = os.path.join(dir_path, f'{agent_type_name}_slo_stats.parquet')

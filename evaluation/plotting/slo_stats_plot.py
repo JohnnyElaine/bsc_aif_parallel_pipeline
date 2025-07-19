@@ -11,7 +11,7 @@ def plot_all_slo_stats(slo_stats: pd.DataFrame, agent_type: AgentType, sim_type:
     sim_type_name = sim_type.name.lower()
     
     # Create output directory if it doesn't exist
-    dir_path = os.path.join(output_dir, f'{sim_type_name}_sim')
+    dir_path = os.path.join(output_dir, f'{sim_type_name}')
     os.makedirs(dir_path, exist_ok=True)
     
     # Construct filepaths
@@ -36,7 +36,7 @@ def plot_all_slo_stats_from_file(agent_type: AgentType, sim_type: SimulationType
     sim_type_name = sim_type.name.lower()
     
     # Load SLO statistics from file
-    filepath = os.path.join(data_dir, f'{sim_type_name}_sim', f'{agent_type_name}_slo_stats.parquet')
+    filepath = os.path.join(data_dir, f'{sim_type_name}', f'{agent_type_name}_slo_stats.parquet')
     
     try:
         slo_stats_df = pd.read_parquet(filepath)

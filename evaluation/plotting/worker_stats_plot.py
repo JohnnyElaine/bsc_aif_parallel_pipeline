@@ -11,7 +11,7 @@ def plot_all_worker_stats(worker_stats: pd.DataFrame, agent_type: AgentType, sim
     sim_type_name = sim_type.name.lower()
     
     # Create output directory if it doesn't exist
-    dir_path = os.path.join(output_dir, f'{sim_type_name}_sim')
+    dir_path = os.path.join(output_dir, f'{sim_type_name}')
     os.makedirs(dir_path, exist_ok=True)
     
     # Construct filepath
@@ -34,7 +34,7 @@ def plot_all_worker_stats_from_file(agent_type: AgentType, sim_type: SimulationT
     sim_type_name = sim_type.name.lower()
     
     # Load worker statistics from file
-    filepath = os.path.join(data_dir, f'{sim_type_name}_sim', f'{agent_type_name}_worker_stats.parquet')
+    filepath = os.path.join(data_dir, f'{sim_type_name}', f'{agent_type_name}_worker_stats.parquet')
     
     try:
         worker_stats_df = pd.read_parquet(filepath)
