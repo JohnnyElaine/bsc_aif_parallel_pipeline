@@ -64,7 +64,7 @@ def plot_quality_metrics(slo_stats, filepath: str = None):
     sns.lineplot(data=slo_stats, x='index', y='resolution_capacity',
                  label='Resolution', color='green', linewidth=2)
     sns.lineplot(data=slo_stats, x='index', y='inference_quality_capacity',
-                 label='Work Load (Pixels)', color='blue', linewidth=2)
+                 label='Inference Quality', color='blue', linewidth=2)
 
     plt.title('Quality Metrics Over Time', fontsize=16)
     plt.xlabel('Time Index', fontsize=12)

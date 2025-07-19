@@ -22,14 +22,12 @@ class Evaluation:
     LOADING_MODE = LoadingMode.EAGER
     INITIAL_INFERENCE_QUALITY = InferenceQuality.HIGH
     NUM_WORKERS = 3
-    VID_PATH = WorkerGlobalVariables.PROJECT_ROOT / 'media' / 'vid' / 'general_detection' / '1080p Video of Highway Traffic! [KBsqQez-O4w]_450seconds.mp4'
+    #VID_PATH = WorkerGlobalVariables.PROJECT_ROOT / 'media' / 'vid' / 'general_detection' / '1080p Video of Highway Traffic! [KBsqQez-O4w]_450seconds.mp4'
+    VID_PATH = WorkerGlobalVariables.PROJECT_ROOT / 'media' / 'vid' / 'general_detection' / '1080p Video of Highway Traffic! [KBsqQez-O4w]_5seconds.mp4'
 
     @staticmethod
     def run_all_simulations():
-        Evaluation.run_and_plot_simulation(AgentType.ACTIVE_INFERENCE_RELATIVE_CONTROL, SimulationType.VARIABLE_COMPUTATIONAL_BUDGET)
-        Evaluation.run_and_plot_simulation(AgentType.HEURISTIC, SimulationType.VARIABLE_COMPUTATIONAL_BUDGET)
-
-        #Evaluation.run_aif_agent_simulations()
+        Evaluation.run_aif_agent_simulations()
         #Evaluation.run_heuristic_agent_simulations()
 
     @staticmethod
@@ -94,9 +92,10 @@ class Evaluation:
         worker_capacities = [0.8, 0.75, 0.7]
 
         stream_multiplier_schedule = [
-            StreamMultiplierEntry(0.25, 3),
-            StreamMultiplierEntry(0.5, 2),
-            StreamMultiplierEntry(0.75, 1),
+            StreamMultiplierEntry(0.2, 2),
+            StreamMultiplierEntry(0.40, 3),
+            StreamMultiplierEntry(0.6, 2),
+            StreamMultiplierEntry(0.8, 1),
         ]
 
         sim = VariableComputationalDemandSimulation(

@@ -35,7 +35,7 @@ class SloCalculator:
         """
         metrics = {'agent_type': agent_type_name, 'simulation_type': sim_type_name,
                    'total_simulation_timesteps': len(slo_stats_df),
-                   'percentage_time_all_slo_fulfilled_simultaneously_percent': self._calculate_all_slo_fullfillment_simultaneously_rate(slo_stats_df),
+                   'time_all_slo_fulfilled_simultaneously_percent': self._calculate_all_slo_fullfillment_simultaneously_rate(slo_stats_df),
                    'average_slo_fulfillment_rate_percent': self._calculate_average_slo_fulfillment_rate(slo_stats_df)}
         
 
@@ -102,11 +102,9 @@ class SloCalculator:
             base_name = col.replace("_slo_value", "")
             if len(violations) > 0:
                 metrics[f'{base_name}_avg_violation_severity_factor'] = float(violations.mean() - 1.0)
-                metrics[f'{base_name}_max_violation_severity_factor'] = float(violations.max() - 1.0)
             else:
                 metrics[f'{base_name}_average_violation_severity_factor'] = 0.0
-                metrics[f'{base_name}_maximum_violation_severity_factor'] = 0.0
-        
+
         # System stability metrics using dict comprehension
         stability_metrics = {
             f'{col.replace("_slo_value", "_stability_coefficient_of_variation")}': float(
@@ -143,10 +141,16 @@ class SloCalculator:
         Calculate statistical metrics for deeper analysis
         """
         # SLO value statistics using dict comprehension
-        return {
-            f'{col}_average': float(slo_stats_df[col].mean())
+        metrics = {
+            f'average_{col}': float(slo_stats_df[col].mean())
             for col in self.SLO_COLUMNS
         }
+        
+        # Calculate average SLO value across all 4 SLOs
+        all_slo_values = [slo_stats_df[col].mean() for col in self.SLO_COLUMNS]
+        metrics['average_slo_value_across_all_slos'] = float(np.mean(all_slo_values))
+        
+        return metrics
     
     def _calculate_max_consecutive_violations(self, slo_stats_df: pd.DataFrame) -> int:
         """
