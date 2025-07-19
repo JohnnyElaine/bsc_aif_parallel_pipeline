@@ -67,44 +67,53 @@ def save_consolidated_metrics(metrics_df: pd.DataFrame, output_dir: str = 'out')
     metrics_df.to_csv(csv_path)
 
 
+def save_comparison_results(comparison_df: pd.DataFrame, output_dir: str = 'out') -> None:
+    """Save the comparison results DataFrame to files"""
+    import os
+    os.makedirs(output_dir, exist_ok=True)
+    
+    parquet_path = os.path.join(output_dir, 'agent_comparison_results.parquet')
+    csv_path = os.path.join(output_dir, 'agent_comparison_results.csv')
+    
+    comparison_df.to_parquet(parquet_path)
+    comparison_df.to_csv(csv_path)
+
+
 def evaluate():
     """Run evaluation pipeline for all simulation data"""
     
     # Configuration using enums
     agent_types = [AgentType.ACTIVE_INFERENCE_RELATIVE_CONTROL, AgentType.HEURISTIC]
     sim_types = [SimulationType.BASIC, SimulationType.VARIABLE_COMPUTATIONAL_DEMAND, SimulationType.VARIABLE_COMPUTATIONAL_BUDGET]
-    
+
+    metrics_data = []
+
     # Step 1 & 2: Read simulation data and create plots for each simulation and agent
     for sim_type in sim_types:
         for agent_type in agent_types:
             plot_all_slo_stats_from_file(agent_type, sim_type)
             plot_all_worker_stats_from_file(agent_type, sim_type)
-    
-    # Step 3: Calculate values using slo_calc.py for each simulation and agent
-    # Create a multi-indexed DataFrame to store all metrics
-    metrics_data = []
-    
-    for sim_type in sim_types:
-        for agent_type in agent_types:
+
             # Calculate and get the metrics
             metrics = calculate_and_save_slo_metrics_from_file(agent_type, sim_type)
-            
-            if metrics is not None:
-                # Create a row for the DataFrame with simulation type and agent type as index
-                metrics_row = metrics.copy()
-                metrics_row['simulation_type'] = sim_type.name.lower()
-                metrics_row['agent_type'] = agent_type.name.lower()
-                metrics_data.append(metrics_row)
+
+            # Create a row for the DataFrame with simulation type and agent type as index
+            metrics_row = metrics.copy()
+            metrics_row['simulation_type'] = sim_type.name.lower()
+            metrics_row['agent_type'] = agent_type.name.lower()
+            metrics_data.append(metrics_row)
+
     
-    # Create multi-indexed DataFrame
+    # Step 3: Create multi-indexed DataFrame
     metrics_df = create_consolidated_metrics_dataframe(metrics_data)
     save_consolidated_metrics(metrics_df)
 
     # Step 4: For each simulation type, compare the calculated values between agents
-    compare_agent_metrics()
+    comparison_df = compare_agent_metrics(metrics_df)
     
-    return metrics_df
-
+    # Save comparison results if available
+    if comparison_df is not None and not comparison_df.empty:
+        save_comparison_results(comparison_df)
 
 if __name__ == "__main__":
-    consolidated_metrics_df = evaluate()
+    evaluate()
