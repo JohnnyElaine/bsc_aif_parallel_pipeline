@@ -19,7 +19,8 @@ def plot_all_slo_stats(slo_stats: pd.DataFrame, agent_type: AgentType, sim_type:
     _plot_slo_values_over_time(slo_stats, slo_values_filepath)
     _plot_quality_metrics(slo_stats, quality_metrics_filepath)
 
-def _plot_slo_values_over_time(slo_stats: pd.DataFrame, filepath: str = None):
+def _plot_slo_values_over_time(slo_stats: pd.DataFrame, filepath: str = None, title_prefix: str = None, 
+                              create_figure: bool = True, fontsize: int = 12):
     """Plot both SLO ratios over time with critical threshold"""
     slo_stats = slo_stats.reset_index()
     
@@ -31,7 +32,8 @@ def _plot_slo_values_over_time(slo_stats: pd.DataFrame, filepath: str = None):
     slo_stats_capped['avg_global_processing_time_slo_value'] = slo_stats_capped['avg_global_processing_time_slo_value'].clip(upper=upper_bound)
     slo_stats_capped['avg_worker_processing_time_slo_value'] = slo_stats_capped['avg_worker_processing_time_slo_value'].clip(upper=upper_bound)
 
-    plt.figure(figsize=(12, 6))
+    if create_figure:
+        plt.figure(figsize=(12, 6))
 
     sns.lineplot(data=slo_stats_capped, x='index', y='queue_size_slo_value',
                  label='Queue Size', color='blue', linewidth=2)
@@ -44,23 +46,31 @@ def _plot_slo_values_over_time(slo_stats: pd.DataFrame, filepath: str = None):
 
     plt.axhline(y=1, color='black', linestyle='--', linewidth=2,
                 label='SLO Fulfillment Threshold')
-    plt.title(f'SLO Values Over Time', fontsize=16)
+    
+    # Set title based on whether it's a subplot or standalone
+    title = f'{title_prefix} - SLO Values Over Time' if title_prefix else 'SLO Values Over Time'
+    title_fontsize = 14 if title_prefix else 16
+    plt.title(title, fontsize=title_fontsize)
     plt.xlabel('Time Index', fontsize=12)
     plt.ylabel('Ratio Value', fontsize=12)
-    plt.legend(fontsize=12)
+    plt.legend(fontsize=fontsize)
     plt.grid(True, alpha=0.3)
-    plt.tight_layout()
+    
+    if create_figure:
+        plt.tight_layout()
 
-    if filepath:
+    if filepath and create_figure:
         save_plot(filepath)
-    else:
+    elif not filepath and create_figure:
         plt.show()
 
-def _plot_quality_metrics(slo_stats, filepath: str = None):
+def _plot_quality_metrics(slo_stats, filepath: str = None, title_prefix: str = None, 
+                         create_figure: bool = True, fontsize: int = 12):
     """Plot capacity metrics over time"""
     slo_stats = slo_stats.reset_index()
 
-    plt.figure(figsize=(12, 6))
+    if create_figure:
+        plt.figure(figsize=(12, 6))
 
     sns.lineplot(data=slo_stats, x='index', y='fps_capacity',
                  label='FPS', color='red', linewidth=2)
@@ -69,16 +79,21 @@ def _plot_quality_metrics(slo_stats, filepath: str = None):
     sns.lineplot(data=slo_stats, x='index', y='inference_quality_capacity',
                  label='Inference Quality', color='blue', linewidth=2)
 
-    plt.title('Quality Metrics Over Time', fontsize=16)
+    # Set title based on whether it's a subplot or standalone
+    title = f'{title_prefix} - Quality Metrics Over Time' if title_prefix else 'Quality Metrics Over Time'
+    title_fontsize = 14 if title_prefix else 16
+    plt.title(title, fontsize=title_fontsize)
     plt.xlabel('Time Index', fontsize=12)
     plt.ylabel('Capacity Value', fontsize=12)
-    plt.legend(fontsize=12)
+    plt.legend(fontsize=fontsize)
     plt.grid(True, alpha=0.3)
-    plt.tight_layout()
     
-    if filepath:
+    if create_figure:
+        plt.tight_layout()
+    
+    if filepath and create_figure:
         save_plot(filepath)
-    else:
+    elif not filepath and create_figure:
         plt.show()
 
 
@@ -124,16 +139,20 @@ def plot_combined_agent_comparison(slo_stats_data: dict, sim_type: SimulationTyp
     # Plot AI agent at the top
     plt.sca(ax1)
     if plot_type == 'slo_values':
-        _plot_slo_values_subplot(ai_data, "Active Inference Agent")
+        _plot_slo_values_over_time(ai_data, title_prefix="Active Inference Agent", 
+                                 create_figure=False, fontsize=10)
     else:  # quality_metrics
-        _plot_quality_metrics_subplot(ai_data, "Active Inference Agent")
+        _plot_quality_metrics(ai_data, title_prefix="Active Inference Agent", 
+                            create_figure=False, fontsize=10)
     
     # Plot Heuristic agent at the bottom
     plt.sca(ax2)
     if plot_type == 'slo_values':
-        _plot_slo_values_subplot(heuristic_data, "Heuristic Agent")
+        _plot_slo_values_over_time(heuristic_data, title_prefix="Heuristic Agent", 
+                                 create_figure=False, fontsize=10)
     else:  # quality_metrics
-        _plot_quality_metrics_subplot(heuristic_data, "Heuristic Agent")
+        _plot_quality_metrics(heuristic_data, title_prefix="Heuristic Agent", 
+                            create_figure=False, fontsize=10)
     
     plt.tight_layout()
     
@@ -144,51 +163,49 @@ def plot_combined_agent_comparison(slo_stats_data: dict, sim_type: SimulationTyp
     
     save_plot(filepath)
 
-def _plot_slo_values_subplot(slo_stats: pd.DataFrame, title_prefix: str):
-    """Helper function to plot SLO values in a subplot"""
-    slo_stats = slo_stats.reset_index()
-    
-    # Cap values at upper bound for display purposes
-    upper_bound = 4
-    slo_stats_capped = slo_stats.copy()
-    slo_stats_capped['queue_size_slo_value'] = slo_stats_capped['queue_size_slo_value'].clip(upper=upper_bound)
-    slo_stats_capped['memory_usage_slo_value'] = slo_stats_capped['memory_usage_slo_value'].clip(upper=upper_bound)
-    slo_stats_capped['avg_global_processing_time_slo_value'] = slo_stats_capped['avg_global_processing_time_slo_value'].clip(upper=upper_bound)
-    slo_stats_capped['avg_worker_processing_time_slo_value'] = slo_stats_capped['avg_worker_processing_time_slo_value'].clip(upper=upper_bound)
-
-    sns.lineplot(data=slo_stats_capped, x='index', y='queue_size_slo_value',
-                 label='Queue Size', color='blue', linewidth=2)
-    sns.lineplot(data=slo_stats_capped, x='index', y='memory_usage_slo_value',
-                 label='Memory Usage', color='red', linewidth=2)
-    sns.lineplot(data=slo_stats_capped, x='index', y='avg_global_processing_time_slo_value',
-                 label='Global Processing Time', color='green', linewidth=2)
-    sns.lineplot(data=slo_stats_capped, x='index', y='avg_worker_processing_time_slo_value',
-                 label='Worker Processing Time', color='magenta', linewidth=2)
-
-    plt.axhline(y=1, color='black', linestyle='--', linewidth=2,
-                label='SLO Fulfillment Threshold')
-    plt.title(f'{title_prefix} - SLO Values Over Time', fontsize=14)
+def plot_queue_size_over_time(slo_stats):
+    """Plot queue size over time"""
+    plt.figure(figsize=(10, 5))
+    sns.lineplot(data=slo_stats.reset_index(), x='index', y='queue_size', color='blue')
+    plt.title('Queue Size Over Time', fontsize=14)
     plt.xlabel('Time Index', fontsize=12)
-    plt.ylabel('Ratio Value', fontsize=12)
-    plt.legend(fontsize=10)
+    plt.ylabel('Queue Size', fontsize=12)
     plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+    plt.show()
 
-def _plot_quality_metrics_subplot(slo_stats: pd.DataFrame, title_prefix: str):
-    """Helper function to plot quality metrics in a subplot"""
-    slo_stats = slo_stats.reset_index()
-
-    sns.lineplot(data=slo_stats, x='index', y='fps_capacity',
-                 label='FPS', color='red', linewidth=2)
-    sns.lineplot(data=slo_stats, x='index', y='resolution_capacity',
-                 label='Resolution', color='green', linewidth=2)
-    sns.lineplot(data=slo_stats, x='index', y='inference_quality_capacity',
-                 label='Inference Quality', color='blue', linewidth=2)
-
-    plt.title(f'{title_prefix} - Quality Metrics Over Time', fontsize=14)
+def plot_memory_usage_over_time(slo_stats):
+    """Plot memory usage over time"""
+    plt.figure(figsize=(10, 5))
+    sns.lineplot(data=slo_stats.reset_index(), x='index', y='memory_usage', color='green')
+    plt.title('Memory Usage Over Time', fontsize=14)
     plt.xlabel('Time Index', fontsize=12)
-    plt.ylabel('Capacity Value', fontsize=12)
-    plt.legend(fontsize=10)
+    plt.ylabel('Memory Usage', fontsize=12)
     plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+    plt.show()
+
+def plot_queue_ratio_distribution(slo_stats):
+    """Plot distribution of queue size ratios"""
+    plt.figure(figsize=(10, 5))
+    sns.histplot(data=slo_stats, x='queue_size_slo_ratio', bins=20, kde=True,
+                 color='skyblue', edgecolor='white')
+    plt.title('Distribution of Queue Size SLO Ratios', fontsize=14)
+    plt.xlabel('Queue Size Ratio', fontsize=12)
+    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+    plt.show()
+
+def plot_memory_ratio_distribution(slo_stats):
+    """Plot distribution of memory usage ratios"""
+    plt.figure(figsize=(10, 5))
+    sns.histplot(data=slo_stats, x='memory_usage_slo_ratio', bins=20, kde=True,
+                 color='salmon', edgecolor='white')
+    plt.title('Distribution of Memory Usage SLO Ratios', fontsize=14)
+    plt.xlabel('Memory Usage Ratio', fontsize=12)
+    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+    plt.show()
 
 def save_plot(filepath):
     os.makedirs(os.path.dirname(filepath), exist_ok=True)
