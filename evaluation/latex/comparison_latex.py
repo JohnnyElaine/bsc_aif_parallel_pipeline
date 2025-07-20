@@ -301,8 +301,6 @@ def save_latex_table(latex_content: str, filename: str) -> None:
     with open(latex_path, 'w', encoding='utf-8') as f:
         f.write(latex_content)
     
-    print(f"LaTeX table saved to: {latex_path}")
-
 
 def save_latex_table_with_path(latex_content: str, sim_type: str, suffix: str) -> None:
     """Save the LaTeX table string to file using the evaluation utils path structure"""
@@ -329,8 +327,6 @@ def save_latex_table_with_path(latex_content: str, sim_type: str, suffix: str) -
     with open(latex_path, 'w', encoding='utf-8') as f:
         f.write(latex_content)
     
-    print(f"LaTeX table saved to: {latex_path}")
-
 
 def generate_and_save_latex_tables(comparison_df: pd.DataFrame) -> None:
     """Generate and save both summary and complete LaTeX tables to files"""
