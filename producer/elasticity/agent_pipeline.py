@@ -29,6 +29,7 @@ class AgentPipeline(Thread):
         self._is_running = True
         log.debug("agent-pipeline is waiting for task generator to start")
         self._start_task_generator_event.wait()
+        # TODO add a start delay so the aif agent does not learn from the random data at the start
         log.debug('agent-pipeline active')
 
         while self._is_running:

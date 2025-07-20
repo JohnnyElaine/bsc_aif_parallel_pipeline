@@ -10,7 +10,7 @@ from ..enums.directory_type import DirectoryType
 def plot_all_worker_stats(worker_stats: pd.DataFrame, agent_type: AgentType, sim_type: SimulationType, output_dir: str = "out/img"):
     """Plot all worker statistics and save to files"""
     # Get plot filepath from EvaluationUtils
-    task_distribution_filepath = EvaluationUtils.get_filepath(DirectoryType.IMG, sim_type, agent_type, "task_distribution_pie", "png")
+    task_distribution_filepath = EvaluationUtils.get_filepath(DirectoryType.IMG, sim_type, agent_type, "task_distribution_pie", "pdf")
     
     # Ensure directory exists
     EvaluationUtils.ensure_directory_exists(task_distribution_filepath)

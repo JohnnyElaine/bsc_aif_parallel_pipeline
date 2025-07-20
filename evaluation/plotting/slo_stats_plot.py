@@ -10,8 +10,8 @@ from ..enums.directory_type import DirectoryType
 def plot_all_slo_stats(slo_stats: pd.DataFrame, agent_type: AgentType, sim_type: SimulationType, output_dir: str = "out/img"):
     """Plot all SLO statistics and save to files"""
     # Get plot filepaths from EvaluationUtils
-    slo_values_filepath = EvaluationUtils.get_filepath(DirectoryType.IMG, sim_type, agent_type, "slo_values", "png")
-    quality_metrics_filepath = EvaluationUtils.get_filepath(DirectoryType.IMG, sim_type, agent_type, "quality_metrics", "png")
+    slo_values_filepath = EvaluationUtils.get_filepath(DirectoryType.IMG, sim_type, agent_type, "slo_values", "pdf")
+    quality_metrics_filepath = EvaluationUtils.get_filepath(DirectoryType.IMG, sim_type, agent_type, "quality_metrics", "pdf")
     
     # Ensure directory exists
     EvaluationUtils.ensure_directory_exists(slo_values_filepath)
