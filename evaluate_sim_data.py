@@ -65,6 +65,132 @@ def save_comparison_results(comparison_df: pd.DataFrame) -> None:
     EvaluationUtils.ensure_directory_exists(csv_path)
     comparison_df.to_csv(csv_path)
 
+
+def create_latex_table(comparison_df: pd.DataFrame) -> str:
+    """
+    Create a LaTeX table from the comparison DataFrame with the most important metrics
+    
+    Args:
+        comparison_df: Multi-indexed DataFrame with comparison results
+        
+    Returns:
+        LaTeX table string
+    """
+    # Define the most important metrics to include
+    important_metrics = [
+        'time_all_slo_fulfilled_simultaneously_percent',
+        'average_slo_fulfillment_rate_percent', 
+        'average_overall_stream_quality_score',
+        'maximum_consecutive_timesteps_with_slo_violations',
+        'average_timesteps_to_reach_stable_quality_configuration'
+    ]
+    
+    # Define metric display names
+    metric_names = {
+        'time_all_slo_fulfilled_simultaneously_percent': 'Time All SLOs Met',
+        'average_slo_fulfillment_rate_percent': 'Avg. SLO Fulfillment',
+        'average_overall_stream_quality_score': 'Stream Quality Score',
+        'maximum_consecutive_timesteps_with_slo_violations': 'Max SLO Violation Streak',
+        'average_timesteps_to_reach_stable_quality_configuration': 'Timesteps to reach stable config coeff.'
+    }
+    
+    # Define simulation type display names
+    sim_names = {
+        'basic': 'Base',
+        'variable_computational_budget': 'Budget',
+        'variable_computational_demand': 'Demand'
+    }
+    
+    # Start LaTeX table
+    latex = []
+    latex.append(r'\begin{table}[h!]')
+    latex.append(r'\centering')
+    latex.append(r'\caption{Summary of Core Evaluation Metrics}')
+    latex.append(r'\label{tab:results_summary}')
+    latex.append(r'\begin{tabular}{@{}lllll@{}}')
+    latex.append(r'\toprule')
+    latex.append(r'\textbf{Scenario} & \textbf{Metric} & \textbf{AIF} & \textbf{Heuristic} & \textbf{$\Delta$} \\')
+    latex.append(r'\midrule')
+    
+    # Process each simulation type
+    sim_types = ['basic', 'variable_computational_budget', 'variable_computational_demand']
+    
+    for i, sim_type in enumerate(sim_types):
+        sim_display_name = sim_names[sim_type]
+        
+        # Add multirow for first metric of each simulation
+        first_metric = True
+        
+        for metric in important_metrics:
+            try:
+                # Get the data for this simulation and metric
+                row = comparison_df.loc[(sim_type, metric)]
+                aif_value = row['aif_agent']
+                heuristic_value = row['heuristic']
+                delta_value = row['delta']
+                
+                # Format values based on metric type
+                if metric == 'maximum_consecutive_timesteps_with_slo_violations':
+                    # Integer values for timesteps
+                    aif_str = f"{int(aif_value)}"
+                    heuristic_str = f"{int(heuristic_value)}"
+                elif metric == 'average_timesteps_to_reach_stable_quality_configuration':
+                    # Format to 1 decimal place for timesteps
+                    aif_str = f"{aif_value:.1f}"
+                    heuristic_str = f"{heuristic_value:.1f}"
+                else:
+                    # Format to 3 decimal places for percentages and scores
+                    aif_str = f"{aif_value:.3f}"
+                    heuristic_str = f"{heuristic_value:.3f}"
+                
+                # Format delta with proper sign and percentage
+                if delta_value >= 0:
+                    delta_str = f"+{delta_value:.2f}\\%"
+                else:
+                    delta_str = f"{delta_value:.2f}\\%"
+                
+                # Create the row
+                if first_metric:
+                    # First row of the simulation type uses multirow
+                    latex.append(f"\\multirow{{5}}{{*}}{{{sim_display_name}}} & {metric_names[metric]} & {aif_str} & {heuristic_str} & {delta_str} \\\\")
+                    first_metric = False
+                else:
+                    # Subsequent rows start with empty cell
+                    latex.append(f"& {metric_names[metric]} & {aif_str} & {heuristic_str} & {delta_str} \\\\")
+                
+            except KeyError:
+                print(f"Warning: Metric '{metric}' not found for simulation '{sim_type}'")
+                continue
+        
+        # Add midrule after each simulation type except the last
+        if i < len(sim_types) - 1:
+            latex.append(r'\midrule')
+    
+    # Close the table
+    latex.append(r'\bottomrule')
+    latex.append(r'\end{tabular}')
+    latex.append(r'\end{table}')
+    
+    return '\n'.join(latex)
+
+
+def save_latex_table(latex_content: str) -> None:
+    """Save the LaTeX table string to file"""
+    # Save to the same directory as the CSV results
+    latex_path = EvaluationUtils.get_consolidated_filepath(DirectoryType.OUTPUT, "agent_comparison_table", "tex")
+    EvaluationUtils.ensure_directory_exists(latex_path)
+    
+    with open(latex_path, 'w', encoding='utf-8') as f:
+        f.write(latex_content)
+    
+    print(f"LaTeX table saved to: {latex_path}")
+
+
+def generate_and_save_latex_table(comparison_df: pd.DataFrame) -> None:
+    """Generate and save the LaTeX table to file"""
+    latex_content = create_latex_table(comparison_df)
+    save_latex_table(latex_content)
+
 def load_simulation_data(agent_type: AgentType, sim_type: SimulationType) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Load both SLO stats and worker stats for a given agent and simulation type
@@ -130,8 +256,8 @@ def evaluate():
     comparison_df = compare_agent_metrics(metrics_df)
     save_comparison_results(comparison_df)
 
-    # Step 5: Create LaTeX
-    # TODO call function here
+    # Step 5: Create LaTeX table
+    generate_and_save_latex_table(comparison_df)
     
 
 if __name__ == "__main__":
