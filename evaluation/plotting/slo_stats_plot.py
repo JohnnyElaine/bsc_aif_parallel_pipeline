@@ -125,6 +125,115 @@ def plot_memory_ratio_distribution(slo_stats):
     plt.tight_layout()
     plt.show()
 
+def create_all_combined_plots(slo_stats_data: dict):
+    """
+    Create combined plots for all simulation types and both plot types
+    
+    Args:
+        slo_stats_data: Dictionary with keys as (sim_type_name, agent_type_name) and DataFrames as values
+    """
+    simulation_types = [SimulationType.BASIC, SimulationType.VARIABLE_COMPUTATIONAL_DEMAND, SimulationType.VARIABLE_COMPUTATIONAL_BUDGET]
+    plot_types = ['slo_values', 'quality_metrics']
+    
+    for sim_type in simulation_types:
+        for plot_type in plot_types:
+            plot_combined_agent_comparison(slo_stats_data, sim_type, plot_type)
+            print(f"Created combined {plot_type} plot for {sim_type.name}")
+
+def plot_combined_agent_comparison(slo_stats_data: dict, sim_type: SimulationType, plot_type: str):
+    """
+    Create combined figures showing both agents for a simulation type
+    
+    Args:
+        slo_stats_data: Dictionary with keys as (sim_type_name, agent_type_name) and DataFrames as values
+        sim_type: SimulationType enum
+        plot_type: Either 'slo_values' or 'quality_metrics'
+    """
+    sim_type_name = sim_type.name.lower()
+    
+    # Get data for both agents
+    ai_key = (sim_type_name, 'active_inference_relative_control')
+    heuristic_key = (sim_type_name, 'heuristic')
+    
+    if ai_key not in slo_stats_data or heuristic_key not in slo_stats_data:
+        print(f"Warning: Missing data for {sim_type_name} combined plot")
+        return
+    
+    ai_data = slo_stats_data[ai_key]
+    heuristic_data = slo_stats_data[heuristic_key]
+    
+    # Create figure with 2 subplots stacked vertically
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 12))
+    
+    # Plot AI agent at the top
+    plt.sca(ax1)
+    if plot_type == 'slo_values':
+        _plot_slo_values_subplot(ai_data, "Active Inference Agent")
+    else:  # quality_metrics
+        _plot_quality_metrics_subplot(ai_data, "Active Inference Agent")
+    
+    # Plot Heuristic agent at the bottom
+    plt.sca(ax2)
+    if plot_type == 'slo_values':
+        _plot_slo_values_subplot(heuristic_data, "Heuristic Agent")
+    else:  # quality_metrics
+        _plot_quality_metrics_subplot(heuristic_data, "Heuristic Agent")
+    
+    plt.tight_layout()
+    
+    # Save the combined plot
+    filename = f"combined_{plot_type}"
+    filepath = EvaluationUtils.get_filepath(DirectoryType.IMG, sim_type, None, filename, "pdf")
+    EvaluationUtils.ensure_directory_exists(filepath)
+    
+    save_plot(filepath)
+
+def _plot_slo_values_subplot(slo_stats: pd.DataFrame, title_prefix: str):
+    """Helper function to plot SLO values in a subplot"""
+    slo_stats = slo_stats.reset_index()
+    
+    # Cap values at upper bound for display purposes
+    upper_bound = 4
+    slo_stats_capped = slo_stats.copy()
+    slo_stats_capped['queue_size_slo_value'] = slo_stats_capped['queue_size_slo_value'].clip(upper=upper_bound)
+    slo_stats_capped['memory_usage_slo_value'] = slo_stats_capped['memory_usage_slo_value'].clip(upper=upper_bound)
+    slo_stats_capped['avg_global_processing_time_slo_value'] = slo_stats_capped['avg_global_processing_time_slo_value'].clip(upper=upper_bound)
+    slo_stats_capped['avg_worker_processing_time_slo_value'] = slo_stats_capped['avg_worker_processing_time_slo_value'].clip(upper=upper_bound)
+
+    sns.lineplot(data=slo_stats_capped, x='index', y='queue_size_slo_value',
+                 label='Queue Size', color='blue', linewidth=2)
+    sns.lineplot(data=slo_stats_capped, x='index', y='memory_usage_slo_value',
+                 label='Memory Usage', color='red', linewidth=2)
+    sns.lineplot(data=slo_stats_capped, x='index', y='avg_global_processing_time_slo_value',
+                 label='Global Processing Time', color='green', linewidth=2)
+    sns.lineplot(data=slo_stats_capped, x='index', y='avg_worker_processing_time_slo_value',
+                 label='Worker Processing Time', color='magenta', linewidth=2)
+
+    plt.axhline(y=1, color='black', linestyle='--', linewidth=2,
+                label='SLO Fulfillment Threshold')
+    plt.title(f'{title_prefix} - SLO Values Over Time', fontsize=14)
+    plt.xlabel('Time Index', fontsize=12)
+    plt.ylabel('Ratio Value', fontsize=12)
+    plt.legend(fontsize=10)
+    plt.grid(True, alpha=0.3)
+
+def _plot_quality_metrics_subplot(slo_stats: pd.DataFrame, title_prefix: str):
+    """Helper function to plot quality metrics in a subplot"""
+    slo_stats = slo_stats.reset_index()
+
+    sns.lineplot(data=slo_stats, x='index', y='fps_capacity',
+                 label='FPS', color='red', linewidth=2)
+    sns.lineplot(data=slo_stats, x='index', y='resolution_capacity',
+                 label='Resolution', color='green', linewidth=2)
+    sns.lineplot(data=slo_stats, x='index', y='inference_quality_capacity',
+                 label='Inference Quality', color='blue', linewidth=2)
+
+    plt.title(f'{title_prefix} - Quality Metrics Over Time', fontsize=14)
+    plt.xlabel('Time Index', fontsize=12)
+    plt.ylabel('Capacity Value', fontsize=12)
+    plt.legend(fontsize=10)
+    plt.grid(True, alpha=0.3)
+
 def save_plot(filepath):
     os.makedirs(os.path.dirname(filepath), exist_ok=True)
     plt.savefig(filepath, dpi=300, bbox_inches='tight')

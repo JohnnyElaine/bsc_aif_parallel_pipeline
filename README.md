@@ -962,10 +962,11 @@ The evaluation framework implements three distinct simulation scenarios to test 
 - **Timeline**: Video processing with scheduled demand increases
 - **Workers**: 3 workers with higher capacities [0.8, 0.75, 0.7] to handle increased load
 - **Demand Schedule**:
-  - **0-25%**: Single stream (multiplier = 1, baseline load)
-  - **25-50%**: Triple stream (multiplier = 3, 3x computational demand)
-  - **50%-75%**: Double stream (multiplier = 2, 2x computational demand)
-  - **75-100%**: Return to single stream (multiplier = 1)
+  - **0-20%**: Single stream (multiplier = 1, baseline load)
+  - **20-40%**: Single stream (multiplier = 2, baseline load)
+  - **40-60%**: Triple stream (multiplier = 3, 3x computational demand)
+  - **60%-80%**: Double stream (multiplier = 2, 2x computational demand)
+  - **80-100%**: Return to single stream (multiplier = 1)
 
 **Stream Multiplier Mechanism**: Simulates multiple concurrent video streams by replicating each frame N times, creating N identical tasks for the same video frame. This realistically increases computational demand without requiring multiple video sources.
 
