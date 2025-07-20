@@ -28,10 +28,10 @@ class HeuristicAgent(ElasticityAgent):
     WARNING_TREND_THRESHOLD = 0.08
     IMPROVEMENT_TREND_THRESHOLD = 0.01
     COOLDOWN_CYCLES = 6                 
-    SLO_HISTORY_SIZE = 8              
+    SLO_HISTORY_SIZE = 12
     MAX_CONSECUTIVE_ACTIONS = 1    
 
-    UPSCALE_THRESHOLD = 0.85
+    UPSCALE_THRESHOLD = 0.70
 
     # Action opposites mapping
     ACTION_OPPOSITES = {

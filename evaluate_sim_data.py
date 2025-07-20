@@ -129,6 +129,9 @@ def evaluate():
     # Step 4: For each simulation type, compare the calculated values between agents
     comparison_df = compare_agent_metrics(metrics_df)
     save_comparison_results(comparison_df)
+
+    # Step 5: Create LaTeX
+    # TODO call function here
     
 
 if __name__ == "__main__":

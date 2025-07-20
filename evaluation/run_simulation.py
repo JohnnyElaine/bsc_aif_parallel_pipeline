@@ -22,13 +22,17 @@ class RunSimulation:
     LOADING_MODE = LoadingMode.EAGER
     INITIAL_INFERENCE_QUALITY = InferenceQuality.HIGH
     NUM_WORKERS = 3
-    #VID_PATH = WorkerGlobalVariables.PROJECT_ROOT / 'media' / 'vid' / 'general_detection' / '1080p Video of Highway Traffic! [KBsqQez-O4w]_450seconds.mp4'
-    VID_PATH = WorkerGlobalVariables.PROJECT_ROOT / 'media' / 'vid' / 'general_detection' / '1080p Video of Highway Traffic! [KBsqQez-O4w]_5seconds.mp4'
+    VID_PATH = WorkerGlobalVariables.PROJECT_ROOT / 'media' / 'vid' / 'general_detection' / '1080p Video of Highway Traffic! [KBsqQez-O4w]_450seconds.mp4'
+    #VID_PATH = WorkerGlobalVariables.PROJECT_ROOT / 'media' / 'vid' / 'general_detection' / '1080p Video of Highway Traffic! [KBsqQez-O4w]_5seconds.mp4'
 
     @staticmethod
     def run_all_simulations():
-        RunSimulation.run_aif_agent_simulations()
-        RunSimulation.run_heuristic_agent_simulations()
+        #RunSimulation.run_aif_agent_simulations()
+        #RunSimulation.run_heuristic_agent_simulations()
+        eval_sim_types = [SimulationType.VARIABLE_COMPUTATIONAL_DEMAND]
+
+        for sim_type in eval_sim_types:
+            RunSimulation.run(AgentType.HEURISTIC, sim_type)
 
     @staticmethod
     def run_aif_agent_simulations():
