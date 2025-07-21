@@ -12,7 +12,8 @@ log = logging.getLogger('producer')
 
 
 class AgentPipeline(Thread):
-    ITERATION_INTERVAL_S = 0.5
+    ITERATION_INTERVAL = 0.5
+    START_DELAY = 2
 
     def __init__(self, elasticity_handler: ElasticityHandler, task_generator: TaskGenerator, request_handler: RequestHandler, agent_type: AgentType, track_slo_stats=True):
         super().__init__()
@@ -29,11 +30,11 @@ class AgentPipeline(Thread):
         self._is_running = True
         log.debug("agent-pipeline is waiting for task generator to start")
         self._start_task_generator_event.wait()
-        # TODO add a start delay so the aif agent does not learn from the random data at the start
+        time.sleep(AgentPipeline.START_DELAY) # wait for 2 seconds to give the environment time to kick into gear
         log.debug('agent-pipeline active')
 
         while self._is_running:
-            time.sleep(AgentPipeline.ITERATION_INTERVAL_S)
+            time.sleep(AgentPipeline.ITERATION_INTERVAL)
             self._iteration()
 
         log.debug('stopped agent-pipeline')

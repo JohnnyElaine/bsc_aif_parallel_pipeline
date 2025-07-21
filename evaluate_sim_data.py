@@ -196,8 +196,6 @@ def create_and_save_simulation_dataframes(consolidated_slo_stats: dict, consolid
     big_slo_stats_df = create_consolidated_dataframe(consolidated_slo_stats, "slo_stats")
     big_worker_stats_df = create_consolidated_dataframe(consolidated_worker_stats, "worker_stats")
     
-    print("Consolidated DataFrames created (not saving CSV files as they're not used)")
-    
     return big_slo_stats_df, big_worker_stats_df
 
 
@@ -233,8 +231,6 @@ def generate_plots_and_calculate_metrics(consolidated_slo_stats: dict, consolida
         metrics_row['agent_type'] = agent_type_name
         metrics_data.append(metrics_row)
     
-    # Create combined plots for all simulation types
-    print("Creating combined agent comparison plots...")
     create_all_combined_plots(consolidated_slo_stats)
     
     return metrics_data
