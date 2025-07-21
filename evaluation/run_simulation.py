@@ -27,12 +27,8 @@ class RunSimulation:
 
     @staticmethod
     def run_all_simulations():
-        #RunSimulation.run_aif_agent_simulations()
-        #RunSimulation.run_heuristic_agent_simulations()
-        eval_sim_types = [SimulationType.VARIABLE_COMPUTATIONAL_DEMAND]
-
-        for sim_type in eval_sim_types:
-            RunSimulation.run(AgentType.HEURISTIC, sim_type)
+        RunSimulation.run_aif_agent_simulations()
+        RunSimulation.run_heuristic_agent_simulations()
 
     @staticmethod
     def run_aif_agent_simulations():
