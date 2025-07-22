@@ -24,7 +24,7 @@ def plot_all_slo_stats(slo_stats: pd.DataFrame, agent_type: AgentType, sim_type:
     _plot_quality_metrics(slo_stats, quality_metrics_filepath)
 
 def _plot_slo_values_over_time(slo_stats: pd.DataFrame, filepath: str = None, title_prefix: str = None, 
-                              create_figure: bool = True, fontsize: int = 12):
+                              create_figure: bool = True, fontsize: int = 12, normalize_time: bool = True):
     """Plot both SLO ratios over time with critical threshold"""
     slo_stats = slo_stats.reset_index()
     
@@ -39,16 +39,22 @@ def _plot_slo_values_over_time(slo_stats: pd.DataFrame, filepath: str = None, ti
     if create_figure:
         plt.figure(figsize=(10, 5))
 
-    # Convert time index to seconds (500ms intervals, so divide by 2)
-    time_seconds = slo_stats_capped['index'] / (1 / ITERATION_INTERVAL)
+    if normalize_time:
+        # Normalize time to percentage (0-100%) for aligned comparison plots
+        time_axis = (slo_stats_capped['index'] / slo_stats_capped['index'].max()) * 100
+        xlabel = 'Simulation Progress (%)'
+    else:
+        # Convert time index to seconds (500ms intervals, so divide by 2)
+        time_axis = slo_stats_capped['index'] / (1 / ITERATION_INTERVAL)
+        xlabel = 'Time (seconds)'
 
-    sns.lineplot(x=time_seconds, y=slo_stats_capped['queue_size_slo_value'],
+    sns.lineplot(x=time_axis, y=slo_stats_capped['queue_size_slo_value'],
                  label='Queue Size SLO', color='blue', linewidth=2)
-    sns.lineplot(x=time_seconds, y=slo_stats_capped['memory_usage_slo_value'],
+    sns.lineplot(x=time_axis, y=slo_stats_capped['memory_usage_slo_value'],
                  label='Memory Usage SLO', color='red', linewidth=2)
-    sns.lineplot(x=time_seconds, y=slo_stats_capped['avg_global_processing_time_slo_value'],
+    sns.lineplot(x=time_axis, y=slo_stats_capped['avg_global_processing_time_slo_value'],
                  label='Global Processing Time SLO', color='green', linewidth=2)
-    sns.lineplot(x=time_seconds, y=slo_stats_capped['avg_worker_processing_time_slo_value'],
+    sns.lineplot(x=time_axis, y=slo_stats_capped['avg_worker_processing_time_slo_value'],
                  label='Worker Processing Time SLO', color='magenta', linewidth=2)
 
     plt.axhline(y=1, color='black', linestyle='--', linewidth=2,
@@ -58,7 +64,7 @@ def _plot_slo_values_over_time(slo_stats: pd.DataFrame, filepath: str = None, ti
     title = f'{title_prefix} - SLO Values Over Time' if title_prefix else 'SLO Values Over Time'
     title_fontsize = 16 if title_prefix else 18
     plt.title(title, fontsize=title_fontsize)
-    plt.xlabel('Time (seconds)', fontsize=16)
+    plt.xlabel(xlabel, fontsize=16)
     plt.ylabel('SLO fulfillment ratio', fontsize=16)
     plt.legend(fontsize=fontsize)
     plt.grid(True, alpha=0.3)
@@ -72,28 +78,34 @@ def _plot_slo_values_over_time(slo_stats: pd.DataFrame, filepath: str = None, ti
         plt.show()
 
 def _plot_quality_metrics(slo_stats, filepath: str = None, title_prefix: str = None, 
-                         create_figure: bool = True, fontsize: int = 12):
+                         create_figure: bool = True, fontsize: int = 12, normalize_time: bool = True):
     """Plot capacity metrics over time"""
     slo_stats = slo_stats.reset_index()
 
     if create_figure:
         plt.figure(figsize=(10, 5))
 
-    # Convert time index to seconds (500ms intervals, so divide by 2)
-    time_seconds = slo_stats['index'] / (1 / ITERATION_INTERVAL)
+    if normalize_time:
+        # Normalize time to percentage (0-100%) for aligned comparison plots
+        time_axis = (slo_stats['index'] / slo_stats['index'].max()) * 100
+        xlabel = 'Simulation Progress (%)'
+    else:
+        # Convert time index to seconds (500ms intervals, so divide by 2)
+        time_axis = slo_stats['index'] / (1 / ITERATION_INTERVAL)
+        xlabel = 'Time (seconds)'
 
-    sns.lineplot(x=time_seconds, y=slo_stats['fps_capacity'],
+    sns.lineplot(x=time_axis, y=slo_stats['fps_capacity'],
                  label='FPS', color='red', linewidth=2)
-    sns.lineplot(x=time_seconds, y=slo_stats['resolution_capacity'],
+    sns.lineplot(x=time_axis, y=slo_stats['resolution_capacity'],
                  label='Resolution', color='green', linewidth=2)
-    sns.lineplot(x=time_seconds, y=slo_stats['inference_quality_capacity'],
+    sns.lineplot(x=time_axis, y=slo_stats['inference_quality_capacity'],
                  label='Inference Quality', color='blue', linewidth=2)
 
     # Set title based on whether it's a subplot or standalone
     title = f'{title_prefix} - Quality Metrics Over Time' if title_prefix else 'Quality Metrics Over Time'
     title_fontsize = 16 if title_prefix else 18
     plt.title(title, fontsize=title_fontsize)
-    plt.xlabel('Time (seconds)', fontsize=16)
+    plt.xlabel(xlabel, fontsize=16)
     plt.ylabel('Capacity Value', fontsize=16)
     plt.legend(fontsize=fontsize)
     plt.grid(True, alpha=0.3)
@@ -150,19 +162,19 @@ def plot_combined_agent_comparison(slo_stats_data: dict, sim_type: SimulationTyp
     plt.sca(ax1)
     if plot_type == 'slo_values':
         _plot_slo_values_over_time(ai_data, title_prefix="Active Inference Agent", 
-                                 create_figure=False, fontsize=14)
+                                 create_figure=False, fontsize=14, normalize_time=True)
     else:  # quality_metrics
         _plot_quality_metrics(ai_data, title_prefix="Active Inference Agent", 
-                            create_figure=False, fontsize=14)
+                            create_figure=False, fontsize=14, normalize_time=True)
     
     # Plot Heuristic agent at the bottom
     plt.sca(ax2)
     if plot_type == 'slo_values':
         _plot_slo_values_over_time(heuristic_data, title_prefix="Heuristic Agent", 
-                                 create_figure=False, fontsize=14)
+                                 create_figure=False, fontsize=14, normalize_time=True)
     else:  # quality_metrics
         _plot_quality_metrics(heuristic_data, title_prefix="Heuristic Agent", 
-                            create_figure=False, fontsize=14)
+                            create_figure=False, fontsize=14, normalize_time=True)
     
     plt.tight_layout()
     
