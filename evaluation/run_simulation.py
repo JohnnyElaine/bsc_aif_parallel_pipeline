@@ -28,7 +28,7 @@ class RunSimulation:
     @staticmethod
     def run_all_simulations():
         RunSimulation.run_aif_agent_simulations()
-        RunSimulation.run_heuristic_agent_simulations()
+        #RunSimulation.run_heuristic_agent_simulations() # Do not re-reun heuristic simulations unless changes to the agent have been made
 
     @staticmethod
     def run_aif_agent_simulations():

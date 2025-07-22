@@ -38,11 +38,13 @@ class ActiveInferenceAgentRelativeControl(ElasticityAgent):
     ACTION_INFERENCE_QUALITY_INDEX = 2
 
     # Observation preferences
-    VERY_STRONG_PREFERENCE = 4.0
+    MAX_PREFERENCE = 4.0
+    VERY_STRONG_PREFERENCE = MAX_PREFERENCE
     STRONG_PREFERENCE = VERY_STRONG_PREFERENCE * 0.75
     MEDIUM_PREFERENCE = VERY_STRONG_PREFERENCE * 0.5
     LOW_PREFERENCE = VERY_STRONG_PREFERENCE * 0.25
     VERY_LOW_PREFERENCE = VERY_STRONG_PREFERENCE * 0.1
+    EXTREMELY_LOW_PREFERENCE = VERY_STRONG_PREFERENCE * 0.05
     NEUTRAL = 0.0
     VERY_LOW_AVERSION = -VERY_LOW_PREFERENCE
     LOW_AVERSION = -LOW_PREFERENCE
@@ -188,7 +190,7 @@ class ActiveInferenceAgentRelativeControl(ElasticityAgent):
             lr_pB=self.learning_rate_B,     # Learning rate for B matrix
             control_fac_idx=[0, 1, 2],      # indices of hidden state factors that are directly controllable
             use_states_info_gain=True, # True, increases exploration. Try toggling this for complex eval scenario
-            use_param_info_gain=False # True, drastically increases exploration but does not yield better results
+            use_param_info_gain=False # True, drastically increases exploration, try toggling this for complex eval scenario
         )
 
     def _construct_A_matrix(self):
@@ -386,9 +388,9 @@ class ActiveInferenceAgentRelativeControl(ElasticityAgent):
         ]
 
         for slo_idx in slo_indices:
-            C[slo_idx][SloStatus.OK.value] = self.LOW_PREFERENCE
+            C[slo_idx][SloStatus.OK.value] = self.NEUTRAL
             C[slo_idx][SloStatus.WARNING.value] = self.NEUTRAL
-            C[slo_idx][SloStatus.CRITICAL.value] = self.STRONG_AVERSION
+            C[slo_idx][SloStatus.CRITICAL.value] = self.STRONG_AVERSION - 0.1
 
     def _construct_D_matrix(self):
         """Construct the D matrix (prior believes over states) - Initial beliefs, i.e. what states are expected before making an observation"""

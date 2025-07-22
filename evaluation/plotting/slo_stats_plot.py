@@ -33,7 +33,7 @@ def _plot_slo_values_over_time(slo_stats: pd.DataFrame, filepath: str = None, ti
     slo_stats_capped['avg_worker_processing_time_slo_value'] = slo_stats_capped['avg_worker_processing_time_slo_value'].clip(upper=upper_bound)
 
     if create_figure:
-        plt.figure(figsize=(12, 6))
+        plt.figure(figsize=(10, 5))
 
     sns.lineplot(data=slo_stats_capped, x='index', y='queue_size_slo_value',
                  label='Queue Size', color='blue', linewidth=2)
@@ -49,10 +49,10 @@ def _plot_slo_values_over_time(slo_stats: pd.DataFrame, filepath: str = None, ti
     
     # Set title based on whether it's a subplot or standalone
     title = f'{title_prefix} - SLO Values Over Time' if title_prefix else 'SLO Values Over Time'
-    title_fontsize = 14 if title_prefix else 16
+    title_fontsize = 16 if title_prefix else 18
     plt.title(title, fontsize=title_fontsize)
-    plt.xlabel('Time Index', fontsize=12)
-    plt.ylabel('Ratio Value', fontsize=12)
+    plt.xlabel('Time Index', fontsize=14)
+    plt.ylabel('Ratio Value', fontsize=14)
     plt.legend(fontsize=fontsize)
     plt.grid(True, alpha=0.3)
     
@@ -70,7 +70,7 @@ def _plot_quality_metrics(slo_stats, filepath: str = None, title_prefix: str = N
     slo_stats = slo_stats.reset_index()
 
     if create_figure:
-        plt.figure(figsize=(12, 6))
+        plt.figure(figsize=(10, 5))
 
     sns.lineplot(data=slo_stats, x='index', y='fps_capacity',
                  label='FPS', color='red', linewidth=2)
@@ -81,10 +81,10 @@ def _plot_quality_metrics(slo_stats, filepath: str = None, title_prefix: str = N
 
     # Set title based on whether it's a subplot or standalone
     title = f'{title_prefix} - Quality Metrics Over Time' if title_prefix else 'Quality Metrics Over Time'
-    title_fontsize = 14 if title_prefix else 16
+    title_fontsize = 16 if title_prefix else 18
     plt.title(title, fontsize=title_fontsize)
-    plt.xlabel('Time Index', fontsize=12)
-    plt.ylabel('Capacity Value', fontsize=12)
+    plt.xlabel('Time Index', fontsize=14)
+    plt.ylabel('Capacity Value', fontsize=14)
     plt.legend(fontsize=fontsize)
     plt.grid(True, alpha=0.3)
     
@@ -133,26 +133,26 @@ def plot_combined_agent_comparison(slo_stats_data: dict, sim_type: SimulationTyp
     ai_data = slo_stats_data[ai_key]
     heuristic_data = slo_stats_data[heuristic_key]
     
-    # Create figure with 2 subplots stacked vertically
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 12))
+    # Create figure with 2 subplots stacked vertically - optimized for LaTeX page width
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8))
     
     # Plot AI agent at the top
     plt.sca(ax1)
     if plot_type == 'slo_values':
         _plot_slo_values_over_time(ai_data, title_prefix="Active Inference Agent", 
-                                 create_figure=False, fontsize=10)
+                                 create_figure=False, fontsize=14)
     else:  # quality_metrics
         _plot_quality_metrics(ai_data, title_prefix="Active Inference Agent", 
-                            create_figure=False, fontsize=10)
+                            create_figure=False, fontsize=14)
     
     # Plot Heuristic agent at the bottom
     plt.sca(ax2)
     if plot_type == 'slo_values':
         _plot_slo_values_over_time(heuristic_data, title_prefix="Heuristic Agent", 
-                                 create_figure=False, fontsize=10)
+                                 create_figure=False, fontsize=14)
     else:  # quality_metrics
         _plot_quality_metrics(heuristic_data, title_prefix="Heuristic Agent", 
-                            create_figure=False, fontsize=10)
+                            create_figure=False, fontsize=14)
     
     plt.tight_layout()
     
