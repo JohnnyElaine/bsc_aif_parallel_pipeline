@@ -43,13 +43,13 @@ def _plot_slo_values_over_time(slo_stats: pd.DataFrame, filepath: str = None, ti
     time_seconds = slo_stats_capped['index'] / (1 / ITERATION_INTERVAL)
 
     sns.lineplot(x=time_seconds, y=slo_stats_capped['queue_size_slo_value'],
-                 label='Queue Size', color='blue', linewidth=2)
+                 label='Queue Size SLO', color='blue', linewidth=2)
     sns.lineplot(x=time_seconds, y=slo_stats_capped['memory_usage_slo_value'],
-                 label='Memory Usage', color='red', linewidth=2)
+                 label='Memory Usage SLO', color='red', linewidth=2)
     sns.lineplot(x=time_seconds, y=slo_stats_capped['avg_global_processing_time_slo_value'],
-                 label='Global Processing Time', color='green', linewidth=2)
+                 label='Global Processing Time SLO', color='green', linewidth=2)
     sns.lineplot(x=time_seconds, y=slo_stats_capped['avg_worker_processing_time_slo_value'],
-                 label='Worker Processing Time', color='magenta', linewidth=2)
+                 label='Worker Processing Time SLO', color='magenta', linewidth=2)
 
     plt.axhline(y=1, color='black', linestyle='--', linewidth=2,
                 label='SLO Fulfillment Threshold')
@@ -59,7 +59,7 @@ def _plot_slo_values_over_time(slo_stats: pd.DataFrame, filepath: str = None, ti
     title_fontsize = 16 if title_prefix else 18
     plt.title(title, fontsize=title_fontsize)
     plt.xlabel('Time (seconds)', fontsize=16)
-    plt.ylabel('Ratio Value', fontsize=16)
+    plt.ylabel('SLO fulfillment ratio', fontsize=16)
     plt.legend(fontsize=fontsize)
     plt.grid(True, alpha=0.3)
     
