@@ -2,10 +2,14 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 import os
+
+
 from producer.enums.agent_type import AgentType
 from evaluation.simulation.simulation_type import SimulationType
 from ..evaluation_utils import EvaluationUtils
 from ..enums.directory_type import DirectoryType
+
+ITERATION_INTERVAL = 0.5
 
 def plot_all_slo_stats(slo_stats: pd.DataFrame, agent_type: AgentType, sim_type: SimulationType, output_dir: str = "out/img"):
     """Plot all SLO statistics and save to files"""
@@ -35,13 +39,16 @@ def _plot_slo_values_over_time(slo_stats: pd.DataFrame, filepath: str = None, ti
     if create_figure:
         plt.figure(figsize=(10, 5))
 
-    sns.lineplot(data=slo_stats_capped, x='index', y='queue_size_slo_value',
+    # Convert time index to seconds (500ms intervals, so divide by 2)
+    time_seconds = slo_stats_capped['index'] / (1 / ITERATION_INTERVAL)
+
+    sns.lineplot(x=time_seconds, y=slo_stats_capped['queue_size_slo_value'],
                  label='Queue Size', color='blue', linewidth=2)
-    sns.lineplot(data=slo_stats_capped, x='index', y='memory_usage_slo_value',
+    sns.lineplot(x=time_seconds, y=slo_stats_capped['memory_usage_slo_value'],
                  label='Memory Usage', color='red', linewidth=2)
-    sns.lineplot(data=slo_stats_capped, x='index', y='avg_global_processing_time_slo_value',
+    sns.lineplot(x=time_seconds, y=slo_stats_capped['avg_global_processing_time_slo_value'],
                  label='Global Processing Time', color='green', linewidth=2)
-    sns.lineplot(data=slo_stats_capped, x='index', y='avg_worker_processing_time_slo_value',
+    sns.lineplot(x=time_seconds, y=slo_stats_capped['avg_worker_processing_time_slo_value'],
                  label='Worker Processing Time', color='magenta', linewidth=2)
 
     plt.axhline(y=1, color='black', linestyle='--', linewidth=2,
@@ -51,7 +58,7 @@ def _plot_slo_values_over_time(slo_stats: pd.DataFrame, filepath: str = None, ti
     title = f'{title_prefix} - SLO Values Over Time' if title_prefix else 'SLO Values Over Time'
     title_fontsize = 16 if title_prefix else 18
     plt.title(title, fontsize=title_fontsize)
-    plt.xlabel('Time Index', fontsize=14)
+    plt.xlabel('Time (seconds)', fontsize=14)
     plt.ylabel('Ratio Value', fontsize=14)
     plt.legend(fontsize=fontsize)
     plt.grid(True, alpha=0.3)
@@ -72,18 +79,21 @@ def _plot_quality_metrics(slo_stats, filepath: str = None, title_prefix: str = N
     if create_figure:
         plt.figure(figsize=(10, 5))
 
-    sns.lineplot(data=slo_stats, x='index', y='fps_capacity',
+    # Convert time index to seconds (500ms intervals, so divide by 2)
+    time_seconds = slo_stats['index'] / (1 / ITERATION_INTERVAL)
+
+    sns.lineplot(x=time_seconds, y=slo_stats['fps_capacity'],
                  label='FPS', color='red', linewidth=2)
-    sns.lineplot(data=slo_stats, x='index', y='resolution_capacity',
+    sns.lineplot(x=time_seconds, y=slo_stats['resolution_capacity'],
                  label='Resolution', color='green', linewidth=2)
-    sns.lineplot(data=slo_stats, x='index', y='inference_quality_capacity',
+    sns.lineplot(x=time_seconds, y=slo_stats['inference_quality_capacity'],
                  label='Inference Quality', color='blue', linewidth=2)
 
     # Set title based on whether it's a subplot or standalone
     title = f'{title_prefix} - Quality Metrics Over Time' if title_prefix else 'Quality Metrics Over Time'
     title_fontsize = 16 if title_prefix else 18
     plt.title(title, fontsize=title_fontsize)
-    plt.xlabel('Time Index', fontsize=14)
+    plt.xlabel('Time (seconds)', fontsize=14)
     plt.ylabel('Capacity Value', fontsize=14)
     plt.legend(fontsize=fontsize)
     plt.grid(True, alpha=0.3)
