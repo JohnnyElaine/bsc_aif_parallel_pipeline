@@ -58,8 +58,8 @@ def _plot_slo_values_over_time(slo_stats: pd.DataFrame, filepath: str = None, ti
     title = f'{title_prefix} - SLO Values Over Time' if title_prefix else 'SLO Values Over Time'
     title_fontsize = 16 if title_prefix else 18
     plt.title(title, fontsize=title_fontsize)
-    plt.xlabel('Time (seconds)', fontsize=14)
-    plt.ylabel('Ratio Value', fontsize=14)
+    plt.xlabel('Time (seconds)', fontsize=16)
+    plt.ylabel('Ratio Value', fontsize=16)
     plt.legend(fontsize=fontsize)
     plt.grid(True, alpha=0.3)
     
@@ -93,8 +93,8 @@ def _plot_quality_metrics(slo_stats, filepath: str = None, title_prefix: str = N
     title = f'{title_prefix} - Quality Metrics Over Time' if title_prefix else 'Quality Metrics Over Time'
     title_fontsize = 16 if title_prefix else 18
     plt.title(title, fontsize=title_fontsize)
-    plt.xlabel('Time (seconds)', fontsize=14)
-    plt.ylabel('Capacity Value', fontsize=14)
+    plt.xlabel('Time (seconds)', fontsize=16)
+    plt.ylabel('Capacity Value', fontsize=16)
     plt.legend(fontsize=fontsize)
     plt.grid(True, alpha=0.3)
     
