@@ -388,9 +388,9 @@ class ActiveInferenceAgentRelativeControl(ElasticityAgent):
         ]
 
         for slo_idx in slo_indices:
-            C[slo_idx][SloStatus.OK.value] = self.NEUTRAL
+            C[slo_idx][SloStatus.OK.value] = self.LOW_PREFERENCE
             C[slo_idx][SloStatus.WARNING.value] = self.NEUTRAL
-            C[slo_idx][SloStatus.CRITICAL.value] = self.STRONG_AVERSION - 0.1
+            C[slo_idx][SloStatus.CRITICAL.value] = self.STRONG_AVERSION
 
     def _construct_D_matrix(self):
         """Construct the D matrix (prior believes over states) - Initial beliefs, i.e. what states are expected before making an observation"""

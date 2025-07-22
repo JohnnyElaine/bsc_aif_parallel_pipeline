@@ -923,7 +923,7 @@ The distributed pipeline setup consists of:
 
 The evaluation framework implements three distinct simulation scenarios to test different aspects of elasticity control:
 
-#### 1. Base Case Simulation (`SimulationType.BASIC`)
+#### 1. Scenario A: Base Case Simulation (`SimulationType.BASIC`)
 **Purpose**: Establish baseline performance under stable conditions.
 
 **Configuration**:
@@ -936,26 +936,8 @@ The evaluation framework implements three distinct simulation scenarios to test 
 - Agents should maintain high quality parameters while keeping all SLOs satisfied
 - Minimal elasticity adjustments needed
 - Steady-state operation after initial optimization period
-
-#### 2. Variable Computational Budget Simulation (`SimulationType.VARIABLE_COMPUTATIONAL_BUDGET`)
-**Purpose**: Test agent response to sudden resource availability changes (worker outages/recovery).
-
-**Configuration**:
-- **Timeline**: Video processing with scheduled worker outages
-- **Workers**: 
-  - 1regular worker (capacity 0.5) - remain online throughout
-  - 1 outage worker (capacity 0.5) - simulate temporary failures
-- **Outage Schedule**:
-  - **0-33%**: All workers operational (full computational budget)
-  - **33-66%**: Outage workers go offline (reduced computational budget)
-  - **66-100%**: Outage workers return online (restored computational budget)
-
-**Expected Behavior**:
-- **33% mark**: Agents should detect resource reduction and proactively reduce quality parameters
-- **66% mark**: Agents should detect resource restoration and gradually increase quality parameters
-- Demonstrates adaptation to infrastructure failures/recovery scenarios
-
-#### 3. Variable Computational Demand Simulation (`SimulationType.VARIABLE_COMPUTATIONAL_DEMAND`)
+- 
+#### 2. Scenario B: Variable Computational Demand Simulation (`SimulationType.VARIABLE_COMPUTATIONAL_DEMAND`)
 **Purpose**: Test agent response to changing computational workload (multiple concurrent streams).
 
 **Configuration**:
@@ -975,6 +957,26 @@ The evaluation framework implements three distinct simulation scenarios to test 
 - **50% mark**: Agents should detect minor decrease demand and slightly increase reduce quality parameters
 - **75% mark**: Agents should detect baseline demand and restore higher quality parameters
 - Tests scalability and load management capabilities
+
+#### 3. Scenario C: Variable Computational Budget Simulation (`SimulationType.VARIABLE_COMPUTATIONAL_BUDGET`)
+**Purpose**: Test agent response to sudden resource availability changes (worker outages/recovery).
+
+**Configuration**:
+- **Timeline**: Video processing with scheduled worker outages
+- **Workers**: 
+  - 1regular worker (capacity 0.5) - remain online throughout
+  - 1 outage worker (capacity 0.5) - simulate temporary failures
+- **Outage Schedule**:
+  - **0-33%**: All workers operational (full computational budget)
+  - **33-66%**: Outage workers go offline (reduced computational budget)
+  - **66-100%**: Outage workers return online (restored computational budget)
+
+**Expected Behavior**:
+- **33% mark**: Agents should detect resource reduction and proactively reduce quality parameters
+- **66% mark**: Agents should detect resource restoration and gradually increase quality parameters
+- Demonstrates adaptation to infrastructure failures/recovery scenarios
+
+
 
 ### Metrics and Performance Analysis
 
